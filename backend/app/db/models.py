@@ -118,8 +118,10 @@ class GlossaryEntry(Base):
 
 class Card(Base):
     __tablename__ = "cards"
+    __table_args__ = (UniqueConstraint("source_version_id", "oracle_id"),)
 
-    oracle_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    oracle_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     source_version_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("source_versions.id", ondelete="CASCADE"), nullable=False, index=True
     )
@@ -137,11 +139,11 @@ class Card(Base):
 
 class CardFace(Base):
     __tablename__ = "card_faces"
-    __table_args__ = (UniqueConstraint("oracle_id", "position"),)
+    __table_args__ = (UniqueConstraint("card_id", "position"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
-    oracle_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("cards.oracle_id", ondelete="CASCADE"), nullable=False, index=True
+    card_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("cards.id", ondelete="CASCADE"), nullable=False, index=True
     )
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -152,11 +154,11 @@ class CardFace(Base):
 
 class CardAlias(Base):
     __tablename__ = "card_aliases"
-    __table_args__ = (UniqueConstraint("oracle_id", "normalized_alias"),)
+    __table_args__ = (UniqueConstraint("card_id", "normalized_alias"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
-    oracle_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("cards.oracle_id", ondelete="CASCADE"), nullable=False, index=True
+    card_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("cards.id", ondelete="CASCADE"), nullable=False, index=True
     )
     alias: Mapped[str] = mapped_column(String(255), nullable=False)
     normalized_alias: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
