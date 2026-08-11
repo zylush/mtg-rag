@@ -231,7 +231,7 @@ class SemanticCacheEntry(Base, TimestampMixin):
     prompt_version: Mapped[str] = mapped_column(String(64), nullable=False)
     retrieval_version: Mapped[str] = mapped_column(String(64), nullable=False)
     language: Mapped[str] = mapped_column(String(16), nullable=False)
-    filters: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    filters: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
 
 
