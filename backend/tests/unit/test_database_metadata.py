@@ -53,3 +53,18 @@ def test_source_activation_has_only_one_active_version_per_source() -> None:
     assert active_indexes[0].unique is True
     assert str(active_indexes[0].dialect_options["postgresql"]["where"]) == "is_active"
 
+
+def test_card_identity_is_version_scoped_so_previous_corpora_remain_rollbackable() -> None:
+    cards = Base.metadata.tables["cards"]
+    card_faces = Base.metadata.tables["card_faces"]
+    card_aliases = Base.metadata.tables["card_aliases"]
+
+    assert [column.name for column in cards.primary_key.columns] == ["id"]
+    unique_columns = {
+        tuple(column.name for column in constraint.columns)
+        for constraint in cards.constraints
+        if constraint.__class__.__name__ == "UniqueConstraint"
+    }
+    assert ("source_version_id", "oracle_id") in unique_columns
+    assert next(iter(card_faces.c.card_id.foreign_keys)).target_fullname == "cards.id"
+    assert next(iter(card_aliases.c.card_id.foreign_keys)).target_fullname == "cards.id"
