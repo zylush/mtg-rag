@@ -1,4 +1,7 @@
+import gzip
 import json
+
+import pytest
 
 from app.ingestion.corpus import parse_cards_corpus, parse_rules_corpus, parse_rulings_corpus
 
@@ -71,3 +74,26 @@ def test_ruling_corpus_preserves_attribution_in_each_passage() -> None:
     assert corpus.documents[0].metadata["attribution"] == "Wizards of the Coast"
     assert corpus.documents[0].canonical_key.startswith("00000000-0000-0000-0000-000000000011:")
 
+
+def test_scryfall_corpora_accept_current_gzip_json_lines_bulk_format() -> None:
+    card = {
+        "id": "00000000-0000-0000-0000-000000000010",
+        "oracle_id": "00000000-0000-0000-0000-000000000011",
+        "lang": "en",
+        "digital": False,
+        "name": "Lightning Bolt",
+        "layout": "normal",
+        "oracle_text": "Lightning Bolt deals 3 damage to any target.",
+    }
+    payload = gzip.compress((json.dumps(card) + "\n").encode())
+
+    corpus = parse_cards_corpus(payload, "cards-version")
+
+    assert [item.name for item in corpus.cards] == ["Lightning Bolt"]
+
+
+def test_scryfall_corpora_reject_invalid_json_lines() -> None:
+    payload = gzip.compress(b'{"oracle_id":"ok"}\nnot-json\n')
+
+    with pytest.raises(ValueError, match="JSON Lines"):
+        parse_rulings_corpus(payload, "rulings-version")
