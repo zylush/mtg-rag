@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, date, datetime
 
 import pytest
-from sqlalchemy import func
+from sqlalchemy import delete, func, or_
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.config import Settings
@@ -22,7 +22,7 @@ async def session_factory():  # type: ignore[no-untyped-def]
 
 
 def _embedding(first: float) -> list[float]:
-    return [first, *([0.0] * 1535)]
+    return [first, 1.0 - first, *([0.0] * 1534)]
 
 
 def _version(source_name: str, *, active: bool) -> SourceVersion:
@@ -87,6 +87,14 @@ async def retrieval_fixture(session_factory):  # type: ignore[no-untyped-def]
         document_text="Lightning Bolt deals 3 damage to any target.",
     )
     async with session_factory.begin() as session:
+        await session.execute(
+            delete(SourceVersion).where(
+                or_(
+                    SourceVersion.source_name.like("retrieval-%"),
+                    SourceVersion.source_name.like("inactive-%"),
+                )
+            )
+        )
         session.add_all([active_version, inactive_version])
         await session.flush()
         card.source_version_id = active_version.id
@@ -187,4 +195,3 @@ async def test_vector_search_uses_cosine_distance_and_excludes_inactive_passages
     assert result[0].passage.passage_id == str(passages[4].id)
     assert str(passages[5].id) not in {candidate.passage.passage_id for candidate in result}
     assert len(result) <= 20
-
