@@ -1,0 +1,2 @@
+"""FastAPI HTTP boundary."""
+
