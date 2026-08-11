@@ -1,0 +1,74 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mtg-rag-api"
+version = "0.1.0"
+description = "Grounded MTG rules expert API and ingestion job"
+requires-python = ">=3.12"
+dependencies = [
+  "alembic>=1.16,<2",
+  "asyncpg>=0.30,<1",
+  "fastapi>=0.116,<1",
+  "firebase-admin>=7,<8",
+  "google-cloud-logging>=3.12,<4",
+  "google-cloud-secret-manager>=2.24,<3",
+  "google-cloud-storage>=3.2,<4",
+  "httpx>=0.28,<1",
+  "openai>=1.99,<2",
+  "pgvector>=0.4,<1",
+  "pydantic-settings>=2.10,<3",
+  "python-json-logger>=3.3,<4",
+  "sqlalchemy[asyncio]>=2.0.40,<3",
+  "tenacity>=9.1,<10",
+  "uvicorn[standard]>=0.35,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.28,<1",
+  "mypy>=1.17,<2",
+  "pip-audit>=2.9,<3",
+  "pytest>=8.4,<9",
+  "pytest-asyncio>=1.1,<2",
+  "pytest-cov>=6.2,<7",
+  "ruff>=0.12,<1",
+]
+
+[project.scripts]
+mtg-rag-ingest = "app.ingestion.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers --strict-config"
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+  "integration: requires PostgreSQL",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["app"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "ASYNC", "S", "SIM", "RUF"]
+ignore = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+
