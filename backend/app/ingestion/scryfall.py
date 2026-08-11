@@ -84,7 +84,7 @@ def parse_oracle_cards(cards: Iterable[Mapping[str, Any]]) -> tuple[ParsedOracle
     for oracle_id in sorted(by_oracle_id):
         card = by_oracle_id[oracle_id]
         faces = _faces(card)
-        aliases = tuple(dict.fromkeys(face.name for face in faces))
+        aliases = tuple(dict.fromkeys([_required_string(card, "name"), *(face.name for face in faces)]))
         parts = [f"{face.name}\n{face.oracle_text}".strip() for face in faces]
         parsed.append(
             ParsedOracleCard(
@@ -123,4 +123,3 @@ def parse_rulings(rulings: Iterable[Mapping[str, Any]]) -> tuple[ParsedRuling, .
         )
     parsed.sort(key=lambda item: (priority[item.source], -item.published_at.toordinal(), item.comment))
     return tuple(parsed)
-
