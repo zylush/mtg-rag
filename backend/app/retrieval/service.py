@@ -43,8 +43,14 @@ class HybridRetrievalService:
 
     async def retrieve(self, question: str) -> list[RetrievedPassage]:
         analysis = analyze_question(question)
-        exact = list(await self._repository.exact(analysis, limit=20))
         query_embedding = await self._embedding.embed(analysis.normalized)
+        return await self.retrieve_with_embedding(question, query_embedding)
+
+    async def retrieve_with_embedding(
+        self, question: str, query_embedding: list[float]
+    ) -> list[RetrievedPassage]:
+        analysis = analyze_question(question)
+        exact = list(await self._repository.exact(analysis, limit=20))
         lexical = list(await self._repository.lexical(analysis.normalized, limit=20))
         vector = list(await self._repository.vector(query_embedding, limit=20))
 
@@ -84,4 +90,3 @@ class HybridRetrievalService:
             for candidate in [*vector, *lexical, *exact]
         }
         return [candidates[item.passage_id] for item in fused]
-
