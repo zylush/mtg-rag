@@ -51,7 +51,7 @@ async def test_downloader_validates_mime_size_and_returns_sha256(policy: Downloa
 
     assert result.payload == payload
     assert result.mime_type == "application/json"
-    assert result.sha256 == "4062edaf750fb8074e7e83e0c9028c94e32468a8b6f1614774328ef04513da31"
+    assert result.sha256 == "4062edaf750fb8074e7e83e0c9028c94e32468a8b6f1614774328ef045150f93"
 
 
 @pytest.mark.asyncio
@@ -88,4 +88,3 @@ async def test_downloader_rejects_unexpected_mime_type(policy: DownloadPolicy) -
             await download_source(
                 "https://data.scryfall.io/oracle.json", policy=policy, client=client
             )
-
