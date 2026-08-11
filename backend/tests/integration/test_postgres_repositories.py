@@ -18,13 +18,13 @@ from app.ingestion.repository import PostgresVersionRepository
 from app.usage.repository import PostgresUsageRepository
 
 
-@pytest.fixture(scope="module")
-def session_factory():  # type: ignore[no-untyped-def]
+@pytest.fixture
+async def session_factory():  # type: ignore[no-untyped-def]
     settings = Settings()
     engine = create_async_engine(settings.database_url, pool_pre_ping=True)
     factory = async_sessionmaker(engine, expire_on_commit=False)
     yield factory
-    asyncio.run(engine.dispose())
+    await engine.dispose()
 
 
 @pytest.mark.asyncio
@@ -169,4 +169,3 @@ async def test_conversation_queries_and_deletes_enforce_firebase_ownership(sessi
         user=AuthenticatedUser(firebase_uid=owner_uid, email=None),
         conversation_id=conversation.id,
     )
-
