@@ -255,3 +255,12 @@ async def test_cors_allows_only_configured_frontend_origin(client: httpx.AsyncCl
     assert allowed.headers["access-control-allow-origin"] == "https://rules.example.com"
     assert "access-control-allow-origin" not in denied.headers
 
+
+def test_api_exposes_no_public_ingestion_sql_or_model_tool_route(app) -> None:  # type: ignore[no-untyped-def]
+    paths = {route.path for route in app.routes}
+
+    assert not any(
+        forbidden in path
+        for path in paths
+        for forbidden in ("ingest", "sql", "tool", "openai", "url")
+    )
