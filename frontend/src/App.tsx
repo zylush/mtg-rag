@@ -20,6 +20,8 @@ import { type FormEvent, useEffect, useRef, useState } from "react"
 import ReactMarkdown from "react-markdown"
 import rehypeSanitize from "rehype-sanitize"
 
+import { AboutPage, LegalDocumentPage, WelcomePage } from "./PublicPages"
+import { AppLink, RouterProvider, useRouter } from "./routing"
 import type {
   ApiPort,
   AskResponse,
@@ -303,7 +305,19 @@ function Login({ auth }: { auth: AuthPort }) {
           <ShieldCheck aria-hidden="true" />
           Sign in with Google
         </button>
+        {signIn.isError && (
+          <div className="status-message error" role="alert">
+            Sign-in did not complete. Check popup permissions and try again.
+          </div>
+        )}
         <small>Available in Taiwan, Japan, South Korea, and Singapore.</small>
+        <div className="login-links" aria-label="Legal links">
+          <span>By continuing, you acknowledge the</span>
+          <AppLink to="/terms">Terms of Service</AppLink>
+          <span>and</span>
+          <AppLink to="/privacy">Privacy Policy</AppLink>
+          <span>.</span>
+        </div>
         <small className="legal-notice">
           MTG Rules Desk is unofficial fan content. Wizards of the Coast neither
           approves nor endorses it. Card data and rulings are provided by Scryfall;
@@ -314,15 +328,22 @@ function Login({ auth }: { auth: AuthPort }) {
   )
 }
 
-export function App({
-  auth,
-  api,
-  install,
-}: {
+type AppProps = {
   auth: AuthPort
   api: ApiPort
   install: InstallPort
-}) {
+}
+
+export function App(props: AppProps) {
+  return (
+    <RouterProvider>
+      <AppContent {...props} />
+    </RouterProvider>
+  )
+}
+
+function AppContent({ auth, api, install }: AppProps) {
+  const { route, navigate } = useRouter()
   const [user, setUser] = useState<User | null | undefined>(undefined)
   const [panel, setPanel] = useState<Panel>("chat")
   const [question, setQuestion] = useState("")
@@ -333,6 +354,10 @@ export function App({
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => auth.subscribe(setUser), [auth])
+  useEffect(() => {
+    if (user === null && route === "/desk") navigate("/login")
+    if (user && (route === "/" || route === "/login")) navigate("/desk")
+  }, [navigate, route, user])
   useEffect(() => {
     const ready = () => setInstallReady(true)
     window.addEventListener("mtg-install-ready", ready)
@@ -363,6 +388,11 @@ export function App({
   if (user === undefined) {
     return <div className="loading-screen">Opening the rules desk…</div>
   }
+  if (route === "/about") return <AboutPage />
+  if (route === "/terms") return <LegalDocumentPage kind="terms" />
+  if (route === "/privacy") return <LegalDocumentPage kind="privacy" />
+  if (route === "/login") return <Login auth={auth} />
+  if (route === "/" && user === null) return <WelcomePage />
   if (user === null) return <Login auth={auth} />
 
   return (
@@ -385,6 +415,10 @@ export function App({
           </div>
         </div>
         <div className="topbar-actions">
+          <nav className="topbar-links" aria-label="Desk links">
+            <AppLink to="/about">About</AppLink>
+            <AppLink to="/terms">Legal</AppLink>
+          </nav>
           {installReady && (
             <button
               className="utility-button"

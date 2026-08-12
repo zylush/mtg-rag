@@ -135,7 +135,7 @@ describe("MTG Rules Desk", () => {
     expect(screen.getByRole("link", { name: /privacy policy/i })).toBeVisible()
   })
 
-  it("renders about and legal pages without authentication or API calls", () => {
+  it("renders about and legal pages without authentication or API calls", async () => {
     const api = fakeApi()
     renderApp(new FakeAuth(null), api, undefined, "/about")
 
@@ -145,8 +145,12 @@ describe("MTG Rules Desk", () => {
 
     window.history.replaceState({}, "", "/terms")
     window.dispatchEvent(new PopStateEvent("popstate"))
-    expect(screen.getByRole("heading", { name: /terms of service/i })).toBeVisible()
+    expect(await screen.findByRole("heading", { name: /terms of service/i })).toBeVisible()
     expect(screen.getByText(/pending legal review/i)).toBeVisible()
+
+    window.history.replaceState({}, "", "/privacy")
+    window.dispatchEvent(new PopStateEvent("popstate"))
+    expect(await screen.findByRole("heading", { name: /privacy policy/i })).toBeVisible()
   })
 
   it("redirects a protected desk route to login and returns after sign-in", async () => {

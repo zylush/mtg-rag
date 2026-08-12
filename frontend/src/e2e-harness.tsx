@@ -18,6 +18,11 @@ if (!import.meta.env.DEV) {
   throw new Error("The E2E harness is available only in the Vite development server")
 }
 
+const requestedRoute = new URLSearchParams(window.location.search).get("route")
+if (requestedRoute?.startsWith("/")) {
+  window.history.replaceState({}, "", requestedRoute)
+}
+
 const answer: AskResponse = {
   conversation_id: "conversation-1",
   message_id: "message-2",

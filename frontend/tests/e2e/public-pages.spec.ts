@@ -12,7 +12,7 @@ test("shows a public welcome preview and legal navigation", async ({ page }) => 
   await expect(page.getByText(/question.*answer.*sources/i)).toBeVisible()
   await expect(page.getByRole("link", { name: "Terms of Service" })).toBeVisible()
   await expect(page.getByRole("link", { name: "Privacy Policy" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Sign in with Google" })).toBeVisible()
+  await expect(page.getByRole("link", { name: "Sign in with Google" })).toBeVisible()
 })
 
 test("opens About, Terms, and Privacy without authentication", async ({ page }) => {
