@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+// Route coverage follows the public-to-authenticated product flow.
 
 import { App } from "./App"
 import type {
@@ -104,7 +105,9 @@ function renderApp(
   auth: AuthPort = new FakeAuth({ uid: "firebase-1", email: "judge@example.com" }),
   api: ApiPort = fakeApi(),
   install: InstallPort = { available: false, install: vi.fn() },
+  path = "/desk",
 ) {
+  window.history.replaceState({}, "", path)
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
@@ -123,6 +126,41 @@ beforeEach(() => {
 })
 
 describe("MTG Rules Desk", () => {
+  it("renders a public welcome page with a static source preview", () => {
+    renderApp(new FakeAuth(null), undefined, undefined, "/")
+
+    expect(screen.getByRole("heading", { name: /settle the rules question/i })).toBeVisible()
+    expect(screen.getByText(/question.*answer.*sources/i)).toBeVisible()
+    expect(screen.getByRole("link", { name: /terms of service/i })).toBeVisible()
+    expect(screen.getByRole("link", { name: /privacy policy/i })).toBeVisible()
+  })
+
+  it("renders about and legal pages without authentication or API calls", () => {
+    const api = fakeApi()
+    renderApp(new FakeAuth(null), api, undefined, "/about")
+
+    expect(screen.getByRole("heading", { name: /about mtg rules desk/i })).toBeVisible()
+    expect(screen.getByText(/how an answer is produced/i)).toBeVisible()
+    expect(api.conversations).not.toHaveBeenCalled()
+
+    window.history.replaceState({}, "", "/terms")
+    window.dispatchEvent(new PopStateEvent("popstate"))
+    expect(screen.getByRole("heading", { name: /terms of service/i })).toBeVisible()
+    expect(screen.getByText(/pending legal review/i)).toBeVisible()
+  })
+
+  it("redirects a protected desk route to login and returns after sign-in", async () => {
+    const user = userEvent.setup()
+    renderApp(new FakeAuth(null), undefined, undefined, "/desk")
+
+    expect(screen.getByRole("heading", { name: /settle the rules question/i })).toBeVisible()
+    expect(window.location.pathname).toBe("/login")
+    await user.click(screen.getByRole("button", { name: /sign in with google/i }))
+
+    expect(await screen.findByRole("textbox", { name: /rules question/i })).toBeVisible()
+    expect(window.location.pathname).toBe("/desk")
+  })
+
   it("requires Firebase sign-in before exposing the rules desk", async () => {
     const user = userEvent.setup()
     renderApp(new FakeAuth(null))
