@@ -1,7 +1,8 @@
 import AxeBuilder from "@axe-core/playwright"
 import { expect, test } from "@playwright/test"
+import type { Page } from "@playwright/test"
 
-async function signIn(page: import("@playwright/test").Page) {
+async function signIn(page: Page) {
   await page.goto("/e2e.html")
   await page.getByRole("button", { name: "Sign in with Google" }).click()
   await expect(page.getByRole("textbox", { name: "Rules question" })).toBeVisible()
@@ -67,4 +68,27 @@ test("has no detectable WCAG 2.1 AA violations at desktop and mobile widths", as
   await expect(page.getByRole("navigation", { name: "Primary" })).toBeVisible()
   results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze()
   expect(results.violations).toEqual([])
+})
+
+test("supports keyboard entry and stable layouts at release breakpoints", async ({ page }) => {
+  await page.goto("/e2e.html")
+  await expect(page.getByRole("button", { name: "Sign in with Google" })).toBeVisible()
+  await page.keyboard.press("Tab")
+  await expect(page.getByRole("button", { name: "Sign in with Google" })).toBeFocused()
+  await page.keyboard.press("Enter")
+  await page.getByRole("textbox", { name: "Rules question" }).fill("What blocks flying?")
+  await page.getByRole("button", { name: "Ask", exact: true }).click()
+  await expect(page.getByText(/only be blocked by creatures with flying/i)).toBeVisible()
+
+  for (const width of [375, 768, 1440]) {
+    await page.setViewportSize({ width, height: width === 375 ? 812 : 900 })
+    const hasHorizontalOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    )
+    expect(hasHorizontalOverflow).toBe(false)
+    await expect(page).toHaveScreenshot(`rules-desk-${width}.png`, {
+      animations: "disabled",
+      fullPage: true,
+    })
+  }
 })

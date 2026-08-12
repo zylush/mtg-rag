@@ -10,8 +10,9 @@ export default defineConfig({
     VitePWA({
       registerType: "prompt",
       injectRegister: false,
-      includeAssets: ["favicon.svg", "apple-touch-icon.svg"],
+      includeAssets: ["favicon.ico", "favicon.svg", "apple-touch-icon-180x180.png"],
       manifest: {
+        id: "/",
         name: "MTG Rules Desk",
         short_name: "Rules Desk",
         description: "A grounded Magic: The Gathering rules reference.",
@@ -22,17 +23,28 @@ export default defineConfig({
         background_color: "#f4f5f2",
         theme_color: "#102a43",
         icons: [
-          { src: "/pwa-192x192.svg", sizes: "192x192", type: "image/svg+xml", purpose: "any" },
           {
-            src: "/pwa-512x512.svg",
+            src: "/pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: "/pwa-512x512.png",
             sizes: "512x512",
-            type: "image/svg+xml",
-            purpose: "any maskable",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: "/maskable-icon-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
           },
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,woff2}"],
+        globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}"],
         navigateFallback: "/index.html",
         runtimeCaching: [],
       },
@@ -40,6 +52,7 @@ export default defineConfig({
   ],
   test: {
     environment: "jsdom",
+    exclude: ["tests/e2e/**", "node_modules/**", "dist/**"],
     globals: true,
     setupFiles: "./src/test/setup.ts",
     coverage: {

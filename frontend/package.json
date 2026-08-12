@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "check:pwa": "npm run build && node scripts/check-pwa.mjs",
     "lint": "eslint .",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

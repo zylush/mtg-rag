@@ -16,7 +16,7 @@
   text-rendering: optimizeLegibility;
   --ink: #10263a;
   --muted: #526474;
-  --faint: #74838f;
+  --faint: #5e6f7b;
   --paper: #f4f5f1;
   --surface: #fffdfa;
   --line: #cfd6d4;
@@ -285,6 +285,7 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   padding: 7px;
   background: transparent;
 }
+.icon-button.mobile-menu { display: none; }
 .icon-button:hover { border-color: var(--line); background: #fff; }
 .icon-button svg { width: 18px; }
 .status-message {
@@ -585,7 +586,7 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
     grid-column: 1;
     padding: 0 14px;
   }
-  .mobile-menu { display: inline-flex; }
+  .icon-button.mobile-menu { display: inline-flex; }
   .wordmark span:not(.wordmark-mark), .utility-button { display: none; }
   .side-nav {
     position: fixed;
