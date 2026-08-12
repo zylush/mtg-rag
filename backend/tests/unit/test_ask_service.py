@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import uuid
 import logging
+import uuid
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime
 
 import pytest
 
@@ -15,7 +15,6 @@ from app.cache.repository import CachedAnswer
 from app.generation.citations import ResolvedAnswer, ResolvedCitation
 from app.generation.openai_adapter import RetrievedPassage
 from app.generation.service import GenerationOutcome
-
 
 USER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 CONVERSATION_ID = uuid.UUID("00000000-0000-0000-0000-000000000010")
@@ -273,7 +272,7 @@ async def test_atomic_commit_rejection_reports_daily_quota_exhaustion() -> None:
 async def test_completed_answer_logs_operational_metadata_without_user_content(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    private_content = "private question text that must not be logged"
+    private_content = "What is private-flying-content-that-must-not-be-logged?"
     caplog.set_level(logging.INFO, logger="app.ask.service")
 
     await service().ask(

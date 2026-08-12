@@ -5,7 +5,7 @@ import logging
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Protocol
+from typing import Literal, Protocol
 
 from app.api.auth import AuthenticatedUser
 from app.api.schemas import AskResponse, CitationResponse
@@ -22,8 +22,8 @@ from app.generation.openai_adapter import RetrievedPassage
 from app.generation.service import GenerationOutcome
 from app.retrieval.analysis import analyze_question
 
-
 logger = logging.getLogger(__name__)
+CacheStatus = Literal["exact", "semantic", "miss", "ineligible"]
 
 
 @dataclass(frozen=True)
@@ -124,7 +124,7 @@ def _api_response(
     committed: CommittedExchange,
     *,
     daily_limit: int,
-    cache_status: str,
+    cache_status: CacheStatus,
 ) -> AskResponse:
     return AskResponse(
         conversation_id=committed.conversation_id,
@@ -143,7 +143,44 @@ def _api_response(
         confidence=answer.confidence,
         needs_clarification=answer.needs_clarification,
         quota_remaining=max(0, daily_limit - committed.successful_answers),
-        cache_status=cache_status,  # type: ignore[arg-type]
+        cache_status=cache_status,
+    )
+
+
+def _completed_response(
+    answer: ResolvedAnswer,
+    committed: CommittedExchange,
+    *,
+    daily_limit: int,
+    cache_status: CacheStatus,
+    context: CacheContext,
+    model_result: GenerationOutcome | None,
+) -> AskResponse:
+    logger.info(
+        "answer_completed",
+        extra={
+            "conversation_id": str(committed.conversation_id),
+            "message_id": str(committed.message_id),
+            "cache_status": cache_status,
+            "source_versions": dict(sorted(context.corpus_versions.items())),
+            "model": model_result.model if model_result is not None else context.generation_model,
+            "openai_request_id": (
+                model_result.request_id if model_result is not None else None
+            ),
+            "model_latency_ms": model_result.latency_ms if model_result is not None else 0,
+            "input_tokens": model_result.input_tokens if model_result is not None else 0,
+            "output_tokens": model_result.output_tokens if model_result is not None else 0,
+            "citation_repaired": (
+                model_result.citation_repaired if model_result is not None else False
+            ),
+            "citation_count": len(answer.citations),
+        },
+    )
+    return _api_response(
+        answer,
+        committed,
+        daily_limit=daily_limit,
+        cache_status=cache_status,
     )
 
 
@@ -182,7 +219,7 @@ class AskApplicationService:
         conversation_id: uuid.UUID | None,
         question: str,
         answer: ResolvedAnswer,
-        cache_status: str,
+        cache_status: CacheStatus,
         model_result: GenerationOutcome | None,
         now: datetime,
     ) -> CommittedExchange:
@@ -228,8 +265,13 @@ class AskApplicationService:
                 model_result=None,
                 now=now,
             )
-            return _api_response(
-                answer, committed, daily_limit=self._daily_limit, cache_status="exact"
+            return _completed_response(
+                answer,
+                committed,
+                daily_limit=self._daily_limit,
+                cache_status="exact",
+                context=context,
+                model_result=None,
             )
 
         profile = _base_profile(question)
@@ -253,8 +295,13 @@ class AskApplicationService:
                 model_result=None,
                 now=now,
             )
-            return _api_response(
-                answer, committed, daily_limit=self._daily_limit, cache_status="semantic"
+            return _completed_response(
+                answer,
+                committed,
+                daily_limit=self._daily_limit,
+                cache_status="semantic",
+                context=context,
+                model_result=None,
             )
 
         retrieval = await self._retrieval.retrieve_with_embedding(question, question_embedding)
@@ -263,7 +310,9 @@ class AskApplicationService:
             passages=retrieval.passages,
             safety_identifier=_safety_identifier(user.firebase_uid),
         )
-        cache_status = "miss" if is_semantic_cache_eligible(profile) else "ineligible"
+        cache_status: CacheStatus = (
+            "miss" if is_semantic_cache_eligible(profile) else "ineligible"
+        )
         committed = await self._commit(
             user_id=user_id,
             conversation_id=conversation_id,
@@ -298,10 +347,11 @@ class AskApplicationService:
             except (ValueError, RuntimeError):
                 logger.warning("semantic_cache_write_failed", extra={"category": "cache_write"})
 
-        return _api_response(
+        return _completed_response(
             generated.answer,
             committed,
             daily_limit=self._daily_limit,
             cache_status=cache_status,
+            context=context,
+            model_result=generated,
         )
-
