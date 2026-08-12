@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     daily_answer_limit: int = 20
     burst_limit_per_minute: int = 5
     max_question_characters: int = 2000
+    request_timeout_seconds: float = 30.0
+    max_request_body_bytes: int = 64 * 1024
+    max_response_body_bytes: int = 1024 * 1024
     gcp_project_id: str | None = None
     gcs_snapshot_bucket: str | None = None
     log_level: str = "INFO"
@@ -44,11 +47,24 @@ class Settings(BaseSettings):
             raise ValueError("semantic cache similarity must be between 0 and 1")
         return value
 
-    @field_validator("daily_answer_limit", "burst_limit_per_minute", "max_question_characters")
+    @field_validator(
+        "daily_answer_limit",
+        "burst_limit_per_minute",
+        "max_question_characters",
+        "max_request_body_bytes",
+        "max_response_body_bytes",
+    )
     @classmethod
     def validate_positive(cls, value: int) -> int:
         if value < 1:
             raise ValueError("limit must be positive")
+        return value
+
+    @field_validator("request_timeout_seconds")
+    @classmethod
+    def validate_timeout(cls, value: float) -> float:
+        if value <= 0:
+            raise ValueError("timeout must be positive")
         return value
 
 

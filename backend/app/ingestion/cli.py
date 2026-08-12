@@ -266,7 +266,7 @@ async def run_ingestion_job(settings: Settings | None = None) -> tuple[Ingestion
     session_factory = create_session_factory(engine)
     openai_client = AsyncOpenAI(
         api_key=resolved_settings.openai_api_key.get_secret_value(),
-        timeout=httpx.Timeout(30.0, connect=5.0),
+        timeout=30.0,
         max_retries=2,
     )
     storage_client = storage.Client(project=resolved_settings.gcp_project_id)

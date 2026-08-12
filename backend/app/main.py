@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-import firebase_admin
-import httpx
+import firebase_admin  # type: ignore[import-untyped]
 from openai import AsyncOpenAI
 
 from app.api.app import create_app
 from app.config import get_settings
 from app.db.session import create_engine, create_session_factory
 from app.runtime import build_services
-
 
 settings = get_settings()
 engine = create_engine(settings.database_url)
@@ -27,7 +25,7 @@ api_key = (
 )
 openai_client = AsyncOpenAI(
     api_key=api_key,
-    timeout=httpx.Timeout(30.0, connect=5.0),
+    timeout=30.0,
     max_retries=2,
 )
 services = build_services(
@@ -42,4 +40,3 @@ app = create_app(settings=settings, services=services)
 async def shutdown() -> None:
     await openai_client.close()
     await engine.dispose()
-

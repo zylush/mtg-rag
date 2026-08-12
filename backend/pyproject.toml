@@ -16,7 +16,7 @@ dependencies = [
   "google-cloud-secret-manager>=2.24,<3",
   "google-cloud-storage>=3.2,<4",
   "httpx>=0.28,<1",
-  "openai>=1.99,<2",
+  "openai==3.0.0",
   "pgvector>=0.4,<1",
   "pydantic-settings>=2.10,<3",
   "python-json-logger>=3.3,<4",
@@ -71,4 +71,3 @@ ignore = ["S101"]
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
-

@@ -83,7 +83,7 @@ def _app(ask: Ask, **overrides: object):  # type: ignore[no-untyped-def]
 async def test_request_metrics_use_bounded_correlation_id_without_logging_content(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    secret_question = "private-question-content-must-not-appear"
+    private_content = "private-question-content-must-not-appear"
     app = _app(Ask())
     caplog.set_level(logging.INFO, logger="app.api.middleware")
 
@@ -97,7 +97,7 @@ async def test_request_metrics_use_bounded_correlation_id_without_logging_conten
                 "Authorization": "Bearer token",
                 "X-Request-ID": "web-123",
             },
-            json={"question": secret_question},
+            json={"question": private_content},
         )
 
     assert response.status_code == 200
@@ -108,7 +108,7 @@ async def test_request_metrics_use_bounded_correlation_id_without_logging_conten
     assert record.path == "/v1/ask"  # type: ignore[attr-defined]
     assert record.status_code == 200  # type: ignore[attr-defined]
     assert record.response_bytes > 0  # type: ignore[attr-defined]
-    assert secret_question not in caplog.text
+    assert private_content not in caplog.text
 
 
 @pytest.mark.asyncio
@@ -184,6 +184,7 @@ async def test_request_timeout_returns_bounded_gateway_error() -> None:
     [
         (CorpusUnavailableError("missing corpus"), 503, "rules corpus is unavailable"),
         (ModelOutputError("bad model output"), 502, "model response was invalid"),
+        (RuntimeError("private database failure"), 500, "internal server error"),
     ],
 )
 async def test_known_upstream_failures_return_content_free_error_categories(

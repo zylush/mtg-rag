@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, cast
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from openai import APIError
 
 from app.api.auth import AuthenticatedUser, TokenVerificationError
+from app.api.middleware import RequestBoundaryMiddleware
 from app.api.schemas import (
     AskRequest,
     AskResponse,
@@ -21,11 +23,13 @@ from app.api.services import (
     QuotaExceededError,
     ResourceNotFoundError,
 )
+from app.cache.context import CorpusUnavailableError
 from app.config import Settings
+from app.generation.openai_adapter import ModelOutputError
 
 
 def _services(request: Request) -> AppServices:
-    return request.app.state.services
+    return cast(AppServices, request.app.state.services)
 
 
 async def _current_user(
@@ -69,11 +73,18 @@ def create_app(*, settings: Settings, services: AppServices) -> FastAPI:
     )
     app.state.services = services
     app.add_middleware(
+        RequestBoundaryMiddleware,
+        timeout_seconds=settings.request_timeout_seconds,
+        max_request_bytes=settings.max_request_body_bytes,
+        max_response_bytes=settings.max_response_body_bytes,
+    )
+    app.add_middleware(
         CORSMiddleware,
         allow_origins=[settings.frontend_origin],
         allow_credentials=False,
         allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type"],
+        expose_headers=["X-Request-ID"],
         max_age=600,
     )
 
@@ -91,6 +102,29 @@ def create_app(*, settings: Settings, services: AppServices) -> FastAPI:
             status_code=429,
             content={"detail": "ask rate limit reached"},
             headers={"Retry-After": "60"},
+        )
+
+    @app.exception_handler(CorpusUnavailableError)
+    async def corpus_unavailable_handler(
+        request: Request, exc: CorpusUnavailableError
+    ) -> JSONResponse:
+        request.state.error_category = "corpus_unavailable"
+        return JSONResponse(status_code=503, content={"detail": "rules corpus is unavailable"})
+
+    @app.exception_handler(ModelOutputError)
+    async def invalid_model_output_handler(
+        request: Request, exc: ModelOutputError
+    ) -> JSONResponse:
+        request.state.error_category = "model_output"
+        return JSONResponse(status_code=502, content={"detail": "model response was invalid"})
+
+    @app.exception_handler(APIError)
+    async def model_api_handler(request: Request, exc: APIError) -> JSONResponse:
+        request.state.error_category = "model_upstream"
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "model service is unavailable"},
+            headers={"Retry-After": "5"},
         )
 
     @app.get("/healthz")
@@ -138,4 +172,3 @@ def create_app(*, settings: Settings, services: AppServices) -> FastAPI:
         return Response(status_code=204)
 
     return app
-

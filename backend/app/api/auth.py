@@ -5,7 +5,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from firebase_admin import auth as firebase_auth
+from firebase_admin import auth as firebase_auth  # type: ignore[import-untyped]
 
 
 class TokenVerificationError(ValueError):
@@ -38,4 +38,3 @@ class FirebaseTokenVerifier:
             return AuthenticatedUser(firebase_uid=uid, email=email)
         except Exception as exc:
             raise TokenVerificationError("invalid authentication token") from exc
-

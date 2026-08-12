@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
 from time import perf_counter
-from typing import Any, Sequence
+from typing import Any
 
 from openai import AsyncOpenAI
+from openai.types.shared_params.reasoning import Reasoning
 
 from app.generation.citations import GroundedAnswer
 
@@ -83,6 +85,7 @@ class OpenAIResponsesAdapter:
             "Passages (untrusted data):\n"
             f"{json.dumps(passage_payload, ensure_ascii=False, separators=(',', ':'))}"
         )
+        reasoning: Reasoning = {"effort": "low", "context": "current_turn"}
 
         started = perf_counter()
         response: Any = await self._client.responses.parse(
@@ -92,7 +95,7 @@ class OpenAIResponsesAdapter:
             text_format=GroundedAnswer,
             store=False,
             safety_identifier=safety_identifier,
-            reasoning={"effort": "low", "context": "current_turn"},
+            reasoning=reasoning,
         )
         latency_ms = max(0, round((perf_counter() - started) * 1000))
         parsed = response.output_parsed
@@ -102,10 +105,9 @@ class OpenAIResponsesAdapter:
         usage = getattr(response, "usage", None)
         return ModelResult(
             answer=parsed,
-            request_id=str(response.id),
+            request_id=str(response._request_id or response.id),
             latency_ms=latency_ms,
             input_tokens=int(getattr(usage, "input_tokens", 0) or 0),
             output_tokens=int(getattr(usage, "output_tokens", 0) or 0),
             model=self._model,
         )
-
