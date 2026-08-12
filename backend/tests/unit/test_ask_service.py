@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+import logging
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
@@ -267,3 +268,33 @@ async def test_atomic_commit_rejection_reports_daily_quota_exhaustion() -> None:
             conversation_id=None,
         )
 
+
+@pytest.mark.asyncio
+async def test_completed_answer_logs_operational_metadata_without_user_content(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    private_content = "private question text that must not be logged"
+    caplog.set_level(logging.INFO, logger="app.ask.service")
+
+    await service().ask(
+        user=AuthenticatedUser(firebase_uid="private-firebase-identity", email=None),
+        question=private_content,
+        conversation_id=None,
+    )
+
+    record = next(item for item in caplog.records if item.message == "answer_completed")
+    assert record.conversation_id == str(CONVERSATION_ID)  # type: ignore[attr-defined]
+    assert record.message_id == str(MESSAGE_ID)  # type: ignore[attr-defined]
+    assert record.cache_status == "miss"  # type: ignore[attr-defined]
+    assert record.source_versions == {  # type: ignore[attr-defined]
+        "rules": "r1",
+        "cards": "c1",
+        "rulings": "u1",
+    }
+    assert record.model == "gpt-5.6-terra"  # type: ignore[attr-defined]
+    assert record.openai_request_id == "resp_1"  # type: ignore[attr-defined]
+    assert record.model_latency_ms == 12  # type: ignore[attr-defined]
+    assert record.input_tokens == 100  # type: ignore[attr-defined]
+    assert record.output_tokens == 30  # type: ignore[attr-defined]
+    assert private_content not in caplog.text
+    assert "private-firebase-identity" not in caplog.text
