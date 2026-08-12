@@ -5,7 +5,6 @@ import pytest
 
 from app.ingestion.corpus import parse_cards_corpus, parse_rules_corpus, parse_rulings_corpus
 
-
 RULES = """Magic: The Gathering Comprehensive Rules
 These rules are effective as of July 25, 2026.
 

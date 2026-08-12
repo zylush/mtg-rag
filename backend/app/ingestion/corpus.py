@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import gzip
 import hashlib
+import io
 import json
 from typing import Any
 from urllib.parse import quote
@@ -14,13 +16,43 @@ def _hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def _json_array(payload: bytes) -> list[dict[str, Any]]:
+MAX_SCRYFALL_UNCOMPRESSED_BYTES = 512 * 1024 * 1024
+
+
+def _gzip_json_lines(payload: bytes) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    total_bytes = 0
+    try:
+        with gzip.GzipFile(fileobj=io.BytesIO(payload)) as stream:
+            for line_number, line in enumerate(stream, start=1):
+                total_bytes += len(line)
+                if total_bytes > MAX_SCRYFALL_UNCOMPRESSED_BYTES:
+                    raise ScryfallParseError("bulk payload exceeds uncompressed size limit")
+                if not line.strip():
+                    continue
+                item = json.loads(line)
+                if not isinstance(item, dict):
+                    raise ScryfallParseError(
+                        f"bulk JSON Lines record {line_number} is not an object"
+                    )
+                records.append(item)
+    except (gzip.BadGzipFile, EOFError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ScryfallParseError("bulk payload is not valid gzip JSON Lines") from exc
+    return records
+
+
+def _json_records(payload: bytes) -> list[dict[str, Any]]:
+    if payload.startswith(b"\x1f\x8b"):
+        return _gzip_json_lines(payload)
+
     try:
         decoded = json.loads(payload)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ScryfallParseError("bulk payload is not valid UTF-8 JSON") from exc
+        raise ScryfallParseError("bulk payload is not valid UTF-8 JSON or JSON Lines") from exc
+    if isinstance(decoded, dict):
+        decoded = [decoded]
     if not isinstance(decoded, list) or not all(isinstance(item, dict) for item in decoded):
-        raise ScryfallParseError("bulk payload must be an array of objects")
+        raise ScryfallParseError("bulk payload must contain objects")
     return decoded
 
 
@@ -79,7 +111,7 @@ def parse_rules_corpus(payload: bytes, version_id: str) -> ParsedCorpus:
 
 
 def parse_cards_corpus(payload: bytes, version_id: str) -> ParsedCorpus:
-    cards = parse_oracle_cards(_json_array(payload))
+    cards = parse_oracle_cards(_json_records(payload))
     documents = tuple(
         CorpusDocument(
             canonical_key=card.oracle_id,
@@ -108,7 +140,7 @@ def parse_cards_corpus(payload: bytes, version_id: str) -> ParsedCorpus:
 
 
 def parse_rulings_corpus(payload: bytes, version_id: str) -> ParsedCorpus:
-    rulings = parse_rulings(_json_array(payload))
+    rulings = parse_rulings(_json_records(payload))
     documents: list[CorpusDocument] = []
     for ruling in rulings:
         content_hash = _hash(ruling.comment)
@@ -142,4 +174,3 @@ def parse_rulings_corpus(payload: bytes, version_id: str) -> ParsedCorpus:
         cards=(),
         rulings=rulings,
     )
-

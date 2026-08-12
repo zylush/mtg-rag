@@ -54,7 +54,15 @@ class IngestionResult:
 
 
 class SnapshotStore(Protocol):
-    async def put_immutable(self, **kwargs: object) -> str: ...
+    async def put_immutable(
+        self,
+        *,
+        source_name: str,
+        fetched_at: datetime,
+        sha256: str,
+        payload: bytes,
+        mime_type: str,
+    ) -> str: ...
 
 
 class EmbeddingProvider(Protocol):
@@ -64,7 +72,15 @@ class EmbeddingProvider(Protocol):
 class IngestionRepository(Protocol):
     async def find_version_by_sha(self, source_name: str, sha256: str) -> str | None: ...
 
-    async def create_staged_version(self, **kwargs: object) -> str: ...
+    async def create_staged_version(
+        self,
+        *,
+        source: SourceDefinition,
+        source_url: str,
+        fetched_at: datetime,
+        sha256: str,
+        raw_gcs_uri: str,
+    ) -> str: ...
 
     async def active_document_embeddings(
         self, source_name: str
@@ -167,4 +183,3 @@ class IngestionPipeline:
             version_id=version_id,
             new_embedding_count=new_embedding_count,
         )
-

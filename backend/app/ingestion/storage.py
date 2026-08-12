@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import suppress
 from datetime import datetime
 
 from google.api_core.exceptions import PreconditionFailed
-from google.cloud.storage import Bucket
+from google.cloud.storage import Bucket  # type: ignore[import-untyped]
 
 
 class GCSSnapshotStore:
@@ -27,15 +28,12 @@ class GCSSnapshotStore:
         blob = self._bucket.blob(object_name)
         blob.cache_control = "no-store"
         blob.metadata = {"sha256": sha256, "source": source_name}
-        try:
+        # A concurrent run may store the same content-addressed object first.
+        with suppress(PreconditionFailed):
             await asyncio.to_thread(
                 blob.upload_from_string,
                 payload,
                 content_type=mime_type,
                 if_generation_match=0,
             )
-        except PreconditionFailed:
-            # A concurrent run stored the same content-addressed object first.
-            pass
         return f"gs://{self._bucket.name}/{object_name}"
-
