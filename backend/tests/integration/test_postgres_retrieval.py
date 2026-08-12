@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, date, datetime
 
 import pytest
-from sqlalchemy import delete, func, or_
+from sqlalchemy import delete, func
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.config import Settings
@@ -87,20 +87,19 @@ async def retrieval_fixture(session_factory):  # type: ignore[no-untyped-def]
         document_text="Lightning Bolt deals 3 damage to any target.",
     )
     async with session_factory.begin() as session:
-        await session.execute(
-            delete(SourceVersion).where(
-                or_(
-                    SourceVersion.source_name.like("retrieval-%"),
-                    SourceVersion.source_name.like("inactive-%"),
-                )
-            )
-        )
+        await session.execute(delete(SourceVersion))
         session.add_all([active_version, inactive_version])
         await session.flush()
         card.source_version_id = active_version.id
         session.add(card)
         await session.flush()
-        session.add(CardAlias(card_id=card.id, alias="Lightning Bolt", normalized_alias="lightning bolt"))
+        session.add(
+            CardAlias(
+                card_id=card.id,
+                alias="Lightning Bolt",
+                normalized_alias="lightning bolt",
+            )
+        )
         passages = [
             _passage(
                 source_version_id=active_version.id,

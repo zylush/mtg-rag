@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Protocol, Sequence
+from typing import Protocol
 
 from app.generation.citations import (
     CitationValidationError,
@@ -71,7 +72,11 @@ class GroundedGenerationService:
             safety_identifier=safety_identifier,
         )
         try:
-            return _outcome(validate_citations(first.answer, canonical), first, citation_repaired=False)
+            return _outcome(
+                validate_citations(first.answer, canonical),
+                first,
+                citation_repaired=False,
+            )
         except CitationValidationError as first_error:
             repaired = await self._adapter.generate(
                 question=question,
@@ -88,7 +93,8 @@ class GroundedGenerationService:
             except CitationValidationError:
                 abstention = ResolvedAnswer(
                     answer=(
-                        "I couldn't verify the generated citations against the active rules corpus, "
+                        "I couldn't verify the generated citations against the "
+                        "active rules corpus, "
                         "so I can't provide a supported answer."
                     ),
                     citations=[],
@@ -97,4 +103,3 @@ class GroundedGenerationService:
                     needs_clarification=False,
                 )
                 return _outcome(abstention, repaired, citation_repaired=True)
-

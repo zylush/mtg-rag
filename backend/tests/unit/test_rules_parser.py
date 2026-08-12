@@ -4,7 +4,6 @@ import pytest
 
 from app.ingestion.rules import RulesParseError, parse_comprehensive_rules
 
-
 RULES_FIXTURE = """Magic: The Gathering Comprehensive Rules
 These rules are effective as of July 25, 2026.
 

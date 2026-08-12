@@ -43,7 +43,10 @@ class SourceVersion(Base):
     __tablename__ = "source_versions"
     __table_args__ = (
         UniqueConstraint("source_name", "sha256"),
-        CheckConstraint("status IN ('staged', 'active', 'inactive', 'failed')", name="valid_status"),
+        CheckConstraint(
+            "status IN ('staged', 'active', 'inactive', 'failed')",
+            name="valid_status",
+        ),
         Index(
             "uq_active_source_version",
             "source_name",
@@ -125,13 +128,19 @@ class Card(Base):
     source_version_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("source_versions.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    representative_printing_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    representative_printing_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        nullable=False,
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     normalized_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     layout: Mapped[str] = mapped_column(String(64), nullable=False)
     document_text: Mapped[str] = mapped_column(Text, nullable=False)
 
-    faces: Mapped[list[CardFace]] = relationship(back_populates="card", cascade="all, delete-orphan")
+    faces: Mapped[list[CardFace]] = relationship(
+        back_populates="card",
+        cascade="all, delete-orphan",
+    )
     aliases: Mapped[list[CardAlias]] = relationship(
         back_populates="card", cascade="all, delete-orphan"
     )
@@ -168,7 +177,9 @@ class CardAlias(Base):
 
 class Ruling(Base):
     __tablename__ = "rulings"
-    __table_args__ = (UniqueConstraint("source_version_id", "oracle_id", "published_at", "comment"),)
+    __table_args__ = (
+        UniqueConstraint("source_version_id", "oracle_id", "published_at", "comment"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
     source_version_id: Mapped[uuid.UUID] = mapped_column(
@@ -232,7 +243,11 @@ class SemanticCacheEntry(Base, TimestampMixin):
     retrieval_version: Mapped[str] = mapped_column(String(64), nullable=False)
     language: Mapped[str] = mapped_column(String(16), nullable=False)
     filters: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        index=True,
+    )
 
 
 class ApplicationUser(Base, TimestampMixin):

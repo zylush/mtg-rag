@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Literal, cast
 from uuid import UUID
 
 from sqlalchemy import delete, select
@@ -65,7 +66,7 @@ class SqlConversationService:
         messages = [
             ConversationMessage(
                 id=message.id,
-                role=message.role,  # type: ignore[arg-type]
+                role=cast(Literal["user", "assistant"], message.role),
                 content=message.content,
                 created_at=message.created_at,
                 citations=[
@@ -101,4 +102,3 @@ class SqlConversationService:
             )
             if deleted.scalar_one_or_none() is None:
                 raise ResourceNotFoundError
-

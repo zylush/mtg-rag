@@ -15,18 +15,21 @@ class PostgresUserRepository:
         self._session_factory = session_factory
 
     async def get_or_create(self, user: AuthenticatedUser) -> uuid.UUID:
-        statement = insert(ApplicationUser).values(
+        insert_statement = insert(ApplicationUser).values(
             id=uuid.uuid4(),
             firebase_uid=user.firebase_uid,
             email=user.email,
         )
-        statement = statement.on_conflict_do_update(
+        statement = insert_statement.on_conflict_do_update(
             index_elements=[ApplicationUser.firebase_uid],
             set_={
-                "email": func.coalesce(statement.excluded.email, ApplicationUser.email),
+                "email": func.coalesce(
+                    insert_statement.excluded.email,
+                    ApplicationUser.email,
+                ),
                 "updated_at": func.now(),
             },
         ).returning(ApplicationUser.id)
         async with self._session_factory.begin() as session:
-            return (await session.execute(statement)).scalar_one()
-
+            user_id: uuid.UUID = (await session.execute(statement)).scalar_one()
+            return user_id

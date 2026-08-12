@@ -8,7 +8,6 @@ from typing import Literal
 
 from app.retrieval.query import normalize_question
 
-
 Confidence = Literal["high", "medium", "low"]
 
 

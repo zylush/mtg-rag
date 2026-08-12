@@ -13,7 +13,6 @@ from app.ingestion.corpus import parse_rules_corpus
 from app.ingestion.pipeline import SourceDefinition
 from app.ingestion.repository import PostgresIngestionRepository
 
-
 RULES = """Magic: The Gathering Comprehensive Rules
 These rules are effective as of July 25, 2026.
 

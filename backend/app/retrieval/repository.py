@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from sqlalchemy import String, and_, case, cast, func, literal, or_, select
+from sqlalchemy import ColumnElement, Float, and_, case, cast, func, literal, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.db.models import Card, CardAlias, Passage, SourceVersion
@@ -27,16 +27,19 @@ def _whole_phrase_present(question: str, phrase: str) -> bool:
     return re.search(rf"(?<!\w){re.escape(phrase)}(?!\w)", question) is not None
 
 
-def _authority_bonus():  # type: ignore[no-untyped-def]
-    return case(
-        (
-            and_(
-                Passage.document_type == "ruling",
-                Passage.passage_metadata["source"].astext == "wotc",
+def _authority_bonus() -> ColumnElement[float]:
+    return cast(
+        case(
+            (
+                and_(
+                    Passage.document_type == "ruling",
+                    Passage.passage_metadata["source"].astext == "wotc",
+                ),
+                0.05,
             ),
-            0.05,
+            else_=0.0,
         ),
-        else_=0.0,
+        Float,
     )
 
 
@@ -141,4 +144,3 @@ class PostgresRetrievalRepository:
             )
             for rank, (passage, _) in enumerate(passages, start=1)
         ]
-

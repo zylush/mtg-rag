@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, date, timedelta
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import delete, func, select, text
 from sqlalchemy.dialects.postgresql import insert

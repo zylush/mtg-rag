@@ -19,7 +19,7 @@ from app.config import Settings
 
 class FakeAuth:
     async def verify(self, token: str) -> AuthenticatedUser:
-        if token != "valid-token":
+        if token != "valid-token":  # noqa: S105 - deterministic test credential
             raise ValueError("invalid token")
         return AuthenticatedUser(firebase_uid="firebase-user-1", email="user@example.com")
 

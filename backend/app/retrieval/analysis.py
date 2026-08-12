@@ -5,7 +5,6 @@ from dataclasses import dataclass
 
 from app.retrieval.query import normalize_question
 
-
 _RULE_REFERENCE = re.compile(r"\b\d{3}\.\d+[a-z]?\b", re.IGNORECASE)
 _QUOTED_NAME = re.compile(r"[\"“]([^\"”]{2,255})[\"”]")
 

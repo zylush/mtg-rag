@@ -4,13 +4,12 @@ Revision ID: 0001
 Revises: None
 Create Date: 2026-08-12
 """
-from typing import Sequence
+from collections.abc import Sequence
 
 from alembic import op
 
-from app.db.base import Base
 from app.db import models  # noqa: F401
-
+from app.db.base import Base
 
 revision: str = "0001"
 down_revision: str | None = None

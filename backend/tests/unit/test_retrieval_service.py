@@ -79,7 +79,10 @@ async def test_hybrid_retrieval_runs_exact_lexical_vector_rrf_and_pins_exact_fir
 async def test_retrieval_context_is_capped_at_eight_passages() -> None:
     class ManyRepository(FakeRepository):
         async def lexical(self, question: str, *, limit: int):
-            return [RetrievalCandidate(_passage(f"p-{index}"), index + 1, "lexical") for index in range(20)]
+            return [
+                RetrievalCandidate(_passage(f"p-{index}"), index + 1, "lexical")
+                for index in range(20)
+            ]
 
         async def vector(self, embedding: list[float], *, limit: int):
             return []
@@ -89,4 +92,3 @@ async def test_retrieval_context_is_capped_at_eight_passages() -> None:
     passages = await service.retrieve("What is priority?")
 
     assert len(passages) == 8
-

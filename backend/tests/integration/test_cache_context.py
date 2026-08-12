@@ -18,7 +18,9 @@ async def session_factory():  # type: ignore[no-untyped-def]
     factory = async_sessionmaker(engine, expire_on_commit=False)
     async with factory.begin() as session:
         await session.execute(
-            delete(SourceVersion).where(SourceVersion.source_name.in_(["rules", "cards", "rulings"]))
+            delete(SourceVersion).where(
+                SourceVersion.source_name.in_(["rules", "cards", "rulings"])
+            )
         )
     yield factory
     await engine.dispose()
@@ -82,4 +84,3 @@ async def test_context_refuses_queries_until_every_required_corpus_is_active(
 
     with pytest.raises(CorpusUnavailableError, match="rulings"):
         await provider.current()
-

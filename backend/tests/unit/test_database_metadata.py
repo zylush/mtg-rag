@@ -1,7 +1,7 @@
 from pgvector.sqlalchemy import VECTOR
 
-from app.db.base import Base
 from app.db import models  # noqa: F401
+from app.db.base import Base
 
 
 def test_schema_contains_every_core_entity_from_the_plan() -> None:

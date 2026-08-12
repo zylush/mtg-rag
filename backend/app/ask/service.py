@@ -4,8 +4,8 @@ import hashlib
 import logging
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
-from typing import Literal, Protocol
+from datetime import UTC, date, datetime, timedelta
+from typing import Any, Literal, Protocol
 
 from app.api.auth import AuthenticatedUser
 from app.api.schemas import AskResponse, CitationResponse
@@ -67,7 +67,17 @@ class CacheRepository(Protocol):
         now: datetime,
     ) -> CachedAnswer | None: ...
 
-    async def put(self, **kwargs: object) -> str: ...
+    async def put(
+        self,
+        *,
+        question: str,
+        question_embedding: list[float],
+        response: dict[str, Any],
+        citation_ids: tuple[uuid.UUID, ...],
+        context: CacheContext,
+        created_at: datetime,
+        expires_at: datetime,
+    ) -> str: ...
 
 
 class RetrievalProvider(Protocol):
@@ -89,7 +99,18 @@ class GenerationProvider(Protocol):
 
 
 class AnswerCommitter(Protocol):
-    async def commit(self, **kwargs: object) -> CommittedExchange | None: ...
+    async def commit(
+        self,
+        *,
+        user_id: uuid.UUID,
+        conversation_id: uuid.UUID | None,
+        question: str,
+        answer: ResolvedAnswer,
+        cache_status: CacheStatus,
+        model_result: GenerationOutcome | None,
+        usage_date: date,
+        daily_limit: int,
+    ) -> CommittedExchange | None: ...
 
 
 def _base_profile(question: str) -> CacheQuestionProfile:

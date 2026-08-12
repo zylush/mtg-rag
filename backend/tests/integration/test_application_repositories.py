@@ -16,7 +16,6 @@ from app.db.models import (
     AnswerCitation,
     ApplicationUser,
     Conversation,
-    Feedback,
     Message,
     Passage,
     SourceVersion,

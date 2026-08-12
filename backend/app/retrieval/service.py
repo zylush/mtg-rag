@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Protocol, Sequence
+from typing import Protocol
 
 from app.generation.openai_adapter import RetrievedPassage
 from app.retrieval.analysis import QuestionAnalysis, analyze_question

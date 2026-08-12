@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.api.services import ResourceNotFoundError
-from app.ask.service import CommittedExchange
+from app.ask.service import CacheStatus, CommittedExchange
 from app.db.models import AnswerCitation, Conversation, Message, Passage
 from app.generation.citations import ResolvedAnswer
 from app.generation.service import GenerationOutcome
@@ -25,7 +25,7 @@ class PostgresAnswerCommitter:
         conversation_id: uuid.UUID | None,
         question: str,
         answer: ResolvedAnswer,
-        cache_status: str,
+        cache_status: CacheStatus,
         model_result: GenerationOutcome | None,
         usage_date: date,
         daily_limit: int,
@@ -119,4 +119,3 @@ class PostgresAnswerCommitter:
                 message_id=assistant_message.id,
                 successful_answers=int(successful_answers),
             )
-

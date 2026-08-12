@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date
-from typing import Any, Iterable, Mapping
+from typing import Any
 
 
 class ScryfallParseError(ValueError):
@@ -84,7 +85,11 @@ def parse_oracle_cards(cards: Iterable[Mapping[str, Any]]) -> tuple[ParsedOracle
     for oracle_id in sorted(by_oracle_id):
         card = by_oracle_id[oracle_id]
         faces = _faces(card)
-        aliases = tuple(dict.fromkeys([_required_string(card, "name"), *(face.name for face in faces)]))
+        aliases = tuple(
+            dict.fromkeys(
+                [_required_string(card, "name"), *(face.name for face in faces)]
+            )
+        )
         parts = [f"{face.name}\n{face.oracle_text}".strip() for face in faces]
         parsed.append(
             ParsedOracleCard(
@@ -121,5 +126,11 @@ def parse_rulings(rulings: Iterable[Mapping[str, Any]]) -> tuple[ParsedRuling, .
                 comment=_required_string(ruling, "comment"),
             )
         )
-    parsed.sort(key=lambda item: (priority[item.source], -item.published_at.toordinal(), item.comment))
+    parsed.sort(
+        key=lambda item: (
+            priority[item.source],
+            -item.published_at.toordinal(),
+            item.comment,
+        )
+    )
     return tuple(parsed)
