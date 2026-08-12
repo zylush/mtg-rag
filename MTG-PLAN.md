@@ -67,7 +67,7 @@ Use custom, deterministic retrieval orchestration instead of an agent framework 
 
 ### OpenAI defaults
 
-- Generation model: `gpt-5.6-terra`.
+- Generation model: `gpt-5.6-luna`.
 - Embedding model: `text-embedding-3-small`.
 - Embedding column: `vector(1536)`.
 - Responses API requests use `store=false`; Cloud SQL owns conversation history.

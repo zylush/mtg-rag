@@ -27,7 +27,7 @@ def _context() -> CacheContext:
         corpus_versions={"rules": "r1", "cards": "c1", "rulings": "u1"},
         embedding_model="text-embedding-3-small",
         embedding_dimensions=1536,
-        generation_model="gpt-5.6-terra",
+        generation_model="gpt-5.6-luna",
         prompt_version="p1",
         retrieval_version="rrf1",
         language="en",
@@ -137,7 +137,7 @@ class FakeGeneration:
             latency_ms=12,
             input_tokens=100,
             output_tokens=30,
-            model="gpt-5.6-terra",
+            model="gpt-5.6-luna",
             citation_repaired=False,
         )
 
@@ -290,7 +290,7 @@ async def test_completed_answer_logs_operational_metadata_without_user_content(
         "cards": "c1",
         "rulings": "u1",
     }
-    assert record.model == "gpt-5.6-terra"  # type: ignore[attr-defined]
+    assert record.model == "gpt-5.6-luna"  # type: ignore[attr-defined]
     assert record.openai_request_id == "resp_1"  # type: ignore[attr-defined]
     assert record.model_latency_ms == 12  # type: ignore[attr-defined]
     assert record.input_tokens == 100  # type: ignore[attr-defined]

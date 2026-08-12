@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     database_url: str
     frontend_origin: str
     openai_api_key: SecretStr | None = None
-    openai_generation_model: str = "gpt-5.6-terra"
+    openai_generation_model: str = "gpt-5.6-luna"
     openai_embedding_model: str = "text-embedding-3-small"
     embedding_dimensions: int = 1536
     prompt_version: str = "mtg-answer-v1"

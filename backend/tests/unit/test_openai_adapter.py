@@ -48,7 +48,7 @@ async def test_adapter_uses_responses_structured_output_without_server_storage_o
     responses = FakeResponses(parsed)
     adapter = OpenAIResponsesAdapter(
         client=FakeClient(responses),  # type: ignore[arg-type]
-        model="gpt-5.6-terra",
+        model="gpt-5.6-luna",
         prompt_version="mtg-answer-v1",
     )
 
@@ -59,7 +59,7 @@ async def test_adapter_uses_responses_structured_output_without_server_storage_o
     )
 
     request = responses.calls[0]
-    assert request["model"] == "gpt-5.6-terra"
+    assert request["model"] == "gpt-5.6-luna"
     assert request["store"] is False
     assert request["text_format"] is GroundedAnswer
     assert request["safety_identifier"] == "stable-private-id"
@@ -82,7 +82,7 @@ async def test_adapter_never_sends_more_than_eight_passages() -> None:
     )
     adapter = OpenAIResponsesAdapter(
         client=FakeClient(FakeResponses(parsed)),  # type: ignore[arg-type]
-        model="gpt-5.6-terra",
+        model="gpt-5.6-luna",
         prompt_version="mtg-answer-v1",
     )
 

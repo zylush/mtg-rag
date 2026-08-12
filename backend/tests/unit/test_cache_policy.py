@@ -15,7 +15,7 @@ def _context() -> CacheContext:
         corpus_versions={"rules": "r1", "cards": "c1", "rulings": "u1"},
         embedding_model="text-embedding-3-small",
         embedding_dimensions=1536,
-        generation_model="gpt-5.6-terra",
+        generation_model="gpt-5.6-luna",
         prompt_version="p1",
         retrieval_version="rrf1",
         language="en",
@@ -77,4 +77,3 @@ def test_semantic_hit_requires_matching_context_active_citations_similarity_and_
         threshold=0.98,
         now=now,
     )
-

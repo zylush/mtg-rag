@@ -27,7 +27,7 @@ class FakeAdapter:
             latency_ms=5,
             input_tokens=10,
             output_tokens=10,
-            model="gpt-5.6-terra",
+            model="gpt-5.6-luna",
         )
 
 
@@ -81,4 +81,3 @@ async def test_second_invalid_citation_returns_grounded_abstention() -> None:
     assert result.answer.citations == []
     assert "couldn't verify" in result.answer.answer
     assert len(adapter.repair_requests) == 2
-

@@ -55,7 +55,7 @@ async def test_context_contains_all_active_corpus_and_configuration_versions(
         session_factory,
         embedding_model="text-embedding-3-small",
         embedding_dimensions=1536,
-        generation_model="gpt-5.6-terra",
+        generation_model="gpt-5.6-luna",
         prompt_version="p1",
         retrieval_version="rrf1",
     )
@@ -77,7 +77,7 @@ async def test_context_refuses_queries_until_every_required_corpus_is_active(
         session_factory,
         embedding_model="text-embedding-3-small",
         embedding_dimensions=1536,
-        generation_model="gpt-5.6-terra",
+        generation_model="gpt-5.6-luna",
         prompt_version="p1",
         retrieval_version="rrf1",
     )

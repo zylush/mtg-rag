@@ -59,7 +59,7 @@ variable "database_url_secret_version" {
 variable "generation_model" {
   description = "OpenAI model used for grounded answer generation."
   type        = string
-  default     = "gpt-5.6-terra"
+  default     = "gpt-5.6-luna"
 }
 
 variable "embedding_model" {

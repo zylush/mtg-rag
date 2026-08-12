@@ -31,7 +31,7 @@ def _context(*, prompt_version: str = "p1") -> CacheContext:
         corpus_versions={"rules": "r1", "cards": "c1", "rulings": "u1"},
         embedding_model="text-embedding-3-small",
         embedding_dimensions=1536,
-        generation_model="gpt-5.6-terra",
+        generation_model="gpt-5.6-luna",
         prompt_version=prompt_version,
         retrieval_version="rrf1",
         language="en",
@@ -162,4 +162,3 @@ async def test_cache_refuses_ttl_longer_than_seven_days(cache_fixture) -> None: 
             created_at=now,
             expires_at=now + timedelta(days=8),
         )
-

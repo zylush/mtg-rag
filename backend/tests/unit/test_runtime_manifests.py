@@ -37,7 +37,7 @@ def test_example_environment_contains_only_placeholders_and_safe_defaults() -> N
 
     assert "sk-" not in example
     assert "MTG_RAG_OPENAI_API_KEY=" in example
-    assert "MTG_RAG_OPENAI_GENERATION_MODEL=gpt-5.6-terra" in example
+    assert "MTG_RAG_OPENAI_GENERATION_MODEL=gpt-5.6-luna" in example
     assert "MTG_RAG_EMBEDDING_DIMENSIONS=1536" in example
     assert "MTG_RAG_FRONTEND_ORIGIN=http://localhost:5173" in example
 
