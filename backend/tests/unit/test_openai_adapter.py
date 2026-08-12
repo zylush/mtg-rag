@@ -15,6 +15,7 @@ class FakeResponses:
         self.calls.append(kwargs)
         return SimpleNamespace(
             id="resp_123",
+            _request_id="req_123",
             output_parsed=self.parsed,
             usage=SimpleNamespace(input_tokens=42, output_tokens=12),
         )
@@ -65,7 +66,7 @@ async def test_adapter_uses_responses_structured_output_without_server_storage_o
     assert "tools" not in request
     assert "untrusted reference data" in str(request["instructions"])
     assert result.answer == parsed
-    assert result.request_id == "resp_123"
+    assert result.request_id == "req_123"
     assert result.input_tokens == 42
     assert result.output_tokens == 12
 
@@ -91,4 +92,3 @@ async def test_adapter_never_sends_more_than_eight_passages() -> None:
             passages=[_passage(index) for index in range(9)],
             safety_identifier="stable-private-id",
         )
-

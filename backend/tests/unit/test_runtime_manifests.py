@@ -27,6 +27,12 @@ def test_api_container_is_python_312_and_keeps_openai_key_out_of_image() -> None
     assert "USER app" in dockerfile
 
 
+def test_openai_sdk_is_pinned_to_the_tested_snapshot() -> None:
+    pyproject = (ROOT / "backend" / "pyproject.toml").read_text(encoding="utf-8")
+
+    assert '"openai==3.0.0"' in pyproject
+
+
 def test_example_environment_contains_only_placeholders_and_safe_defaults() -> None:
     example = (ROOT / ".env.example").read_text(encoding="utf-8")
 
@@ -44,4 +50,3 @@ def test_alembic_initial_revision_enables_required_postgres_extensions() -> None
     revision = revisions[0].read_text(encoding="utf-8")
     assert 'CREATE EXTENSION IF NOT EXISTS "vector"' in revision
     assert 'CREATE EXTENSION IF NOT EXISTS "pg_trgm"' in revision
-
