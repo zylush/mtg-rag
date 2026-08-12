@@ -165,6 +165,17 @@ describe("MTG Rules Desk", () => {
     expect(window.location.pathname).toBe("/desk")
   })
 
+  it("shows sign-in progress while authentication is pending", async () => {
+    const user = userEvent.setup()
+    const auth = new FakeAuth(null)
+    auth.signIn = vi.fn(() => new Promise<void>(() => undefined))
+    renderApp(auth, undefined, undefined, "/login")
+
+    await user.click(screen.getByRole("button", { name: /sign in with google/i }))
+
+    expect(screen.getByRole("button", { name: /signing you in/i })).toBeDisabled()
+  })
+
   it("requires Firebase sign-in before exposing the rules desk", async () => {
     const user = userEvent.setup()
     renderApp(new FakeAuth(null))

@@ -301,9 +301,13 @@ function Login({ auth }: { auth: AuthPort }) {
           Ask against the Comprehensive Rules, current Oracle text, and attributed card
           rulings. Every material claim comes with a source.
         </p>
-        <button className="primary-button" onClick={() => signIn.mutate()}>
+        <button
+          className="primary-button"
+          disabled={signIn.isPending}
+          onClick={() => signIn.mutate()}
+        >
           <ShieldCheck aria-hidden="true" />
-          Sign in with Google
+          {signIn.isPending ? "Signing you in…" : "Sign in with Google"}
         </button>
         {signIn.isError && (
           <div className="status-message error" role="alert">

@@ -16,7 +16,7 @@
 | Stage | Evidence | Result |
 |---|---|---|
 | RED | `b576936` — `npm run test -- src/App.test.tsx` after adding route/public-page tests | 3 intended failures: Welcome preview, About/legal route, protected-route redirect |
-| GREEN | `npm run test:coverage -- --maxWorkers=1` | 2 test files, 14 tests passed; 91.77% statements, 89.38% branches, 87.87% functions, 93.38% lines |
+| GREEN | `npm run test:coverage -- --maxWorkers=1` | 2 test files, 15 tests passed; 91.77% statements, 89.56% branches, 87.87% functions, 93.38% lines |
 | Browser | `npm run e2e` | 11 Playwright tests passed |
 | Static quality | `npm run lint` | Passed with no warnings or errors |
 | Production build | `npm run build` | Vite production build passed; 17 PWA precache entries generated |
@@ -31,10 +31,11 @@
 | 3 | About, Terms, and Privacy are public routes | `src/App.test.tsx` and `tests/e2e/public-pages.spec.ts` | unit/E2E | PASS |
 | 4 | Terms and Privacy show structured pending-review content instead of pretending to be final legal advice | `src/App.test.tsx`, public-page E2E assertions | unit/E2E | PASS |
 | 5 | `/desk` redirects signed-out users to Login and sign-in returns to `/desk` | `tests/e2e/public-pages.spec.ts` | E2E | PASS |
-| 6 | Existing question, citation, quota, history, account deletion, feedback, and install flows remain green | `tests/e2e/rules-desk.spec.ts` | E2E | PASS |
-| 7 | Public and authenticated routes have no detected WCAG 2.1 AA violations | `tests/e2e/public-pages.spec.ts`, `tests/e2e/rules-desk.spec.ts` | accessibility/E2E | PASS |
-| 8 | Public and authenticated layouts have no horizontal overflow at release breakpoints | `tests/e2e/rules-desk.spec.ts` | responsive/E2E | PASS |
-| 9 | Router preserves modified clicks and normalizes supported/unknown paths | `src/routing.test.tsx` | unit | PASS |
+| 6 | Login exposes an explicit disabled progress state while Firebase sign-in is pending | `src/App.test.tsx` | unit | PASS |
+| 7 | Existing question, citation, quota, history, account deletion, feedback, and install flows remain green | `tests/e2e/rules-desk.spec.ts` | E2E | PASS |
+| 8 | Public and authenticated routes have no detected WCAG 2.1 AA violations | `tests/e2e/public-pages.spec.ts`, `tests/e2e/rules-desk.spec.ts` | accessibility/E2E | PASS |
+| 9 | Public and authenticated layouts have no horizontal overflow at release breakpoints | `tests/e2e/rules-desk.spec.ts` | responsive/E2E | PASS |
+| 10 | Router preserves modified clicks and normalizes supported/unknown paths | `src/routing.test.tsx` | unit | PASS |
 
 ## Intentional gaps
 
