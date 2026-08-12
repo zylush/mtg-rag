@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
+    "@eslint/js": "10.0.1",
     "@playwright/test": "1.62.1",
     "@tailwindcss/vite": "4.3.3",
     "@testing-library/jest-dom": "7.0.1",
@@ -38,6 +39,7 @@
     "eslint": "10.8.1",
     "eslint-plugin-react-hooks": "7.1.1",
     "eslint-plugin-react-refresh": "0.5.4",
+    "globals": "17.10.0",
     "jsdom": "30.0.1",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",

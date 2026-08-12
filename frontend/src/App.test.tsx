@@ -209,6 +209,21 @@ describe("MTG Rules Desk", () => {
     expect(install.install).toHaveBeenCalledOnce()
   })
 
+  it("submits explicit answer feedback", async () => {
+    const user = userEvent.setup()
+    const api = fakeApi()
+    renderApp(undefined, api)
+
+    await user.type(
+      await screen.findByRole("textbox", { name: /rules question/i }),
+      "Define flying",
+    )
+    await user.click(screen.getByRole("button", { name: /^ask$/i }))
+    await user.click(await screen.findByRole("button", { name: /^helpful answer$/i }))
+
+    expect(api.feedback).toHaveBeenCalledWith(ANSWER.message_id, 1)
+  })
+
   it("renders answer markdown without raw HTML or arbitrary links", async () => {
     const api = fakeApi()
     api.ask = vi.fn().mockResolvedValue({
