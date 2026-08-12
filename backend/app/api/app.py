@@ -67,9 +67,9 @@ def create_app(*, settings: Settings, services: AppServices) -> FastAPI:
     app = FastAPI(
         title="MTG Rules Expert API",
         version="1.0.0",
-        docs_url=None if settings.environment == "production" else "/docs",
+        docs_url=None if settings.is_production else "/docs",
         redoc_url=None,
-        openapi_url=None if settings.environment == "production" else "/openapi.json",
+        openapi_url=None if settings.is_production else "/openapi.json",
     )
     app.state.services = services
     app.add_middleware(

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import Self
 
-from pydantic import HttpUrl, SecretStr, field_validator
+from pydantic import HttpUrl, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -31,6 +32,10 @@ class Settings(BaseSettings):
     gcp_project_id: str | None = None
     gcs_snapshot_bucket: str | None = None
     log_level: str = "INFO"
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment.casefold() in {"prod", "production"}
 
     @field_validator("frontend_origin")
     @classmethod
@@ -66,6 +71,22 @@ class Settings(BaseSettings):
         if value <= 0:
             raise ValueError("timeout must be positive")
         return value
+
+    @model_validator(mode="after")
+    def validate_production_requirements(self) -> Self:
+        if not self.is_production:
+            return self
+
+        missing = []
+        if self.openai_api_key is None or not self.openai_api_key.get_secret_value().strip():
+            missing.append("openai_api_key")
+        if not self.gcp_project_id:
+            missing.append("gcp_project_id")
+        if not self.gcs_snapshot_bucket:
+            missing.append("gcs_snapshot_bucket")
+        if missing:
+            raise ValueError(f"production settings require: {', '.join(missing)}")
+        return self
 
 
 @lru_cache(maxsize=1)

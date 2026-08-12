@@ -548,6 +548,13 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   font-size: .82rem;
   line-height: 1.55;
 }
+.legal-notice {
+  max-width: 58ch;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+  color: var(--muted);
+  line-height: 1.45;
+}
 .danger-zone {
   margin-top: 20px;
   border: 1px solid #dfaaa4;

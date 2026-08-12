@@ -1,0 +1,110 @@
+timeout: 2400s
+
+substitutions:
+  _REGION: asia-east1
+  _REPOSITORY: mtg-rag-dev
+  _IMAGE_NAME: api
+
+steps:
+  - id: secret-scan
+    name: ghcr.io/gitleaks/gitleaks@sha256:090a2715530bd6592342e6a66c3f35eafcaaf2a3227a312482504f9c854997e3
+    args:
+      - detect
+      - --source=/workspace
+      - --no-banner
+      - --redact
+      - --exit-code=1
+
+  - id: build-backend-test-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --target=test
+      - --tag=mtg-rag-test:$BUILD_ID
+      - backend
+
+  - id: backend-quality-gates
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        trap 'docker rm -f mtg-rag-ci-db >/dev/null 2>&1 || true' EXIT
+        docker run -d --name mtg-rag-ci-db --network cloudbuild -e POSTGRES_DB=mtg -e POSTGRES_USER=mtg -e POSTGRES_PASSWORD=mtg pgvector/pgvector:pg16
+        for attempt in $$(seq 1 30); do
+          if docker exec mtg-rag-ci-db pg_isready -U mtg -d mtg; then break; fi
+          if [ "$$attempt" = 30 ]; then exit 1; fi
+          sleep 2
+        done
+        docker run --rm --network cloudbuild -v /workspace:/workspace:ro -e MTG_RAG_DATABASE_URL=postgresql+asyncpg://mtg:mtg@mtg-rag-ci-db:5432/mtg -e MTG_RAG_FRONTEND_ORIGIN=http://localhost:5173 mtg-rag-test:$BUILD_ID sh -ceu '
+            alembic upgrade head
+            ruff check app tests
+            mypy app
+            pip-audit
+            coverage run --branch --source=/app/app -m pytest /workspace/backend/tests --import-mode=importlib -o cache_dir=/tmp/pytest-cache
+            coverage report --fail-under=80
+            coverage xml -o /tmp/coverage.xml
+          '
+
+  - id: frontend-quality-gates
+    name: node:24-bookworm-slim
+    entrypoint: bash
+    dir: frontend
+    args:
+      - -ceu
+      - |
+        npm ci
+        npm audit --audit-level=high
+        npm run lint
+        npm run test:coverage
+        npm run check:pwa
+        npx playwright install --with-deps chromium
+        npm run e2e
+
+  - id: terraform-quality-gates
+    name: hashicorp/terraform@sha256:7ae513256f7ce67879e218ae8593d6fbe216ec9e123abe6c94e4e10704857963
+    entrypoint: sh
+    dir: infra
+    args:
+      - -ceu
+      - |
+        terraform fmt -check -recursive
+        terraform init -backend=false -input=false
+        terraform validate
+
+  - id: build-runtime-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --target=runtime
+      - --tag=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE_NAME}:$SHORT_SHA
+      - backend
+
+  - id: inspect-runtime-image
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        image="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE_NAME}:$SHORT_SHA"
+        test "$$(docker image inspect "$$image" --format '{{.Config.User}}')" = app
+        if docker image inspect "$$image" --format '{{json .Config.Env}}' | grep -E 'OPENAI_API_KEY|sk-[A-Za-z0-9]'; then
+          echo "credential-like content found in container environment" >&2
+          exit 1
+        fi
+
+  - id: scan-runtime-image
+    name: aquasec/trivy@sha256:cffe3f5161a47a6823fbd23d985795b3ed72a4c806da4c4df16266c02accdd6f
+    args:
+      - image
+      - --exit-code=1
+      - --severity=HIGH,CRITICAL
+      - --ignore-unfixed
+      - --no-progress
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE_NAME}:$SHORT_SHA
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE_NAME}:$SHORT_SHA
+
+options:
+  logging: CLOUD_LOGGING_ONLY

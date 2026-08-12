@@ -79,6 +79,19 @@ def _app(ask: Ask, **overrides: object):  # type: ignore[no-untyped-def]
     )
 
 
+def test_prod_alias_disables_api_schema_routes() -> None:
+    app = _app(
+        Ask(),
+        environment="prod",
+        openai_api_key="test-placeholder",
+        gcp_project_id="mtg-production",
+        gcs_snapshot_bucket="mtg-production-snapshots",
+    )
+
+    assert app.docs_url is None
+    assert app.openapi_url is None
+
+
 @pytest.mark.asyncio
 async def test_request_metrics_use_bounded_correlation_id_without_logging_content(
     caplog: pytest.LogCaptureFixture,

@@ -133,6 +133,13 @@ describe("MTG Rules Desk", () => {
     expect(await screen.findByRole("textbox", { name: /rules question/i })).toBeVisible()
   })
 
+  it("displays source attribution and the unofficial-product notice", async () => {
+    renderApp(new FakeAuth(null))
+
+    expect(screen.getByText(/unofficial fan content/i)).toBeVisible()
+    expect(screen.getByText(/card data and rulings are provided by scryfall/i)).toBeVisible()
+  })
+
   it("asks a question, displays quota and renders only server citations as links", async () => {
     const user = userEvent.setup()
     const api = fakeApi()

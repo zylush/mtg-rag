@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "dev": "replace-with-dev-firebase-project",
+    "prod": "replace-with-prod-firebase-project"
+  }
+}

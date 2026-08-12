@@ -243,6 +243,15 @@ function SettingsPanel({
         <p>Static app shell only</p>
         <span>Rules answers always require a live connection.</span>
       </section>
+      <section className="settings-section">
+        <h3>Sources and attribution</h3>
+        <p>WotC rules + Scryfall data</p>
+        <span>
+          MTG Rules Desk is unofficial fan content. Wizards of the Coast neither
+          approves nor endorses it. Card data and rulings are provided by Scryfall;
+          Scryfall does not endorse this app.
+        </span>
+      </section>
       <section className="danger-zone">
         <h3>Delete account</h3>
         <p>
@@ -295,6 +304,11 @@ function Login({ auth }: { auth: AuthPort }) {
           Sign in with Google
         </button>
         <small>Available in Taiwan, Japan, South Korea, and Singapore.</small>
+        <small className="legal-notice">
+          MTG Rules Desk is unofficial fan content. Wizards of the Coast neither
+          approves nor endorses it. Card data and rulings are provided by Scryfall;
+          Scryfall does not endorse this app.
+        </small>
       </section>
     </main>
   )

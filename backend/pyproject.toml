@@ -30,7 +30,7 @@ dev = [
   "httpx>=0.28,<1",
   "mypy>=1.17,<2",
   "pip-audit>=2.9,<3",
-  "pytest>=8.4,<9",
+  "pytest>=9.0.3,<10",
   "pytest-asyncio>=1.1,<2",
   "pytest-cov>=6.2,<7",
   "ruff>=0.12,<1",
@@ -38,6 +38,8 @@ dev = [
 
 [project.scripts]
 mtg-rag-ingest = "app.ingestion.cli:main"
+mtg-rag-eval = "app.evals.harness:main"
+mtg-rag-rollback-corpus = "app.ingestion.rollback:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]

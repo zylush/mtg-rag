@@ -1,0 +1,14 @@
+project_id      = "replace-with-dev-project"
+environment     = "dev"
+region          = "asia-east1"
+api_domain      = "api-dev.example.com"
+frontend_origin = "https://dev.example.com"
+api_image       = "asia-east1-docker.pkg.dev/replace-with-dev-project/mtg-rag-dev/api:replace-with-commit-sha"
+
+database_tier         = "db-custom-1-3840"
+database_disk_size_gb = 10
+cloud_run_max_instances = 3
+
+labels = {
+  owner = "replace-with-owner"
+}
