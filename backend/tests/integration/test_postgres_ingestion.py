@@ -195,3 +195,79 @@ async def test_repository_retries_a_failed_snapshot_without_duplicate_staged_rec
     assert retry_version is not None and retry_version.status == "staged"
     assert retry_version.raw_gcs_uri.endswith("/retry")
     assert passage_count == len(retry_corpus.documents)
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_repository_restages_an_inactive_matching_snapshot(
+    session_factory,  # type: ignore[no-untyped-def]
+) -> None:
+    repository = PostgresIngestionRepository(session_factory)
+    suffix = uuid.uuid4().hex
+    source = SourceDefinition(
+        name=f"ingestion-test-{suffix}",
+        source_type="rules",
+        url="https://media.wizards.com/rules.txt",
+        parser_version="1",
+        schema_version="1",
+        minimum_record_count=3,
+    )
+    first_sha = suffix.ljust(64, "0")
+    second_sha = suffix.ljust(63, "1") + "2"
+
+    first_version_id = await repository.create_staged_version(
+        source=source,
+        source_url=source.url,
+        fetched_at=datetime.now(UTC),
+        sha256=first_sha,
+        raw_gcs_uri=f"gs://snapshots/{suffix}/first",
+    )
+    first_corpus = parse_rules_corpus(RULES.encode(), first_version_id)
+    await repository.stage_corpus(
+        version_id=first_version_id,
+        corpus=first_corpus,
+        embeddings={doc.canonical_key: [0.5, *([0.0] * 1535)] for doc in first_corpus.documents},
+    )
+    await repository.activate(source.name, first_version_id)
+
+    second_version_id = await repository.create_staged_version(
+        source=source,
+        source_url=source.url,
+        fetched_at=datetime.now(UTC),
+        sha256=second_sha,
+        raw_gcs_uri=f"gs://snapshots/{suffix}/second",
+    )
+    second_corpus = parse_rules_corpus(RULES.encode(), second_version_id)
+    await repository.stage_corpus(
+        version_id=second_version_id,
+        corpus=second_corpus,
+        embeddings={doc.canonical_key: [0.6, *([0.0] * 1535)] for doc in second_corpus.documents},
+    )
+    await repository.activate(source.name, second_version_id)
+
+    assert await repository.find_version_by_sha(source.name, first_sha) is None
+
+    retry_version_id = await repository.create_staged_version(
+        source=source,
+        source_url=source.url,
+        fetched_at=datetime.now(UTC),
+        sha256=first_sha,
+        raw_gcs_uri=f"gs://snapshots/{suffix}/retry",
+    )
+
+    async with session_factory() as session:
+        version_count = await session.scalar(
+            select(func.count(SourceVersion.id)).where(SourceVersion.source_name == source.name)
+        )
+        retry_version = await session.get(SourceVersion, uuid.UUID(retry_version_id))
+        passage_count = await session.scalar(
+            select(func.count(Passage.id)).where(
+                Passage.source_version_id == uuid.UUID(retry_version_id)
+            )
+        )
+
+    assert retry_version_id == first_version_id
+    assert version_count == 2
+    assert retry_version is not None and retry_version.status == "staged"
+    assert retry_version.raw_gcs_uri.endswith("/retry")
+    assert passage_count == 0
