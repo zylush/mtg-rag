@@ -82,6 +82,12 @@ def test_firebase_hosting_proxy_delivery_avoids_a_custom_domain_in_development()
     } in hosting["hosting"]["rewrites"]
 
 
+def test_postgres_16_custom_tier_explicitly_uses_cloud_sql_enterprise_edition() -> None:
+    core = (ROOT / "infra" / "core.tf").read_text(encoding="utf-8")
+
+    assert 'edition = "ENTERPRISE"' in core
+
+
 def test_example_environment_contains_only_placeholders_and_safe_defaults() -> None:
     example = (ROOT / ".env.example").read_text(encoding="utf-8")
 
