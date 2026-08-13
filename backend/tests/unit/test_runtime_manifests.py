@@ -32,6 +32,21 @@ def test_openai_sdk_is_pinned_to_the_tested_snapshot() -> None:
     assert '"openai==3.0.0"' in pyproject
 
 
+def test_api_service_identity_can_delete_the_current_users_firebase_identity() -> None:
+    core = (ROOT / 'infra' / 'core.tf').read_text(encoding='utf-8')
+    role = chr(34) + 'roles/firebaseauth.admin' + chr(34) + ','
+    permission = chr(34) + 'firebaseauth.users.delete' + chr(34)
+    firebase_auth_api = chr(34) + 'identitytoolkit.googleapis.com' + chr(34) + ','
+
+    ingestion_roles = core.split('ingestion_project_roles', 1)[1]
+
+    assert role not in core
+    assert permission in core
+    assert 'google_project_iam_custom_role' in core
+    assert role not in ingestion_roles
+    assert firebase_auth_api in core
+
+
 def test_example_environment_contains_only_placeholders_and_safe_defaults() -> None:
     example = (ROOT / ".env.example").read_text(encoding="utf-8")
 

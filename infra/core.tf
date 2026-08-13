@@ -20,6 +20,7 @@ locals {
     "cloudresourcemanager.googleapis.com",
     "compute.googleapis.com",
     "iam.googleapis.com",
+    "identitytoolkit.googleapis.com",
     "logging.googleapis.com",
     "monitoring.googleapis.com",
     "run.googleapis.com",
@@ -170,6 +171,17 @@ resource "google_service_account" "scheduler" {
   display_name = "MTG RAG ${var.environment} scheduler"
 }
 
+resource "google_project_iam_custom_role" "api_firebase_account_deletion" {
+  project     = var.project_id
+  role_id     = "${replace(local.prefix, "-", "_")}_firebase_account_deletion"
+  title       = "MTG RAG API Firebase account deletion"
+  description = "Allows the API to delete the currently authenticated Firebase user."
+  permissions = ["firebaseauth.users.delete"]
+  stage       = "GA"
+
+  depends_on = [google_project_service.required]
+}
+
 locals {
   api_project_roles = toset([
     "roles/cloudsql.client",
@@ -188,6 +200,12 @@ resource "google_project_iam_member" "api" {
 
   project = var.project_id
   role    = each.value
+  member  = "serviceAccount:${google_service_account.api.email}"
+}
+
+resource "google_project_iam_member" "api_firebase_account_deletion" {
+  project = var.project_id
+  role    = google_project_iam_custom_role.api_firebase_account_deletion.name
   member  = "serviceAccount:${google_service_account.api.email}"
 }
 

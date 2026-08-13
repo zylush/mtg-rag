@@ -33,6 +33,9 @@ Secrets, bearer tokens, and database connection strings are restricted credentia
 - Secret Manager injects secrets at runtime. Terraform state contains secret resource
   names but not secret values. Service accounts are separated by responsibility and
   granted only their required bucket, secret, database-connect, or invocation roles.
+- The API service account receives a project custom role containing only
+  firebaseauth.users.delete for the existing account-deletion flow; ingestion has no
+  Firebase user-management permission.
 - PostgreSQL has automated backups, point-in-time recovery in production, encrypted
   transport requirements, and private Unix-socket connectivity from Cloud Run.
 - Account deletion removes application-owned rows and then requests Firebase identity
