@@ -12,8 +12,9 @@ import { createRoot } from "react-dom/client"
 import { registerSW } from "virtual:pwa-register"
 
 import { App } from "./App"
+import { createApiClient } from "./api-client"
 import { resolveApiBaseUrl } from "./api-origin"
-import type { ApiPort, AuthPort, InstallPort } from "./types"
+import type { AuthPort, InstallPort } from "./types"
 import "./index.css"
 
 const firebaseApp = initializeApp({
@@ -50,58 +51,7 @@ const apiBaseUrl = resolveApiBaseUrl(
   window.location.origin,
 )
 
-async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const token = await auth.token()
-  const headers = new Headers(init.headers)
-  headers.set("Authorization", `Bearer ${token}`)
-  if (init.body) headers.set("Content-Type", "application/json")
-
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    ...init,
-    cache: "no-store",
-    headers,
-  })
-  if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as { detail?: string } | null
-    throw new Error(payload?.detail ?? `Request failed with status ${response.status}`)
-  }
-  if (response.status === 204) return undefined as T
-  return response.json() as Promise<T>
-}
-
-const api: ApiPort = {
-  ask(question, conversationId) {
-    return apiRequest("/v1/ask", {
-      method: "POST",
-      body: JSON.stringify({
-        question,
-        ...(conversationId ? { conversation_id: conversationId } : {}),
-      }),
-    })
-  },
-  conversations() {
-    return apiRequest("/v1/conversations")
-  },
-  conversation(id) {
-    return apiRequest(`/v1/conversations/${encodeURIComponent(id)}`)
-  },
-  deleteConversation(id) {
-    return apiRequest(`/v1/conversations/${encodeURIComponent(id)}`, { method: "DELETE" })
-  },
-  feedback(messageId, rating, comment) {
-    return apiRequest("/v1/feedback", {
-      method: "POST",
-      body: JSON.stringify({
-        answer_message_id: messageId,
-        rating,
-        ...(comment ? { comment } : {}),
-      }),
-    })
-  },
-  deleteAccount() {
-    return apiRequest("/v1/account", { method: "DELETE" })
-  },
-}
+const api = createApiClient({ baseUrl: apiBaseUrl, token: () => auth.token() })
 
 interface InstallPromptEvent extends Event {
   prompt(): Promise<void>

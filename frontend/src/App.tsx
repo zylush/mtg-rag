@@ -21,6 +21,7 @@ import ReactMarkdown from "react-markdown"
 import rehypeSanitize from "rehype-sanitize"
 
 import { AboutPage, LegalDocumentPage, WelcomePage } from "./PublicPages"
+import { userMessageFor } from "./api-client"
 import { AppLink, RouterProvider, useRouter } from "./routing"
 import type {
   ApiPort,
@@ -103,14 +104,23 @@ function SourceList({ answer }: { answer: AskResponse }) {
 function ConversationView({
   detail,
   loading,
+  error,
   onBack,
   onDelete,
 }: {
   detail: ConversationDetail | undefined
   loading: boolean
+  error: unknown
   onBack: () => void
   onDelete: () => void
 }) {
+  if (error) {
+    return (
+      <div className="status-message error" role="alert">
+        {userMessageFor(error)}
+      </div>
+    )
+  }
   if (loading || !detail) return <p className="quiet">Loading conversation…</p>
   return (
     <div className="conversation-view">
@@ -175,11 +185,17 @@ function HistoryPanel({ api, onClose }: { api: ApiPort; onClose: () => void }) {
         <ConversationView
           detail={detail.data}
           loading={detail.isPending}
+          error={detail.error}
           onBack={() => setSelectedId(undefined)}
           onDelete={remove}
         />
       ) : (
         <div className="history-list">
+          {summaries.isError && (
+            <div className="status-message error" role="alert">
+              {userMessageFor(summaries.error)}
+            </div>
+          )}
           {summaries.isPending && <p className="quiet">Loading history…</p>}
           {!summaries.isPending && summaries.data?.length === 0 && (
             <div className="empty-state">
@@ -504,7 +520,10 @@ function AppContent({ auth, api, install }: AppProps) {
         )}
         {ask.isError && (
           <div className="status-message error" role="alert">
-            The rules desk could not complete this answer. Try again.
+            {userMessageFor(
+              ask.error,
+              "The rules desk could not complete this answer. Try again.",
+            )}
           </div>
         )}
 
