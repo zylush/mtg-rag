@@ -47,6 +47,7 @@ class FakeRepository:
         self.events: list[str] = []
         self.staged_documents: list[CorpusDocument] = []
         self.staged_embeddings: dict[str, list[float]] = {}
+        self.staged_batches: list[tuple[CorpusDocument, ...]] = []
         self.cached = {
             "100.1": CachedDocumentEmbedding(content_hash="same-hash", embedding=[0.9, 0.8])
         }
@@ -60,10 +61,28 @@ class FakeRepository:
         return "rules-new"
 
     async def active_document_embeddings(
-        self, source_name: str
+        self, source_name: str, canonical_keys: tuple[str, ...] | None = None
     ) -> dict[str, CachedDocumentEmbedding]:
-        self.events.append("load-active-embeddings")
-        return self.cached
+        if canonical_keys is None:
+            self.events.append("load-active-embeddings:all")
+            return self.cached
+        self.events.append(f"load-active-embeddings:{len(canonical_keys)}")
+        return {key: self.cached[key] for key in canonical_keys if key in self.cached}
+
+    async def stage_metadata(self, *, version_id: str, corpus: ParsedCorpus) -> None:
+        self.events.append("stage-metadata")
+
+    async def stage_passages(
+        self,
+        *,
+        version_id: str,
+        documents: tuple[CorpusDocument, ...],
+        embeddings: dict[str, list[float]],
+    ) -> None:
+        self.events.append(f"stage-passages:{len(documents)}")
+        self.staged_batches.append(documents)
+        self.staged_documents.extend(documents)
+        self.staged_embeddings.update(embeddings)
 
     async def stage_corpus(
         self,
@@ -156,8 +175,9 @@ async def test_pipeline_snapshots_stages_validates_then_activates_and_embeds_onl
     assert repository.events == [
         "dedupe",
         "create-staged",
-        "load-active-embeddings",
-        "stage-corpus",
+        "stage-metadata",
+        "load-active-embeddings:2",
+        "stage-passages:2",
         "validate",
         "activate",
     ]
@@ -275,4 +295,16 @@ async def test_pipeline_batches_new_embeddings_in_stable_request_order() -> None
         [f"Rule {index}" for index in range(128)],
         ["Rule 128"],
     ]
+    assert repository.events == [
+        "dedupe",
+        "create-staged",
+        "stage-metadata",
+        "load-active-embeddings:128",
+        "stage-passages:128",
+        "load-active-embeddings:1",
+        "stage-passages:1",
+        "validate",
+        "activate",
+    ]
+    assert [len(batch) for batch in repository.staged_batches] == [128, 1]
     assert repository.staged_embeddings["100.128"] == [0.1, 0.2]
