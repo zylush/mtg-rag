@@ -21,6 +21,7 @@ vite.config.d.ts
 *.tfstate
 *.tfstate.*
 .tools/
+.tmp/
 .firebaserc
 .firebase/
 firebase.auth.local.json
