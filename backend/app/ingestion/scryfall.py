@@ -110,6 +110,9 @@ def parse_rulings(rulings: Iterable[Mapping[str, Any]]) -> tuple[ParsedRuling, .
     attribution = {"wotc": "Wizards of the Coast", "scryfall": "Scryfall"}
     priority = {"wotc": 0, "scryfall": 1}
     for ruling in rulings:
+        comment = ruling.get("comment")
+        if not isinstance(comment, str) or not comment.strip():
+            continue
         source = _required_string(ruling, "source").lower()
         if source not in attribution:
             raise ScryfallParseError(f"unsupported ruling source: {source}")
@@ -123,7 +126,7 @@ def parse_rulings(rulings: Iterable[Mapping[str, Any]]) -> tuple[ParsedRuling, .
                 published_at=published_at,
                 source=source,
                 attribution=attribution[source],
-                comment=_required_string(ruling, "comment"),
+                comment=comment.strip(),
             )
         )
     parsed.sort(
