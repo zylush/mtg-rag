@@ -5,8 +5,8 @@
 .gcloudignore
 #!include:.gitignore
 
-# Local-only project tooling and planning material are not part of the build.
-scripts/
+# Local-only Codex helper tooling and planning material are not part of the build.
+scripts/codex/
 docs/
 .claude/
 MTG-PLAN.md
