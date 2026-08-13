@@ -19,6 +19,7 @@ from app.db.models import (
 from app.ingestion.activation import ActivationCandidate, ValidationMetrics
 from app.ingestion.pipeline import (
     CachedDocumentEmbedding,
+    CorpusDocument,
     ParsedCorpus,
     SourceDefinition,
 )
@@ -218,18 +219,23 @@ class PostgresIngestionRepository:
         return str(version.id)
 
     async def active_document_embeddings(
-        self, source_name: str
+        self, source_name: str, canonical_keys: tuple[str, ...] | None = None
     ) -> dict[str, CachedDocumentEmbedding]:
+        if canonical_keys is not None and not canonical_keys:
+            return {}
+        filters = [
+            SourceVersion.source_name == source_name,
+            SourceVersion.is_active.is_(True),
+            Passage.is_active.is_(True),
+        ]
+        if canonical_keys is not None:
+            filters.append(Passage.canonical_key.in_(canonical_keys))
         async with self._session_factory() as session:
             passages = (
                 await session.execute(
                     select(Passage)
                     .join(SourceVersion, SourceVersion.id == Passage.source_version_id)
-                    .where(
-                        SourceVersion.source_name == source_name,
-                        SourceVersion.is_active.is_(True),
-                        Passage.is_active.is_(True),
-                    )
+                    .where(*filters)
                 )
             ).scalars().all()
         return {
@@ -240,13 +246,7 @@ class PostgresIngestionRepository:
             for passage in passages
         }
 
-    async def stage_corpus(
-        self,
-        *,
-        version_id: str,
-        corpus: ParsedCorpus,
-        embeddings: dict[str, list[float]],
-    ) -> None:
+    async def stage_metadata(self, *, version_id: str, corpus: ParsedCorpus) -> None:
         version_uuid = _uuid(version_id, field="source version")
         if corpus.source_version_id != version_id:
             raise ValueError("corpus source version does not match staged version")
@@ -319,7 +319,31 @@ class PostgresIngestionRepository:
                         comment=parsed_ruling.comment,
                     )
                 )
-            for document in corpus.documents:
+            effective_dates = [
+                *(rule.effective_date for rule in corpus.rules),
+                *(entry.effective_date for entry in corpus.glossary),
+            ]
+            if effective_dates:
+                version.effective_date = max(effective_dates)
+
+    async def stage_passages(
+        self,
+        *,
+        version_id: str,
+        documents: tuple[CorpusDocument, ...],
+        embeddings: dict[str, list[float]],
+    ) -> None:
+        version_uuid = _uuid(version_id, field="source version")
+        async with self._session_factory.begin() as session:
+            version = await session.scalar(
+                select(SourceVersion)
+                .where(SourceVersion.id == version_uuid)
+                .with_for_update()
+            )
+            if version is None or version.status != "staged" or version.is_active:
+                raise VersionStateError("source version is not staged")
+
+            for document in documents:
                 embedding = embeddings.get(document.canonical_key)
                 if embedding is None:
                     raise ValueError(f"missing embedding for {document.canonical_key}")
@@ -337,12 +361,20 @@ class PostgresIngestionRepository:
                     )
                 )
 
-            effective_dates = [
-                *(rule.effective_date for rule in corpus.rules),
-                *(entry.effective_date for entry in corpus.glossary),
-            ]
-            if effective_dates:
-                version.effective_date = max(effective_dates)
+    async def stage_corpus(
+        self,
+        *,
+        version_id: str,
+        corpus: ParsedCorpus,
+        embeddings: dict[str, list[float]],
+    ) -> None:
+        """Compatibility wrapper for callers that intentionally stage one batch."""
+        await self.stage_metadata(version_id=version_id, corpus=corpus)
+        await self.stage_passages(
+            version_id=version_id,
+            documents=corpus.documents,
+            embeddings=embeddings,
+        )
 
     async def validate_staged(
         self, version_id: str, minimum_record_count: int

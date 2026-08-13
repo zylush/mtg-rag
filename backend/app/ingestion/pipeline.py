@@ -87,8 +87,18 @@ class IngestionRepository(Protocol):
     ) -> str: ...
 
     async def active_document_embeddings(
-        self, source_name: str
+        self, source_name: str, canonical_keys: tuple[str, ...] | None = None
     ) -> dict[str, CachedDocumentEmbedding]: ...
+
+    async def stage_metadata(self, *, version_id: str, corpus: ParsedCorpus) -> None: ...
+
+    async def stage_passages(
+        self,
+        *,
+        version_id: str,
+        documents: tuple[CorpusDocument, ...],
+        embeddings: dict[str, list[float]],
+    ) -> None: ...
 
     async def stage_corpus(
         self,
@@ -154,29 +164,39 @@ class IngestionPipeline:
             raise
 
         try:
-            cached = await self._repository.active_document_embeddings(source.name)
-            embeddings: dict[str, list[float]] = {}
-            changed_documents: list[CorpusDocument] = []
-            for document in corpus.documents:
-                previous = cached.get(document.canonical_key)
-                if previous is not None and previous.content_hash == document.content_hash:
-                    embeddings[document.canonical_key] = previous.embedding
-                else:
-                    changed_documents.append(document)
-            for start in range(0, len(changed_documents), EMBEDDING_BATCH_SIZE):
-                batch = changed_documents[start : start + EMBEDDING_BATCH_SIZE]
-                batch_embeddings = await self._embedding.embed_many(
-                    [document.text for document in batch]
+            await self._repository.stage_metadata(version_id=version_id, corpus=corpus)
+            new_embedding_count = 0
+            for start in range(0, len(corpus.documents), EMBEDDING_BATCH_SIZE):
+                batch = corpus.documents[start : start + EMBEDDING_BATCH_SIZE]
+                cached = await self._repository.active_document_embeddings(
+                    source.name,
+                    tuple(document.canonical_key for document in batch),
                 )
-                if len(batch_embeddings) != len(batch):
+                embeddings: dict[str, list[float]] = {}
+                changed_documents: list[CorpusDocument] = []
+                for document in batch:
+                    previous = cached.get(document.canonical_key)
+                    if previous is not None and previous.content_hash == document.content_hash:
+                        embeddings[document.canonical_key] = previous.embedding
+                    else:
+                        changed_documents.append(document)
+                batch_embeddings = (
+                    await self._embedding.embed_many(
+                        [document.text for document in changed_documents]
+                    )
+                    if changed_documents
+                    else []
+                )
+                if len(batch_embeddings) != len(changed_documents):
                     raise ValueError("embedding batch response count does not match request")
-                for document, embedding in zip(batch, batch_embeddings, strict=True):
+                for document, embedding in zip(changed_documents, batch_embeddings, strict=True):
                     embeddings[document.canonical_key] = embedding
-            await self._repository.stage_corpus(
-                version_id=version_id,
-                corpus=corpus,
-                embeddings=embeddings,
-            )
+                new_embedding_count += len(changed_documents)
+                await self._repository.stage_passages(
+                    version_id=version_id,
+                    documents=batch,
+                    embeddings=embeddings,
+                )
         except Exception:
             await self._repository.mark_failed(version_id, "staging")
             raise
@@ -193,5 +213,5 @@ class IngestionPipeline:
         return IngestionResult(
             status="activated",
             version_id=version_id,
-            new_embedding_count=len(changed_documents),
+            new_embedding_count=new_embedding_count,
         )
