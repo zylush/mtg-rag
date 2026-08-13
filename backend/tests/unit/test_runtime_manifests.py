@@ -97,6 +97,10 @@ def test_firebase_hosting_proxy_delivery_avoids_a_custom_domain_in_development()
         "source": "/v1/**",
         "run": {"serviceId": "mtg-rag-dev-api", "region": "asia-east1"},
     } in hosting["hosting"]["rewrites"]
+    assert {
+        "source": "/healthz",
+        "run": {"serviceId": "mtg-rag-dev-api", "region": "asia-east1"},
+    } in hosting["hosting"]["rewrites"]
 
 
 def test_firebase_google_auth_has_a_reproducible_placeholder_only_template() -> None:
