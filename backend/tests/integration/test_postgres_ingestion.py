@@ -131,3 +131,67 @@ async def test_active_embedding_lookup_supports_copy_forward(session_factory) ->
     assert cached["100.1"].content_hash == corpus.documents[0].content_hash
     assert cached["100.1"].embedding[0] == pytest.approx(0.2)
 
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_repository_retries_a_failed_snapshot_without_duplicate_staged_records(
+    session_factory,  # type: ignore[no-untyped-def]
+) -> None:
+    repository = PostgresIngestionRepository(session_factory)
+    suffix = uuid.uuid4().hex
+    sha256 = suffix.ljust(64, "0")
+    source = SourceDefinition(
+        name=f"ingestion-test-{suffix}",
+        source_type="rules",
+        url="https://media.wizards.com/rules.txt",
+        parser_version="1",
+        schema_version="1",
+        minimum_record_count=3,
+    )
+    first_version_id = await repository.create_staged_version(
+        source=source,
+        source_url=source.url,
+        fetched_at=datetime.now(UTC),
+        sha256=sha256,
+        raw_gcs_uri=f"gs://snapshots/{suffix}/first",
+    )
+    first_corpus = parse_rules_corpus(RULES.encode(), first_version_id)
+    await repository.stage_corpus(
+        version_id=first_version_id,
+        corpus=first_corpus,
+        embeddings={doc.canonical_key: [0.3, *([0.0] * 1535)] for doc in first_corpus.documents},
+    )
+    await repository.mark_failed(first_version_id, "validation")
+
+    assert await repository.find_version_by_sha(source.name, sha256) is None
+
+    retry_version_id = await repository.create_staged_version(
+        source=source,
+        source_url=source.url,
+        fetched_at=datetime.now(UTC),
+        sha256=sha256,
+        raw_gcs_uri=f"gs://snapshots/{suffix}/retry",
+    )
+    retry_corpus = parse_rules_corpus(RULES.encode(), retry_version_id)
+    await repository.stage_corpus(
+        version_id=retry_version_id,
+        corpus=retry_corpus,
+        embeddings={doc.canonical_key: [0.4, *([0.0] * 1535)] for doc in retry_corpus.documents},
+    )
+
+    async with session_factory() as session:
+        version_count = await session.scalar(
+            select(func.count(SourceVersion.id)).where(SourceVersion.source_name == source.name)
+        )
+        retry_version = await session.get(SourceVersion, uuid.UUID(retry_version_id))
+        passage_count = await session.scalar(
+            select(func.count(Passage.id)).where(
+                Passage.source_version_id == uuid.UUID(retry_version_id)
+            )
+        )
+
+    assert retry_version_id == first_version_id
+    assert version_count == 1
+    assert retry_version is not None and retry_version.status == "staged"
+    assert retry_version.raw_gcs_uri.endswith("/retry")
+    assert passage_count == len(retry_corpus.documents)

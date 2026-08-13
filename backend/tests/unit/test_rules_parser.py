@@ -46,6 +46,23 @@ def test_glossary_entries_are_separate_retrievable_documents() -> None:
     assert parsed.glossary[0].text.startswith("A system that determines")
 
 
+def test_rules_parser_uses_the_final_glossary_heading_after_the_contents_listing() -> None:
+    current_wotc_shape = RULES_FIXTURE.replace(
+        "100. General\n",
+        "Contents\n1. Game Concepts\n100. General\nGlossary\nCredits\n\n"
+        "1. Game Concepts\n\n100. General\n",
+        1,
+    )
+
+    parsed = parse_comprehensive_rules(current_wotc_shape, source_version_id="rules-v1")
+
+    assert [rule.rule_number for rule in parsed.rules] == ["100.1", "100.1a", "100.2", "101.1"]
+    assert [entry.term for entry in parsed.glossary] == [
+        "Active Player, Nonactive Player Order",
+        "Owner",
+    ]
+
+
 def test_duplicate_rule_numbers_reject_the_source() -> None:
     duplicated = RULES_FIXTURE.replace(
         "100.2. To play, each player needs a deck of traditional Magic cards.",
@@ -54,4 +71,3 @@ def test_duplicate_rule_numbers_reject_the_source() -> None:
 
     with pytest.raises(RulesParseError, match="duplicate rule number"):
         parse_comprehensive_rules(duplicated, source_version_id="rules-v1")
-
