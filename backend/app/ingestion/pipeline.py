@@ -10,6 +10,8 @@ from app.ingestion.download import DownloadedSource
 from app.ingestion.rules import ParsedGlossaryEntry, ParsedRule
 from app.ingestion.scryfall import ParsedOracleCard, ParsedRuling
 
+EMBEDDING_BATCH_SIZE = 128
+
 
 @dataclass(frozen=True)
 class SourceDefinition:
@@ -67,6 +69,8 @@ class SnapshotStore(Protocol):
 
 class EmbeddingProvider(Protocol):
     async def embed(self, text: str) -> list[float]: ...
+
+    async def embed_many(self, texts: list[str]) -> list[list[float]]: ...
 
 
 class IngestionRepository(Protocol):
@@ -152,14 +156,22 @@ class IngestionPipeline:
         try:
             cached = await self._repository.active_document_embeddings(source.name)
             embeddings: dict[str, list[float]] = {}
-            new_embedding_count = 0
+            changed_documents: list[CorpusDocument] = []
             for document in corpus.documents:
                 previous = cached.get(document.canonical_key)
                 if previous is not None and previous.content_hash == document.content_hash:
                     embeddings[document.canonical_key] = previous.embedding
                 else:
-                    embeddings[document.canonical_key] = await self._embedding.embed(document.text)
-                    new_embedding_count += 1
+                    changed_documents.append(document)
+            for start in range(0, len(changed_documents), EMBEDDING_BATCH_SIZE):
+                batch = changed_documents[start : start + EMBEDDING_BATCH_SIZE]
+                batch_embeddings = await self._embedding.embed_many(
+                    [document.text for document in batch]
+                )
+                if len(batch_embeddings) != len(batch):
+                    raise ValueError("embedding batch response count does not match request")
+                for document, embedding in zip(batch, batch_embeddings, strict=True):
+                    embeddings[document.canonical_key] = embedding
             await self._repository.stage_corpus(
                 version_id=version_id,
                 corpus=corpus,
@@ -181,5 +193,5 @@ class IngestionPipeline:
         return IngestionResult(
             status="activated",
             version_id=version_id,
-            new_embedding_count=new_embedding_count,
+            new_embedding_count=len(changed_documents),
         )

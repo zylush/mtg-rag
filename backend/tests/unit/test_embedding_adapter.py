@@ -27,7 +27,11 @@ class FakeEmbeddings:
             SimpleNamespace(
                 index=index,
                 embedding=self.forced_embedding
-                or ([float(index + 1)] * dimensions if self.distinct_embeddings else [0.1] * dimensions),
+                or (
+                    [float(index + 1)] * dimensions
+                    if self.distinct_embeddings
+                    else [0.1] * dimensions
+                ),
             )
             for index, _ in enumerate(inputs)
         ]
@@ -67,7 +71,7 @@ async def test_embedding_adapter_pins_model_dimensions_and_float_encoding() -> N
     assert client.embeddings.calls == [
         {
             "model": "text-embedding-3-small",
-            "input": "What is flying?",
+            "input": ["What is flying?"],
             "dimensions": 1536,
             "encoding_format": "float",
         }
