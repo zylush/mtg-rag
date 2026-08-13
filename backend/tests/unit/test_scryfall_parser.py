@@ -110,3 +110,32 @@ def test_rulings_skip_records_without_substantive_comment_text() -> None:
     assert [(ruling.oracle_id, ruling.comment) for ruling in parsed] == [
         ("oracle-usable", "Usable official ruling."),
     ]
+
+
+def test_rulings_deduplicate_canonical_identity_and_prefer_wotc() -> None:
+    rulings = [
+        {
+            "oracle_id": "oracle-1",
+            "published_at": "2026-02-01",
+            "source": "scryfall",
+            "comment": "Shared explanation.",
+        },
+        {
+            "oracle_id": "oracle-1",
+            "published_at": "2026-02-01",
+            "source": "wotc",
+            "comment": "Shared explanation.",
+        },
+        {
+            "oracle_id": "oracle-1",
+            "published_at": "2026-02-01",
+            "source": "wotc",
+            "comment": "Shared explanation.",
+        },
+    ]
+
+    parsed = parse_rulings(rulings)
+
+    assert len(parsed) == 1
+    assert parsed[0].source == "wotc"
+    assert parsed[0].attribution == "Wizards of the Coast"
