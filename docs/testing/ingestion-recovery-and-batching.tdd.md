@@ -84,8 +84,8 @@ Checkpoints: `82f6d7b fix: make corpus ingestion retries safe` and
 
 This evidence validates parsing, retry state, and request batching without using
 the production OpenAI key. The Cloud Run execution operationally verified the
-full upstream downloads, Secret Manager injection, and activation of the rules
-and cards corpora; the rulings edge case is covered below.
+full upstream downloads, Secret Manager injection, and activation of the rules,
+cards, and rulings corpora; the rulings edge case is covered below.
 
 ## Rulings-feed follow-up
 
@@ -123,3 +123,42 @@ cd backend
 
 Checkpoints: `7d56c12 test: reproduce blank Scryfall ruling comments` and
 `32e0f52 fix: ignore blank Scryfall rulings`.
+
+## Bounded staging follow-up
+
+The first full rulings activation completed, but Cloud Run reported a task retry
+after a `SIGKILL`. The succeeding attempt found every source unchanged, proving
+the activation itself was durable. Because the original pipeline retained every
+embedding for the full corpus before a single database stage, this change bounds
+the embedding lookup, request, and database staging state to 128 passages at a
+time. The exact platform reason for the signal is not asserted here.
+
+RED:
+
+```text
+cd backend
+..\.venv\Scripts\pytest.exe tests\unit\test_ingestion_pipeline.py -q
+# 2 failed, 3 passed: pipeline loaded all active embeddings and staged once
+```
+
+GREEN:
+
+```text
+cd backend
+..\.venv\Scripts\pytest.exe tests\unit\test_ingestion_pipeline.py -q
+# 5 passed
+
+..\.venv\Scripts\pytest.exe --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=80 -q
+..\.venv\Scripts\ruff.exe check app tests
+..\.venv\Scripts\mypy.exe app
+# 128 passed; total branch coverage 85.66%; Ruff and mypy passed
+```
+
+| Guarantee | Evidence | Type | Result |
+| --- | --- | --- | --- |
+| A corpus larger than 128 documents looks up active embeddings and stages passages in 128-document batches. | `test_pipeline_batches_new_embeddings_in_stable_request_order` | Unit | PASS |
+| An unchanged document reuses its cached vector while new documents in the same bounded stage are embedded. | `test_pipeline_snapshots_stages_validates_then_activates_and_embeds_only_changes` | Unit | PASS |
+| Existing one-shot callers retain a repository compatibility method while the production pipeline uses bounded stages. | Full backend test suite | Unit + PostgreSQL integration | PASS |
+
+Checkpoints: `d7bc64f test: require bounded ingestion staging` and
+`5005e52 fix: bound ingestion staging memory`.
