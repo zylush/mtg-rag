@@ -1,8 +1,8 @@
 project_id      = "replace-with-dev-project"
 environment     = "dev"
 region          = "asia-east1"
-api_domain      = "api-dev.example.com"
-frontend_origin = "https://dev.example.com"
+public_delivery_mode = "firebase_hosting_proxy"
+frontend_origin      = "https://replace-with-dev-project.web.app"
 api_image       = "asia-east1-docker.pkg.dev/replace-with-dev-project/mtg-rag-dev/api:replace-with-commit-sha"
 
 database_tier         = "db-custom-1-3840"

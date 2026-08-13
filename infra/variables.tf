@@ -19,9 +19,29 @@ variable "region" {
   default     = "asia-east1"
 }
 
-variable "api_domain" {
-  description = "DNS name served by the global HTTPS load balancer."
+variable "public_delivery_mode" {
+  description = "Public API delivery path: an external load balancer or Firebase Hosting proxy."
   type        = string
+  default     = "load_balancer"
+
+  validation {
+    condition     = contains(["load_balancer", "firebase_hosting_proxy"], var.public_delivery_mode)
+    error_message = "public_delivery_mode must be load_balancer or firebase_hosting_proxy."
+  }
+}
+
+variable "api_domain" {
+  description = "DNS name served by the global HTTPS load balancer when that delivery mode is used."
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition = var.public_delivery_mode != "load_balancer" || (
+      var.api_domain != null && can(regex("^[a-z0-9.-]+$", var.api_domain))
+    )
+    error_message = "api_domain must be a DNS name when public_delivery_mode is load_balancer."
+  }
 }
 
 variable "frontend_origin" {

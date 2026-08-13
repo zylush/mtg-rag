@@ -1,4 +1,5 @@
 resource "google_compute_security_policy" "api" {
+  count       = var.public_delivery_mode == "load_balancer" ? 1 : 0
   name        = "${local.prefix}-api"
   description = "Country allowlist and default deny for the public API"
   type        = "CLOUD_ARMOR"
@@ -32,6 +33,7 @@ resource "google_compute_security_policy" "api" {
 }
 
 resource "google_compute_region_network_endpoint_group" "api" {
+  count                 = var.public_delivery_mode == "load_balancer" ? 1 : 0
   name                  = "${local.prefix}-api"
   region                = var.region
   network_endpoint_type = "SERVERLESS"
@@ -42,15 +44,16 @@ resource "google_compute_region_network_endpoint_group" "api" {
 }
 
 resource "google_compute_backend_service" "api" {
+  count                 = var.public_delivery_mode == "load_balancer" ? 1 : 0
   name                  = "${local.prefix}-api"
   protocol              = "HTTP"
   load_balancing_scheme = "EXTERNAL_MANAGED"
   timeout_sec           = 40
   enable_cdn            = false
-  security_policy       = google_compute_security_policy.api.id
+  security_policy       = google_compute_security_policy.api[0].id
 
   backend {
-    group = google_compute_region_network_endpoint_group.api.id
+    group = google_compute_region_network_endpoint_group.api[0].id
   }
 
   log_config {
@@ -60,7 +63,8 @@ resource "google_compute_backend_service" "api" {
 }
 
 resource "google_compute_managed_ssl_certificate" "api" {
-  name = "${local.prefix}-api"
+  count = var.public_delivery_mode == "load_balancer" ? 1 : 0
+  name  = "${local.prefix}-api"
 
   managed {
     domains = [var.api_domain]
@@ -68,30 +72,35 @@ resource "google_compute_managed_ssl_certificate" "api" {
 }
 
 resource "google_compute_global_address" "api" {
-  name = "${local.prefix}-api"
+  count = var.public_delivery_mode == "load_balancer" ? 1 : 0
+  name  = "${local.prefix}-api"
 }
 
 resource "google_compute_url_map" "https" {
+  count           = var.public_delivery_mode == "load_balancer" ? 1 : 0
   name            = "${local.prefix}-https"
-  default_service = google_compute_backend_service.api.id
+  default_service = google_compute_backend_service.api[0].id
 }
 
 resource "google_compute_target_https_proxy" "api" {
+  count            = var.public_delivery_mode == "load_balancer" ? 1 : 0
   name             = "${local.prefix}-api"
-  url_map          = google_compute_url_map.https.id
-  ssl_certificates = [google_compute_managed_ssl_certificate.api.id]
+  url_map          = google_compute_url_map.https[0].id
+  ssl_certificates = [google_compute_managed_ssl_certificate.api[0].id]
 }
 
 resource "google_compute_global_forwarding_rule" "https" {
+  count                 = var.public_delivery_mode == "load_balancer" ? 1 : 0
   name                  = "${local.prefix}-https"
-  ip_address            = google_compute_global_address.api.id
+  ip_address            = google_compute_global_address.api[0].id
   port_range            = "443"
-  target                = google_compute_target_https_proxy.api.id
+  target                = google_compute_target_https_proxy.api[0].id
   load_balancing_scheme = "EXTERNAL_MANAGED"
 }
 
 resource "google_compute_url_map" "http_redirect" {
-  name = "${local.prefix}-http-redirect"
+  count = var.public_delivery_mode == "load_balancer" ? 1 : 0
+  name  = "${local.prefix}-http-redirect"
 
   default_url_redirect {
     https_redirect         = true
@@ -101,14 +110,16 @@ resource "google_compute_url_map" "http_redirect" {
 }
 
 resource "google_compute_target_http_proxy" "redirect" {
+  count   = var.public_delivery_mode == "load_balancer" ? 1 : 0
   name    = "${local.prefix}-http-redirect"
-  url_map = google_compute_url_map.http_redirect.id
+  url_map = google_compute_url_map.http_redirect[0].id
 }
 
 resource "google_compute_global_forwarding_rule" "http" {
+  count                 = var.public_delivery_mode == "load_balancer" ? 1 : 0
   name                  = "${local.prefix}-http"
-  ip_address            = google_compute_global_address.api.id
+  ip_address            = google_compute_global_address.api[0].id
   port_range            = "80"
-  target                = google_compute_target_http_proxy.redirect.id
+  target                = google_compute_target_http_proxy.redirect[0].id
   load_balancing_scheme = "EXTERNAL_MANAGED"
 }

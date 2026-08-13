@@ -10,6 +10,13 @@
     "trailingSlash": false,
     "rewrites": [
       {
+        "source": "/v1/**",
+        "run": {
+          "serviceId": "mtg-rag-dev-api",
+          "region": "asia-east1"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

@@ -14,7 +14,7 @@ locals {
 resource "google_cloud_run_v2_service" "api" {
   name                = "${local.prefix}-api"
   location            = var.region
-  ingress             = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
+  ingress             = var.public_delivery_mode == "load_balancer" ? "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER" : "INGRESS_TRAFFIC_ALL"
   deletion_protection = var.environment == "prod"
 
   template {

@@ -11,8 +11,12 @@ resource "google_logging_metric" "ingestion_failures" {
 
 resource "google_logging_metric" "api_5xx" {
   name        = "${local.prefix}/api-5xx"
-  description = "API responses with 5xx status codes at the load balancer"
-  filter      = "resource.type=\"http_load_balancer\" AND resource.labels.backend_service_name=\"${google_compute_backend_service.api.name}\" AND httpRequest.status>=500"
+  description = "API responses with 5xx status codes at the selected public delivery layer"
+  filter = var.public_delivery_mode == "load_balancer" ? (
+    "resource.type=\"http_load_balancer\" AND resource.labels.backend_service_name=\"${google_compute_backend_service.api[0].name}\" AND httpRequest.status>=500"
+    ) : (
+    "resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"${google_cloud_run_v2_service.api.name}\" AND httpRequest.status>=500"
+  )
 
   metric_descriptor {
     metric_kind = "DELTA"
@@ -51,7 +55,7 @@ resource "google_monitoring_alert_policy" "api_5xx" {
   conditions {
     display_name = "At least one API 5xx response in five minutes"
     condition_threshold {
-      filter          = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.api_5xx.name}\" AND resource.type=\"http_load_balancer\""
+      filter          = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.api_5xx.name}\" AND resource.type=\"${var.public_delivery_mode == "load_balancer" ? "http_load_balancer" : "cloud_run_revision"}\""
       comparison      = "COMPARISON_GT"
       threshold_value = 0
       duration        = "0s"

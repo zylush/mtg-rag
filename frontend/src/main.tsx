@@ -12,6 +12,7 @@ import { createRoot } from "react-dom/client"
 import { registerSW } from "virtual:pwa-register"
 
 import { App } from "./App"
+import { resolveApiBaseUrl } from "./api-origin"
 import type { ApiPort, AuthPort, InstallPort } from "./types"
 import "./index.css"
 
@@ -44,8 +45,10 @@ const auth: AuthPort = {
   },
 }
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "")
-if (!apiBaseUrl) throw new Error("VITE_API_BASE_URL is required")
+const apiBaseUrl = resolveApiBaseUrl(
+  import.meta.env.VITE_API_BASE_URL as string | undefined,
+  window.location.origin,
+)
 
 async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = await auth.token()

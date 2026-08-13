@@ -1,11 +1,11 @@
 output "api_ip_address" {
   description = "Create the API domain A record at this address before the certificate can become active."
-  value       = google_compute_global_address.api.address
+  value       = var.public_delivery_mode == "load_balancer" ? google_compute_global_address.api[0].address : null
 }
 
 output "api_url" {
-  description = "Public API URL after DNS and managed TLS certificate provisioning complete."
-  value       = "https://${var.api_domain}"
+  description = "Public API base after the selected delivery path is provisioned."
+  value       = var.public_delivery_mode == "load_balancer" ? "https://${var.api_domain}" : var.frontend_origin
 }
 
 output "artifact_repository" {
