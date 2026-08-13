@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date
 
 import pytest
 
@@ -13,6 +14,7 @@ from app.ingestion.pipeline import (
     ParsedCorpus,
     SourceDefinition,
 )
+from app.ingestion.scryfall import ParsedRuling
 
 
 @dataclass
@@ -42,8 +44,14 @@ class FakeEmbedding:
 
 
 class FakeRepository:
-    def __init__(self, *, existing_version: str | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        existing_version: str | None = None,
+        active_card_ids: frozenset[str] | None = None,
+    ) -> None:
         self.existing_version = existing_version
+        self.active_card_ids = active_card_ids
         self.events: list[str] = []
         self.staged_documents: list[CorpusDocument] = []
         self.staged_embeddings: dict[str, list[float]] = {}
@@ -68,6 +76,10 @@ class FakeRepository:
             return self.cached
         self.events.append(f"load-active-embeddings:{len(canonical_keys)}")
         return {key: self.cached[key] for key in canonical_keys if key in self.cached}
+
+    async def active_card_oracle_ids(self, oracle_ids: tuple[str, ...]) -> frozenset[str]:
+        self.events.append(f"filter-card-ids:{len(oracle_ids)}")
+        return self.active_card_ids if self.active_card_ids is not None else frozenset(oracle_ids)
 
     async def stage_metadata(self, *, version_id: str, corpus: ParsedCorpus) -> None:
         self.events.append("stage-metadata")
@@ -308,3 +320,68 @@ async def test_pipeline_batches_new_embeddings_in_stable_request_order() -> None
     ]
     assert [len(batch) for batch in repository.staged_batches] == [128, 1]
     assert repository.staged_embeddings["100.128"] == [0.1, 0.2]
+
+
+@pytest.mark.asyncio
+async def test_pipeline_filters_orphan_rulings_before_embedding_and_staging() -> None:
+    supported = ParsedRuling(
+        oracle_id="paper-card",
+        published_at=date(2026, 1, 1),
+        source="wotc",
+        attribution="Wizards of the Coast",
+        comment="Supported ruling.",
+    )
+    orphan = ParsedRuling(
+        oracle_id="digital-only-card",
+        published_at=date(2026, 1, 2),
+        source="wotc",
+        attribution="Wizards of the Coast",
+        comment="Orphan ruling.",
+    )
+    documents = tuple(
+        CorpusDocument(
+            canonical_key=f"{ruling.oracle_id}:key",
+            document_type="ruling",
+            text=ruling.comment,
+            metadata={"oracle_id": ruling.oracle_id},
+            content_hash=f"hash-{ruling.oracle_id}",
+        )
+        for ruling in (supported, orphan)
+    )
+
+    def parser(payload: bytes, version_id: str) -> ParsedCorpus:
+        return ParsedCorpus(
+            source_version_id=version_id,
+            documents=documents,
+            rules=(),
+            glossary=(),
+            cards=(),
+            rulings=(supported, orphan),
+        )
+
+    embedding = FakeEmbedding()
+    repository = FakeRepository(active_card_ids=frozenset({"paper-card"}))
+    repository.cached = {}
+    pipeline = IngestionPipeline(
+        repository=repository,
+        snapshot_store=FakeSnapshotStore(),
+        embedding=embedding,
+        download=fake_download,
+    )
+    ruling_source = SourceDefinition(
+        name="rulings",
+        source_type="rulings",
+        url="https://data.scryfall.io/rulings.json",
+        parser_version="1",
+        schema_version="1",
+        minimum_record_count=1,
+    )
+
+    result = await pipeline.refresh(ruling_source, parse=parser)
+
+    assert result.new_embedding_count == 1
+    assert embedding.calls == ["Supported ruling."]
+    assert [document.metadata["oracle_id"] for document in repository.staged_documents] == [
+        "paper-card"
+    ]
+    assert "filter-card-ids:2" in repository.events

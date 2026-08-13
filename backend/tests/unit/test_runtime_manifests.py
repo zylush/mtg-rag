@@ -17,6 +17,12 @@ def test_local_stack_uses_postgres_pgvector_and_no_redis() -> None:
     assert "memorystore" not in services
 
 
+def test_ingestion_job_does_not_retry_non_resumable_embedding_work() -> None:
+    ingestion = (ROOT / "infra" / "ingestion.tf").read_text(encoding="utf-8")
+
+    assert "max_retries     = 0" in ingestion
+
+
 def test_api_container_is_python_312_and_keeps_openai_key_out_of_image() -> None:
     dockerfile = (ROOT / "backend" / "Dockerfile").read_text(encoding="utf-8")
 
