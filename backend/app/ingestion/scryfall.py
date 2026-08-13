@@ -106,7 +106,7 @@ def parse_oracle_cards(cards: Iterable[Mapping[str, Any]]) -> tuple[ParsedOracle
 
 
 def parse_rulings(rulings: Iterable[Mapping[str, Any]]) -> tuple[ParsedRuling, ...]:
-    parsed: list[ParsedRuling] = []
+    parsed_by_identity: dict[tuple[str, date, str], ParsedRuling] = {}
     attribution = {"wotc": "Wizards of the Coast", "scryfall": "Scryfall"}
     priority = {"wotc": 0, "scryfall": 1}
     for ruling in rulings:
@@ -120,15 +120,20 @@ def parse_rulings(rulings: Iterable[Mapping[str, Any]]) -> tuple[ParsedRuling, .
             published_at = date.fromisoformat(_required_string(ruling, "published_at"))
         except ValueError as exc:
             raise ScryfallParseError("invalid published_at") from exc
-        parsed.append(
-            ParsedRuling(
-                oracle_id=_required_string(ruling, "oracle_id"),
-                published_at=published_at,
-                source=source,
-                attribution=attribution[source],
-                comment=comment.strip(),
-            )
+        oracle_id = _required_string(ruling, "oracle_id")
+        normalized_comment = comment.strip()
+        parsed_ruling = ParsedRuling(
+            oracle_id=oracle_id,
+            published_at=published_at,
+            source=source,
+            attribution=attribution[source],
+            comment=normalized_comment,
         )
+        identity = (oracle_id, published_at, normalized_comment)
+        existing = parsed_by_identity.get(identity)
+        if existing is None or priority[source] < priority[existing.source]:
+            parsed_by_identity[identity] = parsed_ruling
+    parsed = list(parsed_by_identity.values())
     parsed.sort(
         key=lambda item: (
             priority[item.source],
