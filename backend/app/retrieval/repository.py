@@ -71,6 +71,22 @@ class PostgresRetrievalRepository:
                 if _whole_phrase_present(analysis.normalized, alias):
                     canonical_keys.add(str(oracle_id))
 
+            glossary_rows = (
+                await session.execute(
+                    select(Passage.canonical_key)
+                    .where(
+                        Passage.is_active.is_(True),
+                        Passage.document_type == "glossary",
+                        func.strpos(literal(analysis.normalized), Passage.canonical_key) > 0,
+                    )
+                    .order_by(func.length(Passage.canonical_key).desc())
+                    .limit(limit * 3)
+                )
+            ).scalars().all()
+            for glossary_term in glossary_rows:
+                if _whole_phrase_present(analysis.normalized, glossary_term):
+                    canonical_keys.add(str(glossary_term))
+
             if not canonical_keys:
                 return []
             passages = (
