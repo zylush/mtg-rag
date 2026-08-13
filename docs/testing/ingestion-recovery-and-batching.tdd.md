@@ -83,6 +83,43 @@ Checkpoints: `82f6d7b fix: make corpus ingestion retries safe` and
 ## Known boundary
 
 This evidence validates parsing, retry state, and request batching without using
-the production OpenAI key. The pending Cloud Run execution is the operational
-verification for full upstream downloads, the Secret Manager injection, and the
-initial corpus activation.
+the production OpenAI key. The Cloud Run execution operationally verified the
+full upstream downloads, Secret Manager injection, and activation of the rules
+and cards corpora; the rulings edge case is covered below.
+
+## Rulings-feed follow-up
+
+The live Scryfall rulings import reached the final source after successfully
+embedding and staging the cards corpus. It then encountered a record with no
+substantive `comment` field. Such a record cannot support a citation, so it is
+ignored; nonblank rulings retain all existing identity, date, source, and
+attribution validation.
+
+RED:
+
+```text
+cd backend
+..\.venv\Scripts\pytest.exe tests\unit\test_scryfall_parser.py -q
+# 1 failed, 3 passed: ScryfallParseError: missing required field: comment
+```
+
+GREEN:
+
+```text
+cd backend
+..\.venv\Scripts\pytest.exe tests\unit\test_scryfall_parser.py -q
+# 4 passed
+
+..\.venv\Scripts\pytest.exe --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=80 -q
+..\.venv\Scripts\ruff.exe check app tests
+..\.venv\Scripts\mypy.exe app
+# 128 passed; total branch coverage 85.76%; Ruff and mypy passed
+```
+
+| Guarantee | Evidence | Type | Result |
+| --- | --- | --- | --- |
+| Blank or absent ruling comments do not abort the source refresh. | `test_rulings_skip_records_without_substantive_comment_text` | Unit | PASS |
+| A usable ruling survives the same feed and remains available as grounded content. | `test_rulings_skip_records_without_substantive_comment_text` | Unit | PASS |
+
+Checkpoints: `7d56c12 test: reproduce blank Scryfall ruling comments` and
+`32e0f52 fix: ignore blank Scryfall rulings`.
