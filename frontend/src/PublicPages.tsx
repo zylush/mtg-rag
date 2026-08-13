@@ -37,7 +37,7 @@ function PublicFooter() {
         <AppLink to="/about">About</AppLink>
         <AppLink to="/terms">Terms of Service</AppLink>
         <AppLink to="/privacy">Privacy Policy</AppLink>
-        <a href="mailto:support@example.com">Support</a>
+        <a href="mailto:paoloinigo30@gmail.com">Support</a>
       </nav>
       <p className="attribution-copy">
         Wizards of the Coast neither approves nor endorses this app. Card data and rulings are
