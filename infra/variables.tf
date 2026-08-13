@@ -48,12 +48,22 @@ variable "openai_secret_version" {
   description = "Secret Manager version mounted as MTG_RAG_OPENAI_API_KEY."
   type        = string
   default     = "latest"
+
+  validation {
+    condition     = var.environment != "prod" || can(regex("^[1-9][0-9]*$", var.openai_secret_version))
+    error_message = "openai_secret_version must be a positive numeric Secret Manager version in prod."
+  }
 }
 
 variable "database_url_secret_version" {
   description = "Secret Manager version mounted as MTG_RAG_DATABASE_URL."
   type        = string
   default     = "latest"
+
+  validation {
+    condition     = var.environment != "prod" || can(regex("^[1-9][0-9]*$", var.database_url_secret_version))
+    error_message = "database_url_secret_version must be a positive numeric Secret Manager version in prod."
+  }
 }
 
 variable "generation_model" {

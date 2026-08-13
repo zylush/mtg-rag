@@ -41,9 +41,12 @@ workflow.
    containers first using reviewed resource targets. Do not use targeted apply for
    normal updates.
 5. Set the PostgreSQL user password through a protected prompt, construct the Unix-socket
-   SQLAlchemy URL, and add `database-url`, `openai-api-key`, and
-   `firebase-project-id` secret versions. Do not create Terraform-managed secret
-   versions because that stores plaintext in state.
+   SQLAlchemy URL, and add `database-url` and `openai-api-key` secret versions.
+   Record their numeric Secret Manager version IDs in the production `.tfvars` as
+   `database_url_secret_version` and `openai_secret_version`; production deliberately
+   rejects `latest`. The Firebase project ID is configured by Terraform and is not a
+   secret. Do not create Terraform-managed secret versions because that stores plaintext
+   in state.
 6. Submit `cloudbuild.yaml` with a commit SHA, confirm every quality and scan step
    passes, and record the immutable Artifact Registry digest. Put that digest in
    `api_image`.

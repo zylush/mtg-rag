@@ -5,6 +5,10 @@ api_domain      = "api.example.com"
 frontend_origin = "https://example.com"
 api_image       = "asia-east1-docker.pkg.dev/replace-with-prod-project/mtg-rag-prod/api@sha256:replace-with-64-hex-digest"
 
+# Pin the reviewed Secret Manager versions for this release.
+openai_secret_version = "1"
+database_url_secret_version = "1"
+
 billing_account_id = "000000-000000-000000"
 monthly_budget_usd  = 100
 

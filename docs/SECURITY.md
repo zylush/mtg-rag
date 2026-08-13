@@ -33,6 +33,9 @@ Secrets, bearer tokens, and database connection strings are restricted credentia
 - Secret Manager injects secrets at runtime. Terraform state contains secret resource
   names but not secret values. Service accounts are separated by responsibility and
   granted only their required bucket, secret, database-connect, or invocation roles.
+- Production deployments pin reviewed numeric Secret Manager versions for the OpenAI
+  credential and database URL; the moving `latest` alias is allowed only outside
+  production.
 - The API service account receives a project custom role containing only
   firebaseauth.users.delete for the existing account-deletion flow; ingestion has no
   Firebase user-management permission.
