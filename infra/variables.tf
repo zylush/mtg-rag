@@ -147,7 +147,7 @@ variable "monthly_budget_usd" {
   nullable    = true
 
   validation {
-    condition     = var.environment != "prod" || (var.monthly_budget_usd != null && var.monthly_budget_usd > 0)
+    condition     = var.environment != "prod" ? true : try(var.monthly_budget_usd > 0, false)
     error_message = "monthly_budget_usd must be positive in prod."
   }
 }
