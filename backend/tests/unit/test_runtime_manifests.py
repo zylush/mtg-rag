@@ -82,6 +82,21 @@ def test_firebase_hosting_proxy_delivery_avoids_a_custom_domain_in_development()
     } in hosting["hosting"]["rewrites"]
 
 
+def test_firebase_google_auth_has_a_reproducible_placeholder_only_template() -> None:
+    auth_template_path = ROOT / "firebase.auth.json.example"
+    ignore_rules = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+
+    assert auth_template_path.is_file()
+    auth_template = yaml.safe_load(auth_template_path.read_text(encoding="utf-8"))
+    google = auth_template["auth"]["providers"]["googleSignIn"]
+
+    assert google == {
+        "oAuthBrandDisplayName": "MTG Rules Desk",
+        "supportEmail": "replace-with-public-support-email",
+    }
+    assert "firebase.auth.local.json" in ignore_rules
+
+
 def test_postgres_16_custom_tier_explicitly_uses_cloud_sql_enterprise_edition() -> None:
     core = (ROOT / "infra" / "core.tf").read_text(encoding="utf-8")
 
