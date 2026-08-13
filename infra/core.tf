@@ -175,10 +175,13 @@ resource "google_service_account" "scheduler" {
 resource "google_project_iam_custom_role" "api_firebase_account_deletion" {
   project     = var.project_id
   role_id     = "${replace(local.prefix, "-", "_")}_firebase_account_deletion"
-  title       = "MTG RAG API Firebase account deletion"
-  description = "Allows the API to delete the currently authenticated Firebase user."
-  permissions = ["firebaseauth.users.delete"]
-  stage       = "GA"
+  title       = "MTG RAG API Firebase identity verification and deletion"
+  description = "Allows the API to check token revocation and delete the currently authenticated Firebase user."
+  permissions = [
+    "firebaseauth.users.delete",
+    "firebaseauth.users.get",
+  ]
+  stage = "GA"
 
   depends_on = [google_project_service.required]
 }

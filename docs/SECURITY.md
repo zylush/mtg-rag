@@ -37,8 +37,8 @@ Secrets, bearer tokens, and database connection strings are restricted credentia
   credential and database URL; the moving `latest` alias is allowed only outside
   production.
 - The API service account receives a project custom role containing only
-  firebaseauth.users.delete for the existing account-deletion flow; ingestion has no
-  Firebase user-management permission.
+  `firebaseauth.users.get` for revoked-token checks and `firebaseauth.users.delete` for
+  the account-deletion flow; ingestion has no Firebase user-management permission.
 - PostgreSQL has automated backups, point-in-time recovery in production, encrypted
   transport requirements, and private Unix-socket connectivity from Cloud Run.
 - Account deletion removes application-owned rows and then requests Firebase identity
