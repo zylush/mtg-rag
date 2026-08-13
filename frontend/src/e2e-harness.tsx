@@ -3,6 +3,7 @@ import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 
 import { App } from "./App"
+import { ApiClientError } from "./api-client"
 import "./index.css"
 import type {
   ApiPort,
@@ -19,6 +20,7 @@ if (!import.meta.env.DEV) {
 }
 
 const requestedRoute = new URLSearchParams(window.location.search).get("route")
+const requestedFailure = new URLSearchParams(window.location.search).get("failure")
 if (requestedRoute?.startsWith("/")) {
   window.history.replaceState({}, "", requestedRoute)
 }
@@ -95,10 +97,12 @@ const conversation: ConversationDetail = {
 
 const api: ApiPort = {
   async ask(question) {
+    if (requestedFailure === "auth") throw new ApiClientError("AUTH_SESSION")
     if (question.toLowerCase() === "quota") throw new Error("daily answer limit reached")
     return answer
   },
   async conversations() {
+    if (requestedFailure === "network") throw new ApiClientError("NETWORK")
     return summaries
   },
   async conversation() {

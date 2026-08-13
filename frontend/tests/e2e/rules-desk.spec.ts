@@ -8,6 +8,12 @@ async function signIn(page: Page) {
   await expect(page.getByRole("textbox", { name: "Rules question" })).toBeVisible()
 }
 
+async function signInWithFailure(page: Page, failure: "auth" | "network") {
+  await page.goto(`/e2e.html?failure=${failure}`)
+  await page.getByRole("button", { name: "Sign in with Google" }).click()
+  await expect(page.getByRole("textbox", { name: "Rules question" })).toBeVisible()
+}
+
 test("signs in, answers from sources, and reports remaining quota", async ({ page }) => {
   await signIn(page)
   await page.getByRole("textbox", { name: "Rules question" }).fill("What blocks flying?")
@@ -39,6 +45,22 @@ test("surfaces quota enforcement without producing an answer", async ({ page }) 
 
   await expect(page.getByRole("alert")).toContainText("could not complete this answer")
   await expect(page.getByText(/only be blocked/i)).toHaveCount(0)
+})
+
+test("shows actionable authentication recovery without provider details", async ({ page }) => {
+  await signInWithFailure(page, "auth")
+  await page.getByRole("textbox", { name: "Rules question" }).fill("Define a target")
+  await page.getByRole("button", { name: "Ask", exact: true }).click()
+
+  await expect(page.getByRole("alert")).toContainText("sign-in session could not be verified")
+  await expect(page.getByRole("alert")).not.toContainText("provider")
+})
+
+test("does not leave history failures silent", async ({ page }) => {
+  await signInWithFailure(page, "network")
+  await page.getByRole("button", { name: "History" }).click()
+
+  await expect(page.getByRole("alert")).toContainText("temporarily unreachable")
 })
 
 test("requires typed confirmation and signs out after account deletion", async ({ page }) => {

@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 // Route coverage follows the public-to-authenticated product flow.
 
 import { App } from "./App"
+import { ApiClientError } from "./api-client"
 import type {
   ApiPort,
   AskResponse,
@@ -230,6 +231,36 @@ describe("MTG Rules Desk", () => {
 
     expect(screen.getByText(/answers require an internet connection/i)).toBeVisible()
     expect(api.ask).not.toHaveBeenCalled()
+  })
+
+  it("shows an actionable sign-in message when an answer token cannot be acquired", async () => {
+    const user = userEvent.setup()
+    const api = fakeApi()
+    api.ask = vi.fn().mockRejectedValue(new ApiClientError("AUTH_SESSION"))
+    renderApp(undefined, api)
+
+    await user.type(
+      await screen.findByRole("textbox", { name: /rules question/i }),
+      "Define a target",
+    )
+    await user.click(screen.getByRole("button", { name: /^ask$/i }))
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /sign-in session could not be verified.*sign out and sign in again/i,
+    )
+  })
+
+  it("shows a safe network error when history cannot load", async () => {
+    const user = userEvent.setup()
+    const api = fakeApi()
+    api.conversations = vi.fn().mockRejectedValue(new ApiClientError("NETWORK"))
+    renderApp(undefined, api)
+
+    await user.click(await screen.findByRole("button", { name: /history/i }))
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /temporarily unreachable.*check your connection/i,
+    )
   })
 
   it("opens and permanently deletes owned history after confirmation", async () => {
