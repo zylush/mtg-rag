@@ -111,6 +111,7 @@ resource "google_sql_database_instance" "postgres" {
   deletion_protection = var.environment == "prod"
 
   settings {
+    edition           = "ENTERPRISE"
     tier              = var.database_tier
     availability_type = var.environment == "prod" ? "REGIONAL" : "ZONAL"
     disk_type         = "PD_SSD"
