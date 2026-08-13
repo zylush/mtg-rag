@@ -95,7 +95,7 @@ def parse_comprehensive_rules(
         raise RulesParseError("empty rules payload")
 
     effective = _effective_date(text)
-    body, separator, glossary_text = text.partition("\nGlossary\n")
+    body, separator, glossary_text = text.rpartition("\nGlossary\n")
     if not separator:
         raise RulesParseError("missing glossary section")
 
@@ -146,4 +146,3 @@ def parse_comprehensive_rules(
     )
     glossary = _parse_glossary(glossary_text.splitlines(), effective, source_version_id)
     return ParsedComprehensiveRules(effective_date=effective, rules=rules, glossary=glossary)
-

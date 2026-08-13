@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import exists, func, select, update
+from sqlalchemy import delete, exists, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.db.models import (
@@ -163,20 +163,56 @@ class PostgresIngestionRepository:
         sha256: str,
         raw_gcs_uri: str,
     ) -> str:
-        version = SourceVersion(
-            source_name=source.name,
-            source_type=source.source_type,
-            source_url=source_url,
-            effective_date=None,
-            fetched_at=fetched_at,
-            sha256=sha256,
-            parser_version=source.parser_version,
-            schema_version=source.schema_version,
-            raw_gcs_uri=raw_gcs_uri,
-            status="staged",
-            is_active=False,
-        )
         async with self._session_factory.begin() as session:
+            existing = await session.scalar(
+                select(SourceVersion)
+                .where(
+                    SourceVersion.source_name == source.name,
+                    SourceVersion.sha256 == sha256,
+                )
+                .with_for_update()
+            )
+            if existing is not None:
+                if existing.status != "failed" or existing.is_active:
+                    raise VersionStateError("source version already exists and is not retryable")
+                await session.execute(
+                    delete(RuleSection).where(RuleSection.source_version_id == existing.id)
+                )
+                await session.execute(
+                    delete(GlossaryEntry).where(GlossaryEntry.source_version_id == existing.id)
+                )
+                await session.execute(delete(Card).where(Card.source_version_id == existing.id))
+                await session.execute(delete(Ruling).where(Ruling.source_version_id == existing.id))
+                await session.execute(
+                    delete(Passage).where(Passage.source_version_id == existing.id)
+                )
+                existing.source_type = source.source_type
+                existing.source_url = source_url
+                existing.effective_date = None
+                existing.fetched_at = fetched_at
+                existing.parser_version = source.parser_version
+                existing.schema_version = source.schema_version
+                existing.raw_gcs_uri = raw_gcs_uri
+                existing.status = "staged"
+                existing.is_active = False
+                existing.activated_at = None
+                existing.deactivated_at = None
+                await session.flush()
+                return str(existing.id)
+
+            version = SourceVersion(
+                source_name=source.name,
+                source_type=source.source_type,
+                source_url=source_url,
+                effective_date=None,
+                fetched_at=fetched_at,
+                sha256=sha256,
+                parser_version=source.parser_version,
+                schema_version=source.schema_version,
+                raw_gcs_uri=raw_gcs_uri,
+                status="staged",
+                is_active=False,
+            )
             session.add(version)
             await session.flush()
         return str(version.id)
