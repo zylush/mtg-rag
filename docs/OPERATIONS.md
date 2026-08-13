@@ -97,6 +97,10 @@ configuration and deploy it separately with `firebase deploy --only hosting`.
 and no-store handling to the service worker. Verify installation and an authenticated
 question flow from a clean browser profile after deployment.
 
+`/healthz` is reserved for Cloud Run startup and liveness probes and is not exposed by
+Firebase Hosting. For an edge-to-service smoke check, request `/v1/conversations`
+without credentials and expect the API's JSON `401` response rather than the SPA shell.
+
 ## Rollback
 
 Application images are immutable. To roll back the API, change `api_image` to a known
