@@ -47,6 +47,24 @@ def test_api_service_identity_can_delete_the_current_users_firebase_identity() -
     assert firebase_auth_api in core
 
 
+def test_production_requires_pinned_secret_versions() -> None:
+    variables = (ROOT / "infra" / "variables.tf").read_text(encoding="utf-8")
+    prod_example = (
+        ROOT / "infra" / "environments" / "prod.tfvars.example"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        'var.environment != "prod" || '
+        'can(regex("^[1-9][0-9]*$", var.openai_secret_version))'
+    ) in variables
+    assert (
+        'var.environment != "prod" || '
+        'can(regex("^[1-9][0-9]*$", var.database_url_secret_version))'
+    ) in variables
+    assert 'openai_secret_version = "1"' in prod_example
+    assert 'database_url_secret_version = "1"' in prod_example
+
+
 def test_example_environment_contains_only_placeholders_and_safe_defaults() -> None:
     example = (ROOT / ".env.example").read_text(encoding="utf-8")
 
