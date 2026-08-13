@@ -146,6 +146,16 @@ async def retrieval_fixture(session_factory):  # type: ignore[no-untyped-def]
                 first_dimension=1.0,
                 active=False,
             ),
+            _passage(
+                source_version_id=active_version.id,
+                document_type="glossary",
+                canonical_key="target",
+                body=(
+                    "Target. A preselected object, player, and/or zone a spell or ability "
+                    "will affect. See rule 115, Targets."
+                ),
+                first_dimension=0.1,
+            ),
         ]
         session.add_all(passages)
     return PostgresRetrievalRepository(session_factory), passages
@@ -165,6 +175,20 @@ async def test_exact_lookup_finds_rule_and_unquoted_active_card_alias(retrieval_
         str(passages[1].id),
     }
     assert all(candidate.exact for candidate in result)
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_exact_lookup_finds_glossary_term_mentioned_in_question(retrieval_fixture) -> None:  # type: ignore[no-untyped-def]
+    repository, passages = retrieval_fixture
+
+    result = await repository.exact(
+        analyze_question("What Comprehensive Rule defines a target?"), limit=20
+    )
+
+    assert [candidate.passage.passage_id for candidate in result] == [str(passages[6].id)]
+    assert result[0].passage.document_type == "glossary"
+    assert result[0].exact is True
 
 
 @pytest.mark.asyncio
