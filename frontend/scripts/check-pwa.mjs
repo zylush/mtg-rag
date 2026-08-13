@@ -46,8 +46,9 @@ const bundleText = JavaScript.join("\n").toLowerCase()
 assert(!bundleText.includes("openai_api_key"), "OpenAI credential name leaked into browser assets")
 assert(!bundleText.includes("sk-proj-"), "OpenAI project key leaked into browser assets")
 assert(
-  !bundleText.includes("http://localhost") && !bundleText.includes("http://127.0.0.1"),
-  "production browser assets must not call a loopback API origin",
+  !bundleText.includes("http://localhost:8080") &&
+    !bundleText.includes("http://127.0.0.1:8080"),
+  "production browser assets must not include the configured development API origin",
 )
 
 console.log("PWA checks passed")

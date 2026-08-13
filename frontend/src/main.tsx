@@ -47,8 +47,9 @@ const auth: AuthPort = {
 }
 
 const apiBaseUrl = resolveApiBaseUrl(
-  import.meta.env.VITE_API_BASE_URL as string | undefined,
+  import.meta.env.DEV ? (import.meta.env.VITE_API_BASE_URL as string | undefined) : undefined,
   window.location.origin,
+  import.meta.env.DEV,
 )
 
 const api = createApiClient({ baseUrl: apiBaseUrl, token: () => auth.token() })
