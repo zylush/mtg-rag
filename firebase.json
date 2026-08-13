@@ -17,6 +17,13 @@
         }
       },
       {
+        "source": "/healthz",
+        "run": {
+          "serviceId": "mtg-rag-dev-api",
+          "region": "asia-east1"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
