@@ -17,7 +17,7 @@
         }
       },
       {
-        "source": "/healthz{,/**}",
+        "regex": "/healthz(/.*)?",
         "run": {
           "serviceId": "mtg-rag-dev-api",
           "region": "asia-east1"
