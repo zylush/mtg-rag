@@ -93,8 +93,12 @@ def test_cloud_build_ignore_rules_keep_frontend_quality_scripts_uploadable() -> 
     wrapper = (ROOT / ".gcloudignore").read_text(encoding="utf-8")
 
     assert "#!include:cloudbuild.ignore" in wrapper
+    assert "#!include:" not in cloud_ignore
     assert "scripts/" not in cloud_ignore.splitlines()
     assert "scripts/codex/" in cloud_ignore
+    assert {".env", ".env.*", "node_modules/", ".terraform/"}.issubset(
+        cloud_ignore.splitlines()
+    )
     assert (ROOT / "frontend" / "scripts" / "check-pwa.mjs").is_file()
 
 
