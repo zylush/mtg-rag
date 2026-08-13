@@ -67,6 +67,15 @@ def test_production_requires_pinned_secret_versions() -> None:
     assert 'database_url_secret_version = "1"' in prod_example
 
 
+def test_development_budget_validation_accepts_the_documented_null_default() -> None:
+    variables = (ROOT / "infra" / "variables.tf").read_text(encoding="utf-8")
+
+    assert (
+        'var.environment != "prod" ? true : '
+        'try(var.monthly_budget_usd > 0, false)'
+    ) in variables
+
+
 def test_firebase_hosting_proxy_delivery_avoids_a_custom_domain_in_development() -> None:
     variables = (ROOT / "infra" / "variables.tf").read_text(encoding="utf-8")
     runtime = (ROOT / "infra" / "runtime.tf").read_text(encoding="utf-8")
