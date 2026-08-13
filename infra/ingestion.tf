@@ -9,7 +9,7 @@ resource "google_cloud_run_v2_job" "ingestion" {
     template {
       service_account = google_service_account.ingestion.email
       timeout         = "3600s"
-      max_retries     = 1
+      max_retries     = 0
 
       containers {
         image   = var.api_image

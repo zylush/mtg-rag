@@ -246,6 +246,25 @@ class PostgresIngestionRepository:
             for passage in passages
         }
 
+    async def active_card_oracle_ids(
+        self, oracle_ids: tuple[str, ...]
+    ) -> frozenset[str]:
+        if not oracle_ids:
+            return frozenset()
+        candidate_ids = tuple(_uuid(value, field="oracle ID") for value in oracle_ids)
+        async with self._session_factory() as session:
+            supported = (
+                await session.execute(
+                    select(Card.oracle_id)
+                    .join(SourceVersion, SourceVersion.id == Card.source_version_id)
+                    .where(
+                        SourceVersion.is_active.is_(True),
+                        Card.oracle_id.in_(candidate_ids),
+                    )
+                )
+            ).scalars().all()
+        return frozenset(str(oracle_id) for oracle_id in supported)
+
     async def stage_metadata(self, *, version_id: str, corpus: ParsedCorpus) -> None:
         version_uuid = _uuid(version_id, field="source version")
         if corpus.source_version_id != version_id:

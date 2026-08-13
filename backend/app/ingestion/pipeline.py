@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from typing import Any, Protocol
 
@@ -90,6 +90,10 @@ class IngestionRepository(Protocol):
         self, source_name: str, canonical_keys: tuple[str, ...] | None = None
     ) -> dict[str, CachedDocumentEmbedding]: ...
 
+    async def active_card_oracle_ids(
+        self, oracle_ids: tuple[str, ...]
+    ) -> frozenset[str]: ...
+
     async def stage_metadata(self, *, version_id: str, corpus: ParsedCorpus) -> None: ...
 
     async def stage_passages(
@@ -162,6 +166,25 @@ class IngestionPipeline:
         except Exception:
             await self._repository.mark_failed(version_id, "parse")
             raise
+
+        if corpus.rulings:
+            supported_oracle_ids = await self._repository.active_card_oracle_ids(
+                tuple(sorted({ruling.oracle_id for ruling in corpus.rulings}))
+            )
+            corpus = replace(
+                corpus,
+                documents=tuple(
+                    document
+                    for document in corpus.documents
+                    if document.document_type != "ruling"
+                    or document.metadata.get("oracle_id") in supported_oracle_ids
+                ),
+                rulings=tuple(
+                    ruling
+                    for ruling in corpus.rulings
+                    if ruling.oracle_id in supported_oracle_ids
+                ),
+            )
 
         try:
             await self._repository.stage_metadata(version_id=version_id, corpus=corpus)
