@@ -30,10 +30,15 @@ class FakeSnapshotStore:
 @dataclass
 class FakeEmbedding:
     calls: list[str] = field(default_factory=list)
+    batch_calls: list[list[str]] = field(default_factory=list)
 
     async def embed(self, text: str) -> list[float]:
         self.calls.append(text)
         return [0.1, 0.2]
+
+    async def embed_many(self, texts: list[str]) -> list[list[float]]:
+        self.batch_calls.append(texts)
+        return [await self.embed(text) for text in texts]
 
 
 class FakeRepository:
@@ -229,3 +234,45 @@ async def test_validation_failure_marks_candidate_failed_and_never_activates() -
     assert "activate" not in repository.events
     assert repository.events[-1] == "failed:validation"
 
+
+@pytest.mark.asyncio
+async def test_pipeline_batches_new_embeddings_in_stable_request_order() -> None:
+    documents = tuple(
+        CorpusDocument(
+            canonical_key=f"100.{index}",
+            document_type="rule",
+            text=f"Rule {index}",
+            metadata={},
+            content_hash=f"hash-{index}",
+        )
+        for index in range(129)
+    )
+
+    def parser(payload: bytes, version_id: str) -> ParsedCorpus:
+        return ParsedCorpus(
+            source_version_id=version_id,
+            documents=documents,
+            rules=(),
+            glossary=(),
+            cards=(),
+            rulings=(),
+        )
+
+    embedding = FakeEmbedding()
+    repository = FakeRepository()
+    repository.cached = {}
+    pipeline = IngestionPipeline(
+        repository=repository,
+        snapshot_store=FakeSnapshotStore(),
+        embedding=embedding,
+        download=fake_download,
+    )
+
+    result = await pipeline.refresh(source(), parse=parser)
+
+    assert result.new_embedding_count == 129
+    assert embedding.batch_calls == [
+        [f"Rule {index}" for index in range(128)],
+        ["Rule 128"],
+    ]
+    assert repository.staged_embeddings["100.128"] == [0.1, 0.2]
