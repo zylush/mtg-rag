@@ -115,6 +115,14 @@ def test_cloud_build_ignore_rules_keep_frontend_quality_scripts_uploadable() -> 
     assert (ROOT / "frontend" / "scripts" / "check-pwa.mjs").is_file()
 
 
+def test_cloud_build_upload_keeps_runtime_manifest_test_dependencies() -> None:
+    cloud_ignore = (ROOT / "cloudbuild.ignore").read_text(encoding="utf-8")
+    ignored_paths = set(cloud_ignore.splitlines())
+
+    assert ".gitignore" not in ignored_paths
+    assert "firebase.auth.json.example" not in ignored_paths
+
+
 def test_migration_job_supplies_the_required_frontend_origin_setting() -> None:
     migration = (ROOT / "infra" / "migration.tf").read_text(encoding="utf-8")
 
