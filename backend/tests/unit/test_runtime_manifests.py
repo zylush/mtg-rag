@@ -132,6 +132,14 @@ def test_cloud_build_ignore_rules_keep_frontend_quality_scripts_uploadable() -> 
     assert (ROOT / "frontend" / "scripts" / "check-pwa.mjs").is_file()
 
 
+def test_local_terraform_plans_are_excluded_from_git_and_cloud_build() -> None:
+    git_ignore = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+    cloud_ignore = (ROOT / "cloudbuild.ignore").read_text(encoding="utf-8").splitlines()
+
+    assert ".tmp/" in git_ignore
+    assert ".tmp/" in cloud_ignore
+
+
 def test_cloud_build_upload_keeps_runtime_manifest_test_dependencies() -> None:
     cloud_ignore = (ROOT / "cloudbuild.ignore").read_text(encoding="utf-8")
     ignored_paths = set(cloud_ignore.splitlines())
