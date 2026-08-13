@@ -98,7 +98,7 @@ def test_firebase_hosting_proxy_delivery_avoids_a_custom_domain_in_development()
         "run": {"serviceId": "mtg-rag-dev-api", "region": "asia-east1"},
     } in hosting["hosting"]["rewrites"]
     assert {
-        "source": "/healthz",
+        "source": "/healthz{,/**}",
         "run": {"serviceId": "mtg-rag-dev-api", "region": "asia-east1"},
     } in hosting["hosting"]["rewrites"]
 
