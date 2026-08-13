@@ -33,6 +33,11 @@ resource "google_cloud_run_v2_job" "migration" {
           }
         }
 
+        env {
+          name  = "MTG_RAG_FRONTEND_ORIGIN"
+          value = var.frontend_origin
+        }
+
         volume_mounts {
           name       = "cloudsql"
           mount_path = "/cloudsql"
