@@ -1,0 +1,40 @@
+# Keep the Cloud Build upload limited to deployable application source.
+# Git ignores cover credentials, local environments, and generated artifacts.
+.git
+.gitignore
+.gcloudignore
+
+# Flattened from .gitignore: nested include directives are not reliable in
+# Cloud Build's source-upload resolver.
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+node_modules/
+dist/
+playwright-report/
+test-results/
+coverage/
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+.terraform/
+*.tfstate
+*.tfstate.*
+.tools/
+.firebaserc
+*.tfvars
+
+# Local-only Codex helper tooling and planning material are not part of the build.
+scripts/codex/
+docs/
+.claude/
+MTG-PLAN.md
+plan.md
