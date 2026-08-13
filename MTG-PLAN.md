@@ -289,3 +289,25 @@ Maintain at least 100 versioned, expert-reviewed questions covering:
 - The operator supplies Google Cloud, Firebase, OpenAI, billing, and domain access.
 - Numeric cloud budget and final domain names are deployment configuration, not architecture decisions.
 - The current empty workspace has no compatibility or migration constraints.
+
+## 9. Development Integration Status ? 2026-08-13
+
+The development environment has implemented the architecture through the controlled
+pre-production stage:
+
+- Firebase Hosting serves the installable PWA at
+  `https://mtg-rules-desk-dev.web.app` and rewrites same-origin API requests to Cloud Run.
+- Firebase Authentication has Google sign-in enabled; the backend verifies Firebase ID
+  tokens and keeps all protected endpoints closed to signed-out requests.
+- The FastAPI service, migration job, and ingestion job run as Docker images in Cloud Run;
+  Cloud SQL/pgvector holds the application data and active versioned corpora.
+- WotC Comprehensive Rules, Scryfall Oracle cards, and rulings are active as three separate
+  source versions, with immutable raw snapshots and idempotent refresh behavior.
+- `OPENAI_API_KEY` is stored in Secret Manager and injected only into server-side runtime
+  identities. The browser uses Firebase configuration only and never receives that secret.
+- Artifact Registry, Cloud Build, Scheduler, monitoring, alerts, and Terraform-managed IAM
+  are provisioned in `asia-east1` for project `mtg-rules-desk-dev`.
+
+This status completes the engineering integration target for development. The final real
+Google-account sign-in/ask browser check and the external public-launch approvals listed in
+the release gates remain deliberately separate acceptance items.

@@ -56,3 +56,29 @@ managed-certificate/DNS check, production alert delivery, production backup
 restore, Firebase identity deletion, staging OpenAI/corpus evaluation, or
 independent legal/rules approvals. These omissions cap readiness regardless of
 local test quality.
+
+## Development deployment addendum ? 2026-08-13
+
+The preceding section records the evidence available during the original audit. Since then,
+the operator authorized and supplied an owned Google Cloud project, billing, and an OpenAI
+secret. The development integration now has direct evidence for:
+
+- Firebase Hosting at `https://mtg-rules-desk-dev.web.app`, including exact security
+  headers and a same-origin `/v1/**` rewrite to Cloud Run;
+- enabled Firebase Google authentication with only the Firebase Hosting domains on the
+  authorized-domain list;
+- a private OpenAI credential injected from Secret Manager into dedicated Cloud Run API and
+  ingestion identities, without exposing it to the browser or build context;
+- a Cloud Run API, Cloud SQL/pgvector, immutable source snapshots, migration and ingestion
+  jobs, three active versioned corpora, and an idempotent re-ingestion result;
+- Artifact Registry, Cloud Scheduler, monitoring and alert resources, and a successful
+  Cloud Build with backend/frontend/Terraform, secret-scan, and container-vulnerability
+  gates; and
+- live signed-out edge verification: public pages return `200`, protected API access returns
+  `401`, and the Hosting-to-Cloud-Run route preserves the authentication boundary.
+
+These results remove the original ?no cloud evidence? limitation for development. They do
+not change the public-launch recommendation. Remaining launch evidence includes a qualified
+WotC policy/legal decision, final legal copy, independent expert approval and execution of
+the RAG evaluation suite, a real signed-in browser acceptance run, and production-specific
+DNS, budget, alert-delivery, backup/restore, rollback, and identity-deletion drills.

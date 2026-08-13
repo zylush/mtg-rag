@@ -87,8 +87,17 @@ readiness. See `backend/evals/README.md`.
 
 ## Public-release status
 
-No cloud resources are created by this repository alone, and no deployment was performed
-during implementation. Production launch requires operator-supplied Google Cloud, Firebase,
-OpenAI, billing, DNS, monitoring, and legal-review decisions. In particular, the current
-WotC Fan Content Policy creates a potential conflict with mandatory sign-in and requires a
-human go/no-go decision before public access. See `docs/ATTRIBUTION-AND-LAUNCH.md`.
+A development environment is deployed at
+<https://mtg-rules-desk-dev.web.app>. Firebase Hosting serves the PWA and proxies
+same-origin `/v1/**` requests to the `asia-east1` Cloud Run API. Google sign-in is enabled
+through Firebase Authentication, the three versioned rules/card/rulings corpora are active
+in Cloud SQL, and the API receives its OpenAI credential from Secret Manager at runtime.
+The credential is not included in frontend configuration, source maps, Docker build
+arguments, or image layers.
+
+This is a development deployment, not approval for a public production launch. Production
+still requires the legal/policy decision, final Terms and Privacy copy, an independent MTG
+rules-expert evaluation, operator DNS/budget decisions, and the documented production
+recovery drills. In particular, the current WotC Fan Content Policy creates a potential
+conflict with mandatory sign-in and requires a human go/no-go decision before public access.
+See `docs/ATTRIBUTION-AND-LAUNCH.md` and `docs/PRODUCTION-AUDIT.md`.
