@@ -100,6 +100,13 @@ def test_cloud_build_ignore_rules_keep_frontend_quality_scripts_uploadable() -> 
     assert (ROOT / "frontend" / "scripts" / "check-pwa.mjs").is_file()
 
 
+def test_migration_job_supplies_the_required_frontend_origin_setting() -> None:
+    migration = (ROOT / "infra" / "migration.tf").read_text(encoding="utf-8")
+
+    assert 'name  = "MTG_RAG_FRONTEND_ORIGIN"' in migration
+    assert "value = var.frontend_origin" in migration
+
+
 def test_example_environment_contains_only_placeholders_and_safe_defaults() -> None:
     example = (ROOT / ".env.example").read_text(encoding="utf-8")
 
