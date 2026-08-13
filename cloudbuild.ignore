@@ -1,8 +1,10 @@
 # Keep the Cloud Build upload limited to deployable application source.
 # Git ignores cover credentials, local environments, and generated artifacts.
 .git
-.gitignore
 .gcloudignore
+
+# Keep .gitignore in the upload: runtime manifest tests verify that local auth
+# deployment files and Firebase CLI caches cannot be committed.
 
 # Flattened from .gitignore: nested include directives are not reliable in
 # Cloud Build's source-upload resolver.
