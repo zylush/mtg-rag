@@ -36,6 +36,8 @@ for (const [filename] of expectedIcons) {
   assert(serviceWorker.includes(filename), `${filename} is not precached`)
 }
 assert(!serviceWorker.includes("/v1/"), "service worker must not cache API routes")
+assert(serviceWorker.includes("skipWaiting"), "service worker must activate release updates")
+assert(serviceWorker.includes("clientsClaim"), "service worker must control open clients after update")
 
 const JavaScript = await Promise.all(
   files.filter((file) => file.endsWith(".js")).map((file) => readFile(path.join(dist, file), "utf8")),
