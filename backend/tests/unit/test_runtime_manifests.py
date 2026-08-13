@@ -89,8 +89,10 @@ def test_postgres_16_custom_tier_explicitly_uses_cloud_sql_enterprise_edition() 
 
 
 def test_cloud_build_ignore_rules_keep_frontend_quality_scripts_uploadable() -> None:
-    cloud_ignore = (ROOT / ".gcloudignore").read_text(encoding="utf-8")
+    cloud_ignore = (ROOT / "cloudbuild.ignore").read_text(encoding="utf-8")
+    wrapper = (ROOT / ".gcloudignore").read_text(encoding="utf-8")
 
+    assert "#!include:cloudbuild.ignore" in wrapper
     assert "scripts/" not in cloud_ignore.splitlines()
     assert "scripts/codex/" in cloud_ignore
     assert (ROOT / "frontend" / "scripts" / "check-pwa.mjs").is_file()
