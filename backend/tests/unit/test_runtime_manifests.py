@@ -65,6 +65,23 @@ def test_production_requires_pinned_secret_versions() -> None:
     assert 'database_url_secret_version = "1"' in prod_example
 
 
+def test_firebase_hosting_proxy_delivery_avoids_a_custom_domain_in_development() -> None:
+    variables = (ROOT / "infra" / "variables.tf").read_text(encoding="utf-8")
+    runtime = (ROOT / "infra" / "runtime.tf").read_text(encoding="utf-8")
+    dev_example = (
+        ROOT / "infra" / "environments" / "dev.tfvars.example"
+    ).read_text(encoding="utf-8")
+    hosting = yaml.safe_load((ROOT / "firebase.json").read_text(encoding="utf-8"))
+
+    assert '"firebase_hosting_proxy"' in variables
+    assert 'public_delivery_mode = "firebase_hosting_proxy"' in dev_example
+    assert "INGRESS_TRAFFIC_ALL" in runtime
+    assert {
+        "source": "/v1/**",
+        "run": {"serviceId": "mtg-rag-dev-api", "region": "asia-east1"},
+    } in hosting["hosting"]["rewrites"]
+
+
 def test_example_environment_contains_only_placeholders_and_safe_defaults() -> None:
     example = (ROOT / ".env.example").read_text(encoding="utf-8")
 
