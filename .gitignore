@@ -22,4 +22,5 @@ vite.config.d.ts
 *.tfstate.*
 .tools/
 .firebaserc
+firebase.auth.local.json
 *.tfvars

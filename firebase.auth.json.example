@@ -1,0 +1,10 @@
+{
+  "auth": {
+    "providers": {
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "MTG Rules Desk",
+        "supportEmail": "replace-with-public-support-email"
+      }
+    }
+  }
+}

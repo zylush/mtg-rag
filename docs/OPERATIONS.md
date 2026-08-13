@@ -86,6 +86,13 @@ provide `frontend/.env.production.local` outside source control. Build with
 `npm run build`; deploy Firebase Hosting only after the API certificate, CORS origin,
 authentication configuration, eval gate, and launch approvals are all verified.
 
+To configure Google sign-in without committing an operator email, copy
+`firebase.auth.json.example` to the ignored `firebase.auth.local.json`, replace the
+support-email placeholder with the public OAuth support contact, and run
+`firebase deploy --only auth --config firebase.auth.local.json --project PROJECT_ID`.
+Delete the local auth file after deployment. Keep `firebase.json` as the Hosting
+configuration and deploy it separately with `firebase deploy --only hosting`.
+
 `firebase.json` applies security headers, immutable caching to fingerprinted assets,
 and no-store handling to the service worker. Verify installation and an authenticated
 question flow from a clean browser profile after deployment.
