@@ -75,10 +75,12 @@ secret. The development integration now has direct evidence for:
   Cloud Build with backend/frontend/Terraform, secret-scan, and container-vulnerability
   gates; and
 - live signed-out edge verification: public pages return `200`, protected API access returns
-  `401`, and the Hosting-to-Cloud-Run route preserves the authentication boundary.
+  `401`, and the Hosting-to-Cloud-Run route preserves the authentication boundary; and
+- a real signed-in Google account flow producing a grounded OpenAI answer with WotC glossary
+  and Scryfall Oracle citations, quota reporting, and History persistence.
 
 These results remove the original ?no cloud evidence? limitation for development. They do
 not change the public-launch recommendation. Remaining launch evidence includes a qualified
 WotC policy/legal decision, final legal copy, independent expert approval and execution of
-the RAG evaluation suite, a real signed-in browser acceptance run, and production-specific
+the RAG evaluation suite, and production-specific
 DNS, budget, alert-delivery, backup/restore, rollback, and identity-deletion drills.

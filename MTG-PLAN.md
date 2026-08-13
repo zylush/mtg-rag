@@ -308,6 +308,8 @@ pre-production stage:
 - Artifact Registry, Cloud Build, Scheduler, monitoring, alerts, and Terraform-managed IAM
   are provisioned in `asia-east1` for project `mtg-rules-desk-dev`.
 
-This status completes the engineering integration target for development. The final real
-Google-account sign-in/ask browser check and the external public-launch approvals listed in
-the release gates remain deliberately separate acceptance items.
+This status completes the engineering integration target for development. On 2026-08-14,
+a real Google-account browser flow returned a high-confidence, multi-source answer citing
+the Comprehensive Rules glossary and Lightning Bolt Oracle text, and persisted it to History.
+The external public-launch approvals listed in the release gates remain deliberately separate
+acceptance items. See `docs/INTEGRATION-LESSONS.md` for the issue-by-issue postmortem.

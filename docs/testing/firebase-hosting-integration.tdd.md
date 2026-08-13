@@ -2,8 +2,8 @@
 
 **Source plan:** `MTG-PLAN.md`
 **Environment:** `mtg-rules-desk-dev` / `asia-east1`
-**Status:** Deployed; signed-out edge verified; real account chooser awaiting operator click
-**Date:** 2026-08-13
+**Status:** Deployed; real authenticated answer/citations/history flow verified
+**Date:** 2026-08-14
 
 ## User journeys
 
@@ -28,6 +28,10 @@
 | GREEN | `7b91f5a` ? publish the verified support contact | Focused and full browser tests passed |
 | RED | `0854c6c` ? automatic PWA release-activation check | Failed because the service worker did not claim existing clients |
 | GREEN | `16fb230` ? `autoUpdate`, `skipWaiting`, and `clientsClaim` | PWA validation and returning-tab browser QA passed |
+| RED | `499b236` ? production artifact rejects the local API endpoint | Failed because the emitted bundle contained `http://localhost:8080` |
+| GREEN | `f35fcd0` ? production API selection is same-origin | Unit, lint, and emitted PWA artifact checks passed; live bundle no longer contains the development endpoint |
+| RED | `23e3e42` ? mentioned glossary terms require exact retrieval | Live mixed-corpus question missed `target`; Postgres integration test returned no exact glossary passage |
+| GREEN | `ba9165e` ? exact active glossary retrieval | Database integration test passed; live retest cited the Target glossary entry and Lightning Bolt Oracle text |
 
 ## Deployment evidence
 
@@ -42,14 +46,20 @@
 - The live service worker includes immediate activation and client-claim behavior. A tab that
   had loaded the old release moved to the new hashed bundle after reload.
 - Browser console inspection on the public page reported no errors.
+- A real signed-in browser request produced a high-confidence answer using OpenAI through
+  Cloud Run and cited both `Comprehensive Rules Glossary: Target` and
+  `Oracle text: Lightning Bolt`; the saved conversation was visible and openable in History.
+- The release bundle is `index-e5hBUfUc.js`, uses the Firebase origin for API calls, and
+  contains no `http://localhost:8080`.
+- Cloud Run revision `mtg-rag-dev-api-00008-589` serves tested image `api:ba9165e` at 100%
+  traffic; Terraform reports no drift across the API and both jobs.
 
 ## Acceptance boundary
 
 Automated Firebase-provider configuration, local authenticated E2E coverage, live signed-out
-edge behavior, caching behavior, and secret boundaries are verified. Google protects the
-real account chooser from automated click dispatch; the popup is left open for the operator
-to select the account. After that explicit action, the final live sign-in, authenticated
-question/citation, history, and logout smoke test can run without exposing credentials.
+edge behavior, caching behavior, secret boundaries, and the real signed-in
+question/citation/history flow are verified. The detailed issue analysis and lessons are in
+`docs/INTEGRATION-LESSONS.md`.
 
 Public production launch remains separately blocked by the legal/policy, final-copy,
 independent rules-review, and production-drill requirements documented in
