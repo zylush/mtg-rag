@@ -150,7 +150,7 @@ class PostgresIngestionRepository:
                 select(SourceVersion.id).where(
                     SourceVersion.source_name == source_name,
                     SourceVersion.sha256 == sha256,
-                    SourceVersion.status != "failed",
+                    SourceVersion.is_active.is_(True),
                 )
             )
         return str(version_id) if version_id is not None else None
@@ -174,8 +174,8 @@ class PostgresIngestionRepository:
                 .with_for_update()
             )
             if existing is not None:
-                if existing.status != "failed" or existing.is_active:
-                    raise VersionStateError("source version already exists and is not retryable")
+                if existing.is_active:
+                    raise VersionStateError("source version already exists and is active")
                 await session.execute(
                     delete(RuleSection).where(RuleSection.source_version_id == existing.id)
                 )
