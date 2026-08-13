@@ -20,7 +20,7 @@ The development application now works end to end:
    conversation appears in History.
 
 The final live question asked for the Comprehensive Rules glossary definition of
-?target? and Lightning Bolt's Oracle text. The response supplied both with high
+"target" and Lightning Bolt's Oracle text. The response supplied both with high
 confidence and cited:
 
 - `Comprehensive Rules Glossary: Target`; and
@@ -64,8 +64,8 @@ needed by token revocation checks and account deletion.
 flow. Avoid replacing revocation checks with a weaker verification mode just to make IAM
 simpler.
 
-**Lesson:** ?Can verify a signature? and ?can perform the configured authentication
-policy? are different capabilities.
+**Lesson:** "Can verify a signature" and "can perform the configured authentication
+policy" are different capabilities.
 
 ### 3. A nullable Terraform budget value broke validation
 
@@ -94,7 +94,7 @@ failed version is cleared and safely restaged before atomic activation.
 **Prevention:** Model version state explicitly and test recovery from every non-active
 state, not only first ingestion and happy-path idempotency.
 
-**Lesson:** ?We have seen these bytes? does not mean ?these bytes are currently serving.?
+**Lesson:** "We have seen these bytes" does not mean "these bytes are currently serving."
 
 ### 5. The rulings feed contained canonical duplicates
 
@@ -159,7 +159,7 @@ the actual upload policy. The exact temporary plan is removed after apply.
 **Prevention:** Treat the build context as a security and reproducibility boundary. Test
 what is uploaded, not only what Git tracks.
 
-**Lesson:** ?Untracked? does not mean ?cannot be shipped.? Every packaging tool has its own
+**Lesson:** "Untracked" does not mean "cannot be shipped." Every packaging tool has its own
 inclusion rules.
 
 ### 9. The production browser bundle called `localhost`
@@ -182,7 +182,7 @@ configuration deserves tests at compile time and runtime.
 ### 10. A response existed, but it was not yet a complete expert answer
 
 **Symptom:** The first live answer correctly stated Lightning Bolt's Oracle text but
-abstained from identifying the Comprehensive Rules definition of ?target.?
+abstained from identifying the Comprehensive Rules definition of "target."
 
 **Root cause:** Exact retrieval recognized rule numbers and card aliases, but not glossary
 terms. Semantic/lexical fusion did not rank the `target` glossary passage into the final
@@ -259,4 +259,3 @@ external gates: qualified WotC policy/legal review, final Terms/Privacy/support 
 independent MTG rules-expert approval and execution of the gold evaluation suite, and
 production-specific budget, alert-delivery, backup/restore, rollback, and account-deletion
 drills.
-

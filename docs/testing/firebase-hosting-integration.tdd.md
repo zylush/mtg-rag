@@ -1,4 +1,4 @@
-# Firebase Hosting Integration ? TDD Evidence
+# Firebase Hosting Integration - TDD Evidence
 
 **Source plan:** `MTG-PLAN.md`
 **Environment:** `mtg-rules-desk-dev` / `asia-east1`
@@ -20,18 +20,18 @@
 
 | Stage | Evidence | Result |
 |---|---|---|
-| RED | `7316285` ? safe Firebase Auth manifest test | Failed because `firebase.auth.json.example` did not exist |
-| GREEN | `7be96ae` ? placeholder-only Auth template and deployment procedure | 12 runtime-manifest tests passed |
-| RED | `b3288c5` ? Firebase deploy-cache exclusion test | Failed because `.firebase/` was not ignored |
-| GREEN | `4aea7c3` ? ignore Firebase CLI cache | Focused manifest test and Ruff passed |
-| RED | `3676dad` ? deployed support-contact browser contract | Failed against `mailto:support@example.com` |
-| GREEN | `7b91f5a` ? publish the verified support contact | Focused and full browser tests passed |
-| RED | `0854c6c` ? automatic PWA release-activation check | Failed because the service worker did not claim existing clients |
-| GREEN | `16fb230` ? `autoUpdate`, `skipWaiting`, and `clientsClaim` | PWA validation and returning-tab browser QA passed |
-| RED | `499b236` ? production artifact rejects the local API endpoint | Failed because the emitted bundle contained `http://localhost:8080` |
-| GREEN | `f35fcd0` ? production API selection is same-origin | Unit, lint, and emitted PWA artifact checks passed; live bundle no longer contains the development endpoint |
-| RED | `23e3e42` ? mentioned glossary terms require exact retrieval | Live mixed-corpus question missed `target`; Postgres integration test returned no exact glossary passage |
-| GREEN | `ba9165e` ? exact active glossary retrieval | Database integration test passed; live retest cited the Target glossary entry and Lightning Bolt Oracle text |
+| RED | `7316285` - safe Firebase Auth manifest test | Failed because `firebase.auth.json.example` did not exist |
+| GREEN | `7be96ae` - placeholder-only Auth template and deployment procedure | 12 runtime-manifest tests passed |
+| RED | `b3288c5` - Firebase deploy-cache exclusion test | Failed because `.firebase/` was not ignored |
+| GREEN | `4aea7c3` - ignore Firebase CLI cache | Focused manifest test and Ruff passed |
+| RED | `3676dad` - deployed support-contact browser contract | Failed against `mailto:support@example.com` |
+| GREEN | `7b91f5a` - publish the verified support contact | Focused and full browser tests passed |
+| RED | `0854c6c` - automatic PWA release-activation check | Failed because the service worker did not claim existing clients |
+| GREEN | `16fb230` - `autoUpdate`, `skipWaiting`, and `clientsClaim` | PWA validation and returning-tab browser QA passed |
+| RED | `499b236` - production artifact rejects the local API endpoint | Failed because the emitted bundle contained `http://localhost:8080` |
+| GREEN | `f35fcd0` - production API selection is same-origin | Unit, lint, and emitted PWA artifact checks passed; live bundle no longer contains the development endpoint |
+| RED | `23e3e42` - mentioned glossary terms require exact retrieval | Live mixed-corpus question missed `target`; Postgres integration test returned no exact glossary passage |
+| GREEN | `ba9165e` - exact active glossary retrieval | Database integration test passed; live retest cited the Target glossary entry and Lightning Bolt Oracle text |
 
 ## Deployment evidence
 

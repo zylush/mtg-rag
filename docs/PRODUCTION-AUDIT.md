@@ -57,7 +57,7 @@ restore, Firebase identity deletion, staging OpenAI/corpus evaluation, or
 independent legal/rules approvals. These omissions cap readiness regardless of
 local test quality.
 
-## Development deployment addendum ? 2026-08-13
+## Development deployment addendum - 2026-08-13
 
 The preceding section records the evidence available during the original audit. Since then,
 the operator authorized and supplied an owned Google Cloud project, billing, and an OpenAI
@@ -79,7 +79,7 @@ secret. The development integration now has direct evidence for:
 - a real signed-in Google account flow producing a grounded OpenAI answer with WotC glossary
   and Scryfall Oracle citations, quota reporting, and History persistence.
 
-These results remove the original ?no cloud evidence? limitation for development. They do
+These results remove the original "no cloud evidence" limitation for development. They do
 not change the public-launch recommendation. Remaining launch evidence includes a qualified
 WotC policy/legal decision, final legal copy, independent expert approval and execution of
 the RAG evaluation suite, and production-specific
