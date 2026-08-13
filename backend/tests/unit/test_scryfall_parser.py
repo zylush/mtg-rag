@@ -83,3 +83,30 @@ def test_rulings_keep_attribution_and_rank_wotc_first() -> None:
     assert parsed[0].attribution == "Wizards of the Coast"
     assert parsed[1].attribution == "Scryfall"
 
+
+def test_rulings_skip_records_without_substantive_comment_text() -> None:
+    rulings = [
+        {
+            "oracle_id": "oracle-empty",
+            "published_at": "2026-02-02",
+            "source": "wotc",
+        },
+        {
+            "oracle_id": "oracle-whitespace",
+            "published_at": "2026-02-02",
+            "source": "scryfall",
+            "comment": "   ",
+        },
+        {
+            "oracle_id": "oracle-usable",
+            "published_at": "2026-02-02",
+            "source": "wotc",
+            "comment": "Usable official ruling.",
+        },
+    ]
+
+    parsed = parse_rulings(rulings)
+
+    assert [(ruling.oracle_id, ruling.comment) for ruling in parsed] == [
+        ("oracle-usable", "Usable official ruling."),
+    ]
