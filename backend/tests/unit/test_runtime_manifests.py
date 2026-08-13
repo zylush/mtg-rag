@@ -94,7 +94,7 @@ def test_firebase_google_auth_has_a_reproducible_placeholder_only_template() -> 
         "oAuthBrandDisplayName": "MTG Rules Desk",
         "supportEmail": "replace-with-public-support-email",
     }
-    assert "firebase.auth.local.json" in ignore_rules
+    assert {"firebase.auth.local.json", ".firebase/"}.issubset(ignore_rules)
 
 
 def test_postgres_16_custom_tier_explicitly_uses_cloud_sql_enterprise_edition() -> None:
