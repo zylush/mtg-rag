@@ -1,0 +1,13 @@
+# Keep the Cloud Build upload limited to deployable application source.
+# Git ignores cover credentials, local environments, and generated artifacts.
+.git
+.gitignore
+.gcloudignore
+#!include:.gitignore
+
+# Local-only project tooling and planning material are not part of the build.
+scripts/
+docs/
+.claude/
+MTG-PLAN.md
+plan.md
