@@ -1,8 +1,8 @@
 # Firebase Hosting Integration ? TDD Evidence
 
-**Source plan:** `MTG-PLAN.md`  
-**Environment:** `mtg-rules-desk-dev` / `asia-east1`  
-**Status:** Deployed; signed-out edge verified; real account chooser awaiting operator click  
+**Source plan:** `MTG-PLAN.md`
+**Environment:** `mtg-rules-desk-dev` / `asia-east1`
+**Status:** Deployed; signed-out edge verified; real account chooser awaiting operator click
 **Date:** 2026-08-13
 
 ## User journeys
