@@ -31,11 +31,11 @@ test("opens About, Terms, and Privacy without authentication", async ({ page }) 
   }
 })
 
-test("redirects signed-out desk access to auth and returns after sign-in", async ({ page }) => {
+test("redirects signed-out desk access home and starts auth from the first screen", async ({ page }) => {
   await visit(page, "/desk")
 
   await expect(page.getByRole("heading", { name: /settle the rules question/i })).toBeVisible()
-  await expect(page).toHaveURL(/\/auth$/)
+  await expect(page).toHaveURL(/\/$/)
   await page.getByRole("button", { name: "Sign in with Google" }).click()
   await expect(page.getByRole("textbox", { name: "Rules question" })).toBeVisible()
   await expect(page).toHaveURL(/\/desk$/)
@@ -54,7 +54,7 @@ test("normalizes unknown routes and applies development-safe metadata", async ({
 })
 
 test("public pages have no detectable WCAG violations", async ({ page }) => {
-  for (const route of ["/", "/auth", "/about", "/terms", "/privacy"]) {
+  for (const route of ["/", "/about", "/terms", "/privacy"]) {
     await visit(page, route)
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])

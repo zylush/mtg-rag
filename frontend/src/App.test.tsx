@@ -136,16 +136,16 @@ describe("MTG Rules Desk", () => {
     expect(screen.getByRole("link", { name: /privacy policy/i })).toBeVisible()
   })
 
-  it("routes the public sign-in link to the dedicated auth screen", async () => {
+  it("starts Firebase auth from the first screen without an intermediate screen", async () => {
     const user = userEvent.setup()
     const auth = new FakeAuth(null)
     renderApp(auth, undefined, undefined, "/")
 
-    await user.click(screen.getByRole("link", { name: /sign in with google/i }))
+    await user.click(screen.getByRole("button", { name: /sign in with google/i }))
 
-    expect(window.location.pathname).toBe("/auth")
-    expect(screen.getByRole("button", { name: /sign in with google/i })).toBeVisible()
-    expect(auth.user).toBeNull()
+    expect(await screen.findByRole("textbox", { name: /rules question/i })).toBeVisible()
+    expect(window.location.pathname).toBe("/desk")
+    expect(auth.user).not.toBeNull()
   })
 
   it("renders about and legal pages without authentication or API calls", async () => {
@@ -176,20 +176,12 @@ describe("MTG Rules Desk", () => {
     expect(window.location.pathname).toBe("/desk")
   })
 
-  it("links the auth wordmark back to the public home", async () => {
-    const user = userEvent.setup()
-    renderApp(new FakeAuth(null), undefined, undefined, "/auth")
-
-    await user.click(screen.getByRole("link", { name: /mtg rules desk home/i }))
-    expect(window.location.pathname).toBe("/")
-  })
-
-  it("redirects a protected desk route to auth and returns after sign-in", async () => {
+  it("redirects a protected desk route to the first screen and returns after sign-in", async () => {
     const user = userEvent.setup()
     renderApp(new FakeAuth(null), undefined, undefined, "/desk")
 
     expect(screen.getByRole("heading", { name: /settle the rules question/i })).toBeVisible()
-    expect(window.location.pathname).toBe("/auth")
+    expect(window.location.pathname).toBe("/")
     await user.click(screen.getByRole("button", { name: /sign in with google/i }))
 
     expect(await screen.findByRole("textbox", { name: /rules question/i })).toBeVisible()
@@ -210,11 +202,23 @@ describe("MTG Rules Desk", () => {
     const user = userEvent.setup()
     const auth = new FakeAuth(null)
     auth.signIn = vi.fn(() => new Promise<void>(() => undefined))
-    renderApp(auth, undefined, undefined, "/auth")
+    renderApp(auth, undefined, undefined, "/")
 
     await user.click(screen.getByRole("button", { name: /sign in with google/i }))
 
     expect(screen.getByRole("button", { name: /signing you in/i })).toBeDisabled()
+  })
+
+  it("shows authentication failures on the first screen", async () => {
+    const user = userEvent.setup()
+    const auth = new FakeAuth(null)
+    auth.signIn = vi.fn().mockRejectedValue(new Error("provider failure"))
+    renderApp(auth, undefined, undefined, "/")
+
+    await user.click(screen.getByRole("button", { name: /sign in with google/i }))
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/sign-in did not complete/i)
+    expect(window.location.pathname).toBe("/")
   })
 
   it("requires Firebase sign-in before exposing the rules desk", async () => {

@@ -7,6 +7,6 @@ describe("PWA navigation fallback", () => {
     expect(NAVIGATION_FALLBACK_DENYLIST.some((pattern) => pattern.test("/__/auth/handler"))).toBe(
       true,
     )
-    expect(NAVIGATION_FALLBACK_DENYLIST.some((pattern) => pattern.test("/login"))).toBe(false)
+    expect(NAVIGATION_FALLBACK_DENYLIST.some((pattern) => pattern.test("/desk"))).toBe(false)
   })
 })

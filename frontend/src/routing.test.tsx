@@ -13,8 +13,8 @@ function LinkHarness() {
 
 describe("routing", () => {
   it("normalizes supported, harness, and unknown paths", () => {
-    expect(normalizeRoute("/auth")).toBe("/auth")
-    expect(normalizeRoute("/login")).toBe("/auth")
+    expect(normalizeRoute("/auth")).toBe("/")
+    expect(normalizeRoute("/login")).toBe("/")
     expect(normalizeRoute("/desk")).toBe("/desk")
     expect(normalizeRoute("/desk/history")).toBe("/desk/history")
     expect(normalizeRoute("/desk/settings")).toBe("/desk/settings")

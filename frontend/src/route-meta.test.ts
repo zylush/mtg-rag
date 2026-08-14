@@ -24,7 +24,6 @@ describe("route metadata", () => {
     )
 
     for (const route of [
-      "/auth",
       "/desk",
       "/desk/history",
       "/desk/settings",
