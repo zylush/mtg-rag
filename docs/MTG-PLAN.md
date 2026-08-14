@@ -1,7 +1,22 @@
-# MTG-PLAN
+# MTG Rules Desk - Architecture and Delivery Plan
 
-**Status:** Decision-complete implementation plan  
+**Status:** Development integration complete; public production launch gated
+**Last reconciled:** 2026-08-14
 **Product:** English-language MTG rules expert delivered as an installable desktop PWA on Google Cloud.
+
+This is the canonical product, architecture, security, and release plan. [`plan.md`](plan.md)
+is the scoped implementation record for the public UX, legal-page, navigation, responsive-browser,
+and development-safe SEO work. Verified development
+evidence and lessons are recorded in [`INTEGRATION-LESSONS.md`](INTEGRATION-LESSONS.md);
+the current ship/block assessment is in
+[`PRODUCTION-AUDIT.md`](PRODUCTION-AUDIT.md).
+
+Status terms in this document are deliberate:
+
+- **Implemented** means the behavior exists in the repository and passed its documented checks.
+- **Development verified** means it was also exercised in `mtg-rules-desk-dev`.
+- **Production pending** means public launch still needs human approval, operator-owned
+  production configuration, or production-specific evidence.
 
 ## 1. Product and Architecture
 
@@ -14,6 +29,10 @@ Build a traditional RAG application, not an autonomous agent loop. It will answe
 The web client will be an installable PWA. Users must sign in, receive 20 completed answers per UTC day, retain conversation history until deletion, and be able to delete conversations or their account.
 
 Initial public availability is restricted to Taiwan, Japan, South Korea, and Singapore. The application will be English-only and will not provide offline answers.
+
+The diagram below is the production target. The verified development environment instead
+uses a Firebase Hosting same-origin `/v1/**` rewrite to Cloud Run. Production must resolve
+the delivery-mode decision in Section 10 before deployment.
 
 ```text
 React PWA ── Firebase Authentication
@@ -79,9 +98,11 @@ These defaults reflect current official model and embedding guidance as of Augus
 ### Google Cloud
 
 - `asia-east1` for Cloud Run, Cloud Run Jobs, Cloud SQL, Artifact Registry, and regional storage.
-- External Application Load Balancer with serverless NEG.
-- Cloud Armor geo-allowlist for `TW`, `JP`, `KR`, and `SG`.
-- Cloud Run ingress restricted to internal traffic and Cloud Load Balancing.
+- Development: Firebase Hosting proxies same-origin `/v1/**` traffic to Cloud Run; the
+  FastAPI layer still verifies Firebase tokens on every protected route.
+- Production target: External Application Load Balancer with serverless NEG, Cloud Armor
+  geo-allowlist for `TW`, `JP`, `KR`, and `SG`, and Cloud Run ingress restricted to
+  internal traffic and Cloud Load Balancing.
 - Cloud SQL for PostgreSQL with `vector`, `pg_trgm`, and full-text indexes.
 - Google Cloud Storage for immutable raw-source snapshots.
 - Secret Manager for `OPENAI_API_KEY`.
@@ -183,6 +204,10 @@ Use a seven-day maximum TTL and immediate logical invalidation when a corpus, mo
 - `DELETE /v1/account` — delete application data and the Firebase account.
 - `GET /healthz` — minimal unauthenticated health response.
 
+The `/healthz` process-health endpoint is used by native Cloud Run startup and liveness
+probes. It is not exposed as a supported Firebase Hosting route; the development edge smoke
+test is an unsigned protected `/v1` request returning backend JSON `401`.
+
 There will be no public ingestion, arbitrary URL, raw SQL, or general-purpose model-tool endpoint.
 
 ### Core database entities
@@ -225,20 +250,35 @@ Use Firebase UID as the application-user identity. Every history operation must 
 
 Before public launch, confirm WotC and Scryfall attribution, data-use, and redistribution requirements. Follow the current [OpenAI supported-country policy](https://developers.openai.com/api/docs/supported-countries).
 
-## 6. Implementation Sequence
+## 6. Delivery Status and Remaining Sequence
 
-1. Initialize the repository, Docker Compose environment, dependency manifests, linting, typing, and test harness.
-2. Create the PostgreSQL schema, migrations, fixture data, and immutable source-version model.
-3. Implement WotC and Scryfall parsers through tests, followed by staged and atomic ingestion.
-4. Implement exact, lexical, vector, and fused retrieval with deterministic evaluation fixtures.
-5. Add semantic caching with version-aware keys and negative-pair safety tests.
-6. Add the OpenAI Responses adapter, citation validation, abstention, and clarification behavior.
-7. Add FastAPI authentication, quotas, history, deletion, and feedback interfaces.
-8. Build the React PWA, sign-in flow, chat experience, source display, history, settings, and installation behavior.
-9. Provision Google Cloud with Terraform and deploy separate development and production environments.
-10. Complete security review, accessibility checks, evaluation gates, observability, attribution, and controlled public launch.
+| Delivery slice | Status | Primary evidence |
+| --- | --- | --- |
+| Repository, Docker Compose, dependency manifests, linting, typing, and test harness | Implemented | `README.md`, CI, and local verification commands |
+| PostgreSQL/pgvector schema, migrations, fixtures, and immutable source versions | Development verified | Migration and ingestion integration tests |
+| WotC and Scryfall parsing, staged ingestion, deduplication, and atomic activation | Development verified | Three active corpora and idempotent live re-ingestion |
+| Exact, lexical, vector, and fused retrieval | Development verified | Retrieval tests and the live glossary-plus-card answer |
+| Version-aware semantic caching | Implemented | Cache eligibility, invalidation, and negative-pair tests |
+| OpenAI Responses adapter, citation validation, abstention, and clarification | Development verified | Real authenticated multi-source answer with validated citations |
+| Firebase authentication, quota, history, deletion, and feedback APIs | Development verified | Protected edge checks and authenticated browser flow |
+| React PWA, public pages, chat, source display, route-backed history/settings, installation, and development-safe SEO | Development verified | 36 unit tests, 80 cross-browser scenarios, PWA checks, and live Firebase QA; see `plan.md` Revision 3 |
+| Terraform, Cloud Build, Artifact Registry, Cloud Run, Cloud SQL, Scheduler, monitoring, and Firebase Hosting | Development verified | Successful build/deploy and drift-free development plan |
+| Independent evaluation, legal approval, production environment, and controlled launch | Production pending | See Section 10 |
 
-All implementation slices follow test-driven development and maintain at least 80% branch coverage.
+All implementation slices continue to follow test-driven development and maintain at least
+80% branch coverage. The remaining sequence is:
+
+1. Resolve the WotC policy/access decision and replace legal/support placeholders with
+   reviewed, operator-owned copy.
+2. Obtain independent MTG rules-expert approval of the 110-case gold suite, execute it
+   against a production-like corpus, and record every release metric in Section 7.
+3. Decide the production delivery path, then configure the production project, domain/DNS,
+   budget, alert recipients, secrets, and regional infrastructure without copying development
+   credentials or state. A load-balancer API domain requires production frontend support for
+   that separate origin; a Firebase proxy requires a production-specific rewrite and an
+   alternative that enforces the promised regional availability.
+4. Run migration, ingestion, backup/restore, rollback, alert-delivery, and account-deletion
+   drills; then make a documented human go/no-go decision.
 
 ## 7. Test and Acceptance Plan
 
@@ -288,9 +328,10 @@ Maintain at least 100 versioned, expert-reviewed questions covering:
 - The browser never calls OpenAI directly.
 - The operator supplies Google Cloud, Firebase, OpenAI, billing, and domain access.
 - Numeric cloud budget and final domain names are deployment configuration, not architecture decisions.
-- The current empty workspace has no compatibility or migration constraints.
+- The project began as a greenfield workspace. It now has persistent schema, API, corpus,
+  deployment, and user-data contracts; future changes must preserve or explicitly migrate them.
 
-## 9. Development Integration Status - 2026-08-13
+## 9. Development Integration Status - 2026-08-14
 
 The development environment has implemented the architecture through the controlled
 pre-production stage:
@@ -313,3 +354,60 @@ a real Google-account browser flow returned a high-confidence, multi-source answ
 the Comprehensive Rules glossary and Lightning Bolt Oracle text, and persisted it to History.
 The external public-launch approvals listed in the release gates remain deliberately separate
 acceptance items. See `docs/INTEGRATION-LESSONS.md` for the issue-by-issue postmortem.
+
+## 10. Active Public-Launch Gates
+
+These criteria are intentionally not marked complete by a successful development deployment.
+
+The active frontend refinement and development-hosting deployment is specified in
+[`plan.md`](plan.md#revision-3-implementation-plan). It may update Firebase Hosting for
+`mtg-rules-desk-dev`, but it does not satisfy or waive any public-launch gate below. In particular,
+the development host remains crawler-blocked until the production domain, legal copy, attribution,
+and release decision are approved.
+
+### AC-LAUNCH-001: Policy and legal approval
+
+- **Scenario:** The service requires sign-in and is intended for public access in the listed regions.
+- **Expected:** A qualified reviewer records a resolution to the WotC policy/access question,
+  approves attribution, and replaces the Terms, Privacy, support, owner, jurisdiction, retention,
+  and effective-date placeholders.
+- **Must not:** Present draft outlines as approved legal terms or imply WotC/Scryfall endorsement.
+- **Verification:** Named and dated approval record using
+  [`ATTRIBUTION-AND-LAUNCH.md`](ATTRIBUTION-AND-LAUNCH.md).
+- **Status:** Production pending.
+
+### AC-LAUNCH-002: Independent rules quality approval
+
+- **Scenario:** The versioned 110-case suite has been reviewed by an independent MTG rules expert.
+- **Expected:** A production-like evaluation run passes every retrieval, citation,
+  clarification/abstention, cache-safety, and latency threshold in Section 7.
+- **Must not:** Use `--allow-pending-review` as launch evidence.
+- **Verification:** Approved suite plus a retained evaluator report tied to corpus, prompt,
+  retrieval, embedding, and generation versions.
+- **Status:** Production pending.
+
+### AC-LAUNCH-003: Production operational readiness
+
+- **Scenario:** Operator-owned production configuration, DNS, budget, alert recipients, and
+  secrets are available.
+- **Expected:** The operator chooses and documents one production delivery mode. If using the
+  load balancer, the frontend calls the reviewed API domain and Cloud Armor enforces the regional
+  allowlist. If using Firebase's same-origin proxy, the production rewrite targets only the
+  production service and a reviewed control enforces the regional availability promise.
+  Deployment, migration, ingestion, alert delivery, backup/restore, application rollback,
+  corpus rollback, and Firebase account-deletion drills then succeed with retained evidence.
+- **Must not:** Reuse development credentials, expose secrets to build/frontend artifacts, or
+  deploy a production bundle that calls the wrong origin. Do not declare readiness from
+  Terraform validation alone.
+- **Verification:** Complete the production checklist in
+  [`OPERATIONS.md`](OPERATIONS.md) and update the production audit.
+- **Status:** Production pending.
+
+### AC-LAUNCH-004: Final release decision
+
+- **Scenario:** AC-LAUNCH-001 through AC-LAUNCH-003 are complete and no release gate in Section 7 fails.
+- **Expected:** A named owner records the release version, evidence links, known limitations,
+  rollback target, and go/no-go decision before enabling public production access.
+- **Must not:** Treat the development Firebase URL as the public production release.
+- **Verification:** Human release sign-off and post-deploy protected/public endpoint smoke tests.
+- **Status:** Blocked by AC-LAUNCH-001 through AC-LAUNCH-003.
