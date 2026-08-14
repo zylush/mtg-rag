@@ -58,7 +58,7 @@ steps:
         npm run lint
         npm run test:coverage
         npm run check:pwa
-        npx playwright install --with-deps chromium
+        npx playwright install --with-deps chromium firefox webkit
         npm run e2e
 
   - id: terraform-quality-gates

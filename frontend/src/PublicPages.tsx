@@ -3,10 +3,14 @@ import type { ReactNode } from "react"
 
 import { AppLink } from "./routing"
 
-function PublicHeader() {
+function PublicHeader({ authenticated }: { authenticated: boolean }) {
   return (
     <header className="public-header">
-      <AppLink className="public-brand" to="/" aria-label="MTG Rules Desk home">
+      <AppLink
+        className="public-brand"
+        to={authenticated ? "/desk" : "/"}
+        aria-label={authenticated ? "Back to MTG Rules Desk" : "MTG Rules Desk home"}
+      >
         <span className="wordmark-mark" aria-hidden="true">
           R
         </span>
@@ -17,9 +21,8 @@ function PublicHeader() {
       </AppLink>
       <nav aria-label="Public">
         <AppLink to="/about">About</AppLink>
-        <a href="#how-it-works">How it works</a>
-        <AppLink className="public-nav-cta" to="/login">
-          Sign in
+        <AppLink className="public-nav-cta" to={authenticated ? "/desk" : "/login"}>
+          {authenticated ? "Back to desk" : "Sign in"}
         </AppLink>
       </nav>
     </header>
@@ -47,10 +50,16 @@ function PublicFooter() {
   )
 }
 
-function PublicLayout({ children }: { children: ReactNode }) {
+function PublicLayout({
+  authenticated = false,
+  children,
+}: {
+  authenticated?: boolean
+  children: ReactNode
+}) {
   return (
     <div className="public-site">
-      <PublicHeader />
+      <PublicHeader authenticated={authenticated} />
       {children}
       <PublicFooter />
     </div>
@@ -152,9 +161,9 @@ export function WelcomePage() {
   )
 }
 
-export function AboutPage() {
+export function AboutPage({ authenticated = false }: { authenticated?: boolean }) {
   return (
-    <PublicLayout>
+    <PublicLayout authenticated={authenticated}>
       <main className="public-page document-page about-page">
         <div className="document-intro">
           <span className="eyebrow">About the desk</span>
@@ -239,13 +248,19 @@ const PRIVACY_SECTIONS: LegalSection[] = [
   { id: "updates", title: "7. Updates and contact", body: "Provide policy-update and privacy-contact language here." },
 ]
 
-export function LegalDocumentPage({ kind }: { kind: LegalKind }) {
+export function LegalDocumentPage({
+  authenticated = false,
+  kind,
+}: {
+  authenticated?: boolean
+  kind: LegalKind
+}) {
   const isTerms = kind === "terms"
   const title = isTerms ? "Terms of Service" : "Privacy Policy"
   const sections = isTerms ? TERMS_SECTIONS : PRIVACY_SECTIONS
 
   return (
-    <PublicLayout>
+    <PublicLayout authenticated={authenticated}>
       <main className="public-page document-page legal-page">
         <div className="document-intro">
           <span className="eyebrow">MTG Rules Desk legal document</span>

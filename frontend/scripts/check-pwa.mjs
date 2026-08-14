@@ -31,6 +31,13 @@ assert(!files.some((file) => file.endsWith(".map")), "production source maps mus
 assert(!files.includes("e2e.html"), "development E2E harness was included in production")
 assert(!files.some((file) => file.includes("e2e-harness")), "E2E code was included in production")
 
+const robots = await readFile(path.join(dist, "robots.txt"), "utf8")
+assert.match(robots, /User-agent:\s*\*/i)
+assert.match(robots, /Disallow:\s*\//i, "development deployment must block indexing")
+const sitemap = await readFile(path.join(dist, "sitemap.xml"), "utf8")
+assert.match(sitemap, /<urlset\b/)
+assert.match(sitemap, /https:\/\/mtg-rules-desk-dev\.web\.app\/about/)
+
 const serviceWorker = await readFile(path.join(dist, "sw.js"), "utf8")
 for (const [filename] of expectedIcons) {
   assert(serviceWorker.includes(filename), `${filename} is not precached`)

@@ -5,7 +5,6 @@ import {
   Check,
   Download,
   LogOut,
-  Menu,
   MessageSquareQuote,
   Settings,
   ShieldCheck,
@@ -16,12 +15,13 @@ import {
   WifiOff,
   X,
 } from "lucide-react"
-import { type FormEvent, useEffect, useRef, useState } from "react"
+import { type FormEvent, type RefObject, useEffect, useRef, useState } from "react"
 import ReactMarkdown from "react-markdown"
 import rehypeSanitize from "rehype-sanitize"
 
 import { AboutPage, LegalDocumentPage, WelcomePage } from "./PublicPages"
 import { userMessageFor } from "./api-client"
+import { applyRouteMetadata, getRouteMetadata } from "./route-meta"
 import { AppLink, RouterProvider, useRouter } from "./routing"
 import type {
   ApiPort,
@@ -33,6 +33,36 @@ import type {
 } from "./types"
 
 type Panel = "chat" | "history" | "settings"
+
+function useModalDrawer(
+  onClose: () => void,
+  returnFocusRef?: RefObject<HTMLButtonElement | null>,
+) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const onCloseRef = useRef(onClose)
+
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
+
+  useEffect(() => {
+    const previouslyFocused =
+      document.activeElement instanceof HTMLElement ? document.activeElement : undefined
+    const returnFocusElement = returnFocusRef?.current
+    closeButtonRef.current?.focus()
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onCloseRef.current()
+    }
+    document.addEventListener("keydown", handleKeyDown)
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown)
+      if (returnFocusElement?.isConnected) returnFocusElement.focus()
+      else if (previouslyFocused?.isConnected) previouslyFocused.focus()
+    }
+  }, [returnFocusRef])
+
+  return closeButtonRef
+}
 
 function safeCitationUrl(url: string): string | undefined {
   try {
@@ -107,12 +137,14 @@ function ConversationView({
   error,
   onBack,
   onDelete,
+  deleting,
 }: {
   detail: ConversationDetail | undefined
   loading: boolean
   error: unknown
   onBack: () => void
   onDelete: () => void
+  deleting: boolean
 }) {
   if (error) {
     return (
@@ -136,7 +168,7 @@ function ConversationView({
           </article>
         ))}
       </div>
-      <button className="danger-button" onClick={onDelete}>
+      <button className="danger-button" disabled={deleting} onClick={onDelete}>
         <Trash2 aria-hidden="true" size={17} />
         Delete conversation
       </button>
@@ -144,9 +176,18 @@ function ConversationView({
   )
 }
 
-function HistoryPanel({ api, onClose }: { api: ApiPort; onClose: () => void }) {
+function HistoryPanel({
+  api,
+  onClose,
+  returnFocusRef,
+}: {
+  api: ApiPort
+  onClose: () => void
+  returnFocusRef: RefObject<HTMLButtonElement | null>
+}) {
   const queryClient = useQueryClient()
   const [selectedId, setSelectedId] = useState<string>()
+  const closeButtonRef = useModalDrawer(onClose, returnFocusRef)
   const summaries = useQuery({
     queryKey: ["conversations"],
     queryFn: () => api.conversations(),
@@ -171,13 +212,23 @@ function HistoryPanel({ api, onClose }: { api: ApiPort; onClose: () => void }) {
   }
 
   return (
-    <aside className="drawer history-drawer" aria-labelledby="history-heading">
+    <aside
+      className="drawer history-drawer"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="history-heading"
+    >
       <header>
         <div>
           <span className="eyebrow">Saved rulings</span>
           <h2 id="history-heading">History</h2>
         </div>
-        <button className="icon-button" onClick={onClose} aria-label="Close history">
+        <button
+          ref={closeButtonRef}
+          className="icon-button"
+          onClick={onClose}
+          aria-label="Close history"
+        >
           <X aria-hidden="true" />
         </button>
       </header>
@@ -188,6 +239,7 @@ function HistoryPanel({ api, onClose }: { api: ApiPort; onClose: () => void }) {
           error={detail.error}
           onBack={() => setSelectedId(undefined)}
           onDelete={remove}
+          deleting={deletion.isPending}
         />
       ) : (
         <div className="history-list">
@@ -220,6 +272,11 @@ function HistoryPanel({ api, onClose }: { api: ApiPort; onClose: () => void }) {
           ))}
         </div>
       )}
+      {deletion.isError && (
+        <div className="status-message error" role="alert">
+          {userMessageFor(deletion.error)}
+        </div>
+      )}
     </aside>
   )
 }
@@ -227,39 +284,60 @@ function HistoryPanel({ api, onClose }: { api: ApiPort; onClose: () => void }) {
 function SettingsPanel({
   api,
   auth,
+  installReady,
+  onInstall,
   onClose,
+  returnFocusRef,
 }: {
   api: ApiPort
   auth: AuthPort
+  installReady: boolean
+  onInstall: () => Promise<void>
   onClose: () => void
+  returnFocusRef: RefObject<HTMLButtonElement | null>
 }) {
   const [confirming, setConfirming] = useState(false)
   const [confirmation, setConfirmation] = useState("")
+  const closeButtonRef = useModalDrawer(onClose, returnFocusRef)
   const deletion = useMutation({
     mutationFn: () => api.deleteAccount(),
     onSuccess: () => auth.signOut(),
   })
 
   return (
-    <aside className="drawer settings-drawer" aria-labelledby="settings-heading">
+    <aside
+      className="drawer settings-drawer"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settings-heading"
+    >
       <header>
         <div>
           <span className="eyebrow">Account controls</span>
           <h2 id="settings-heading">Settings</h2>
         </div>
-        <button className="icon-button" onClick={onClose} aria-label="Close settings">
+        <button
+          ref={closeButtonRef}
+          className="icon-button"
+          onClick={onClose}
+          aria-label="Close settings"
+        >
           <X aria-hidden="true" />
         </button>
       </header>
       <section className="settings-section">
-        <h3>Language</h3>
-        <p>English</p>
-        <span>The v1 rules corpus and answers are English-only.</span>
-      </section>
-      <section className="settings-section">
-        <h3>Offline use</h3>
-        <p>Static app shell only</p>
-        <span>Rules answers always require a live connection.</span>
+        <h3>Product and legal</h3>
+        <nav className="settings-links" aria-label="Product and legal">
+          <AppLink to="/about">About</AppLink>
+          <AppLink to="/terms">Terms of Service</AppLink>
+          <AppLink to="/privacy">Privacy Policy</AppLink>
+        </nav>
+        {installReady && (
+          <button className="utility-button settings-install" onClick={onInstall}>
+            <Download aria-hidden="true" size={16} />
+            Install app
+          </button>
+        )}
       </section>
       <section className="settings-section">
         <h3>Sources and attribution</h3>
@@ -298,6 +376,11 @@ function SettingsPanel({
             </button>
           </div>
         )}
+        {deletion.isError && (
+          <div className="status-message error" role="alert">
+            {userMessageFor(deletion.error)}
+          </div>
+        )}
       </section>
     </aside>
   )
@@ -308,9 +391,11 @@ function Login({ auth }: { auth: AuthPort }) {
   return (
     <main className="login-shell">
       <section className="login-card">
-        <div className="wordmark-mark" aria-hidden="true">
-          R
-        </div>
+        <AppLink className="login-home" to="/" aria-label="MTG Rules Desk home">
+          <span className="wordmark-mark" aria-hidden="true">
+            R
+          </span>
+        </AppLink>
         <span className="eyebrow">MTG Rules Desk</span>
         <h1>Settle the rules question. Keep the game moving.</h1>
         <p>
@@ -365,24 +450,42 @@ export function App(props: AppProps) {
 function AppContent({ auth, api, install }: AppProps) {
   const { route, navigate } = useRouter()
   const [user, setUser] = useState<User | null | undefined>(undefined)
-  const [panel, setPanel] = useState<Panel>("chat")
   const [question, setQuestion] = useState("")
   const [answer, setAnswer] = useState<AskResponse>()
+  const [feedbackRating, setFeedbackRating] = useState<1 | -1>()
   const [offlineMessage, setOfflineMessage] = useState("")
   const [conversationId, setConversationId] = useState<string>()
   const [installReady, setInstallReady] = useState(install.available)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const historyTriggerRef = useRef<HTMLButtonElement>(null)
+  const settingsTriggerRef = useRef<HTMLButtonElement>(null)
+  const panel: Panel =
+    route === "/desk/history" ? "history" : route === "/desk/settings" ? "settings" : "chat"
 
   useEffect(() => auth.subscribe(setUser), [auth])
   useEffect(() => {
-    if (user === null && route === "/desk") navigate("/login")
-    if (user && (route === "/" || route === "/login")) navigate("/desk")
+    if (user === null && route.startsWith("/desk")) navigate("/login", { replace: true })
+    if (user && (route === "/" || route === "/login")) navigate("/desk", { replace: true })
   }, [navigate, route, user])
+  useEffect(() => {
+    applyRouteMetadata(
+      getRouteMetadata(route, {
+        origin: window.location.origin,
+        allowIndexing: import.meta.env.VITE_ALLOW_INDEXING === "true",
+      }),
+    )
+  }, [route])
   useEffect(() => {
     const ready = () => setInstallReady(true)
     window.addEventListener("mtg-install-ready", ready)
     return () => window.removeEventListener("mtg-install-ready", ready)
   }, [])
+
+  const feedback = useMutation({
+    mutationFn: ({ messageId, rating }: { messageId: string; rating: 1 | -1 }) =>
+      api.feedback(messageId, rating),
+    onSuccess: (_result, variables) => setFeedbackRating(variables.rating),
+  })
 
   const ask = useMutation({
     mutationFn: ({ text, id }: { text: string; id?: string }) => api.ask(text, id),
@@ -390,6 +493,8 @@ function AppContent({ auth, api, install }: AppProps) {
       setAnswer(result)
       setConversationId(result.conversation_id)
       setQuestion("")
+      setFeedbackRating(undefined)
+      feedback.reset()
     },
   })
 
@@ -408,9 +513,13 @@ function AppContent({ auth, api, install }: AppProps) {
   if (user === undefined) {
     return <div className="loading-screen">Opening the rules desk…</div>
   }
-  if (route === "/about") return <AboutPage />
-  if (route === "/terms") return <LegalDocumentPage kind="terms" />
-  if (route === "/privacy") return <LegalDocumentPage kind="privacy" />
+  if (route === "/about") return <AboutPage authenticated={Boolean(user)} />
+  if (route === "/terms") {
+    return <LegalDocumentPage authenticated={Boolean(user)} kind="terms" />
+  }
+  if (route === "/privacy") {
+    return <LegalDocumentPage authenticated={Boolean(user)} kind="privacy" />
+  }
   if (route === "/login") return <Login auth={auth} />
   if (route === "/" && user === null) return <WelcomePage />
   if (user === null) return <Login auth={auth} />
@@ -418,13 +527,6 @@ function AppContent({ auth, api, install }: AppProps) {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <button
-          className="mobile-menu icon-button"
-          aria-label="Open navigation"
-          onClick={() => setPanel(panel === "chat" ? "history" : "chat")}
-        >
-          <Menu aria-hidden="true" />
-        </button>
         <div className="wordmark">
           <span className="wordmark-mark" aria-hidden="true">
             R
@@ -435,22 +537,6 @@ function AppContent({ auth, api, install }: AppProps) {
           </div>
         </div>
         <div className="topbar-actions">
-          <nav className="topbar-links" aria-label="Desk links">
-            <AppLink to="/about">About</AppLink>
-            <AppLink to="/terms">Legal</AppLink>
-          </nav>
-          {installReady && (
-            <button
-              className="utility-button"
-              onClick={async () => {
-                await install.install()
-                setInstallReady(false)
-              }}
-            >
-              <Download aria-hidden="true" size={16} />
-              Install app
-            </button>
-          )}
           <button className="icon-button" onClick={() => auth.signOut()} aria-label="Sign out">
             <LogOut aria-hidden="true" />
           </button>
@@ -460,22 +546,27 @@ function AppContent({ auth, api, install }: AppProps) {
       <nav className="side-nav" aria-label="Primary">
         <button
           className={panel === "chat" ? "active" : ""}
-          onClick={() => setPanel("chat")}
+          onClick={() => navigate("/desk")}
+          aria-current={panel === "chat" ? "page" : undefined}
           aria-label="Ask a rules question"
         >
           <MessageSquareQuote aria-hidden="true" />
           Ask
         </button>
         <button
+          ref={historyTriggerRef}
           className={panel === "history" ? "active" : ""}
-          onClick={() => setPanel("history")}
+          onClick={() => navigate("/desk/history")}
+          aria-current={panel === "history" ? "page" : undefined}
         >
           <Archive aria-hidden="true" />
           History
         </button>
         <button
+          ref={settingsTriggerRef}
           className={panel === "settings" ? "active" : ""}
-          onClick={() => setPanel("settings")}
+          onClick={() => navigate("/desk/settings")}
+          aria-current={panel === "settings" ? "page" : undefined}
         >
           <Settings aria-hidden="true" />
           Settings
@@ -562,32 +653,55 @@ function AppContent({ auth, api, install }: AppProps) {
                 <button
                   className="icon-button"
                   aria-label="Helpful answer"
-                  onClick={() => api.feedback(answer.message_id, 1)}
+                  aria-pressed={feedbackRating === 1}
+                  disabled={feedback.isPending}
+                  onClick={() =>
+                    feedback.mutate({ messageId: answer.message_id, rating: 1 })
+                  }
                 >
                   <ThumbsUp aria-hidden="true" />
                 </button>
                 <button
                   className="icon-button"
                   aria-label="Unhelpful answer"
-                  onClick={() => api.feedback(answer.message_id, -1)}
+                  aria-pressed={feedbackRating === -1}
+                  disabled={feedback.isPending}
+                  onClick={() =>
+                    feedback.mutate({ messageId: answer.message_id, rating: -1 })
+                  }
                 >
                   <ThumbsDown aria-hidden="true" />
                 </button>
+                {feedback.isSuccess && <span className="feedback-status">Feedback saved</span>}
+                {feedback.isError && (
+                  <span className="feedback-status error" role="alert">
+                    Feedback could not be saved. Try again.
+                  </span>
+                )}
               </div>
             </div>
           </article>
-        ) : (
-          <section className="empty-desk">
-            <div className="empty-rule">704.5</div>
-            <h2>State the game state precisely.</h2>
-            <p>The desk will retrieve exact card text and rules before drafting an answer.</p>
-          </section>
-        )}
+        ) : null}
       </main>
 
-      {panel === "history" && <HistoryPanel api={api} onClose={() => setPanel("chat")} />}
+      {panel === "history" && (
+        <HistoryPanel
+          api={api}
+          returnFocusRef={historyTriggerRef}
+          onClose={() => navigate("/desk")}
+        />
+      )}
       {panel === "settings" && (
-        <SettingsPanel api={api} auth={auth} onClose={() => setPanel("chat")} />
+        <SettingsPanel
+          api={api}
+          auth={auth}
+          installReady={installReady}
+          returnFocusRef={settingsTriggerRef}
+          onInstall={async () => {
+            if (await install.install()) setInstallReady(false)
+          }}
+          onClose={() => navigate("/desk")}
+        />
       )}
     </div>
   )

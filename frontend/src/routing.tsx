@@ -11,12 +11,22 @@ import {
   useState,
 } from "react"
 
-export type AppRoute = "/" | "/login" | "/desk" | "/about" | "/terms" | "/privacy"
+export type AppRoute =
+  | "/"
+  | "/login"
+  | "/desk"
+  | "/desk/history"
+  | "/desk/settings"
+  | "/about"
+  | "/terms"
+  | "/privacy"
 
 export function normalizeRoute(pathname: string): AppRoute {
   if (
     pathname === "/login" ||
     pathname === "/desk" ||
+    pathname === "/desk/history" ||
+    pathname === "/desk/settings" ||
     pathname === "/about" ||
     pathname === "/terms" ||
     pathname === "/privacy"
@@ -29,7 +39,7 @@ export function normalizeRoute(pathname: string): AppRoute {
 
 interface RouterContextValue {
   route: AppRoute
-  navigate(to: AppRoute): void
+  navigate(to: AppRoute, options?: { replace?: boolean }): void
 }
 
 const RouterContext = createContext<RouterContextValue | null>(null)
@@ -38,13 +48,20 @@ export function RouterProvider({ children }: { children: ReactNode }) {
   const [route, setRoute] = useState<AppRoute>(() => normalizeRoute(window.location.pathname))
 
   useEffect(() => {
+    const normalized = normalizeRoute(window.location.pathname)
+    if (window.location.pathname !== normalized) {
+      window.history.replaceState({}, "", normalized)
+    }
     const handlePopState = () => setRoute(normalizeRoute(window.location.pathname))
     window.addEventListener("popstate", handlePopState)
     return () => window.removeEventListener("popstate", handlePopState)
   }, [])
 
-  const navigate = useCallback((to: AppRoute) => {
-    if (window.location.pathname !== to) window.history.pushState({}, "", to)
+  const navigate = useCallback((to: AppRoute, options?: { replace?: boolean }) => {
+    if (window.location.pathname !== to) {
+      const method = options?.replace ? "replaceState" : "pushState"
+      window.history[method]({}, "", to)
+    }
     setRoute(to)
   }, [])
 

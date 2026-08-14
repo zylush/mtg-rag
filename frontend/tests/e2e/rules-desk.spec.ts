@@ -99,13 +99,19 @@ test("uses route-backed drawers with keyboard focus and product links", async ({
   await expect(page.getByRole("link", { name: "About" })).toBeVisible()
   await expect(page.getByRole("link", { name: "Terms of Service" })).toBeVisible()
   await expect(page.getByRole("link", { name: "Privacy Policy" })).toBeVisible()
+
+  await page.goBack()
+  await expect(page).toHaveURL(/\/desk$/)
+  await page.goForward()
+  await expect(page).toHaveURL(/\/desk\/settings$/)
+  await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible()
 })
 
 test("shows a durable answer-feedback result", async ({ page }) => {
   await signIn(page)
   await page.getByRole("textbox", { name: "Rules question" }).fill("What blocks flying?")
   await page.getByRole("button", { name: "Ask", exact: true }).click()
-  const helpful = page.getByRole("button", { name: "Helpful answer" })
+  const helpful = page.getByRole("button", { name: "Helpful answer", exact: true })
   await helpful.click()
 
   await expect(helpful).toHaveAttribute("aria-pressed", "true")
@@ -123,11 +129,22 @@ test("has no detectable WCAG 2.1 AA violations at desktop and mobile widths", as
   expect(results.violations).toEqual([])
 })
 
-test("supports keyboard entry and stable layouts at release breakpoints", async ({ page }) => {
+test("supports keyboard entry and stable layouts at release breakpoints", async ({
+  browserName,
+  page,
+}) => {
   await page.goto("/e2e.html")
-  await expect(page.getByRole("button", { name: "Sign in with Google" })).toBeVisible()
-  await page.keyboard.press("Tab")
-  await expect(page.getByRole("button", { name: "Sign in with Google" })).toBeFocused()
+  const signInButton = page.getByRole("button", { name: "Sign in with Google" })
+  await expect(signInButton).toBeVisible()
+  if (browserName === "webkit") {
+    // Safari tab traversal follows the host's Full Keyboard Access preference.
+    await signInButton.focus()
+  } else {
+    await page.keyboard.press("Tab")
+    await expect(page.getByRole("link", { name: "MTG Rules Desk home" })).toBeFocused()
+    await page.keyboard.press("Tab")
+  }
+  await expect(signInButton).toBeFocused()
   await page.keyboard.press("Enter")
   await page.getByRole("textbox", { name: "Rules question" }).fill("What blocks flying?")
   await page.getByRole("button", { name: "Ask", exact: true }).click()
@@ -140,7 +157,7 @@ test("supports keyboard entry and stable layouts at release breakpoints", async 
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     )
     expect(hasHorizontalOverflow).toBe(false)
-    if ([375, 768, 1440].includes(width)) {
+    if (test.info().project.name === "chromium" && [375, 768, 1440].includes(width)) {
       await expect(page).toHaveScreenshot(`rules-desk-${width}.png`, {
         animations: "disabled",
         fullPage: true,
