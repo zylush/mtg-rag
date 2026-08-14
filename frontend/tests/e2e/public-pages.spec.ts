@@ -41,6 +41,18 @@ test("redirects signed-out desk access to login and returns after sign-in", asyn
   await expect(page).toHaveURL(/\/desk$/)
 })
 
+test("normalizes unknown routes and applies development-safe metadata", async ({ page }) => {
+  await visit(page, "/not-a-route")
+
+  await expect(page).toHaveURL(/\/$/)
+  await expect(page).toHaveTitle("MTG Rules Desk | Citation-First Magic Rules Answers")
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+    "content",
+    "noindex, nofollow",
+  )
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/$/)
+})
+
 test("public pages have no detectable WCAG violations", async ({ page }) => {
   for (const route of ["/", "/login", "/about", "/terms", "/privacy"]) {
     await visit(page, route)

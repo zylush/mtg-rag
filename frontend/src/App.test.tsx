@@ -154,6 +154,24 @@ describe("MTG Rules Desk", () => {
     expect(await screen.findByRole("heading", { name: /privacy policy/i })).toBeVisible()
   })
 
+  it("gives authenticated public pages a direct route back to the desk", async () => {
+    const user = userEvent.setup()
+    renderApp(undefined, undefined, undefined, "/about")
+
+    expect(screen.getByRole("link", { name: /back to desk/i })).toBeVisible()
+    expect(screen.queryByRole("link", { name: /^sign in$/i })).not.toBeInTheDocument()
+    await user.click(screen.getByRole("link", { name: /back to desk/i }))
+    expect(window.location.pathname).toBe("/desk")
+  })
+
+  it("links the login wordmark back to the public home", async () => {
+    const user = userEvent.setup()
+    renderApp(new FakeAuth(null), undefined, undefined, "/login")
+
+    await user.click(screen.getByRole("link", { name: /mtg rules desk home/i }))
+    expect(window.location.pathname).toBe("/")
+  })
+
   it("redirects a protected desk route to login and returns after sign-in", async () => {
     const user = userEvent.setup()
     renderApp(new FakeAuth(null), undefined, undefined, "/desk")
@@ -277,6 +295,35 @@ describe("MTG Rules Desk", () => {
     await waitFor(() => expect(api.deleteConversation).toHaveBeenCalledWith("conversation-1"))
   })
 
+  it("uses route-backed modal drawers and restores trigger focus on Escape", async () => {
+    const user = userEvent.setup()
+    renderApp()
+    const historyTrigger = await screen.findByRole("button", { name: /history/i })
+
+    await user.click(historyTrigger)
+    expect(window.location.pathname).toBe("/desk/history")
+    expect(screen.getByRole("dialog", { name: /history/i })).toBeVisible()
+    expect(screen.getByRole("button", { name: /close history/i })).toHaveFocus()
+
+    await user.keyboard("{Escape}")
+    await waitFor(() => expect(window.location.pathname).toBe("/desk"))
+    expect(historyTrigger).toHaveFocus()
+  })
+
+  it("surfaces conversation deletion failures", async () => {
+    const user = userEvent.setup()
+    const api = fakeApi()
+    api.deleteConversation = vi.fn().mockRejectedValue(new ApiClientError("NETWORK"))
+    vi.spyOn(window, "confirm").mockReturnValue(true)
+    renderApp(undefined, api)
+
+    await user.click(await screen.findByRole("button", { name: /history/i }))
+    await user.click(await screen.findByRole("button", { name: /flying blockers/i }))
+    await user.click(screen.getByRole("button", { name: /delete conversation/i }))
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/temporarily unreachable/i)
+  })
+
   it("requires typed confirmation before account deletion", async () => {
     const user = userEvent.setup()
     const api = fakeApi()
@@ -290,11 +337,26 @@ describe("MTG Rules Desk", () => {
     await waitFor(() => expect(api.deleteAccount).toHaveBeenCalledOnce())
   })
 
+  it("surfaces account deletion failures", async () => {
+    const user = userEvent.setup()
+    const api = fakeApi()
+    api.deleteAccount = vi.fn().mockRejectedValue(new ApiClientError("NETWORK"))
+    renderApp(undefined, api)
+
+    await user.click(await screen.findByRole("button", { name: /settings/i }))
+    await user.click(screen.getByRole("button", { name: /delete account/i }))
+    await user.type(screen.getByRole("textbox", { name: /type delete/i }), "DELETE")
+    await user.click(screen.getByRole("button", { name: /permanently delete account/i }))
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/temporarily unreachable/i)
+  })
+
   it("offers installation only when the browser exposes an install prompt", async () => {
     const user = userEvent.setup()
     const install = { available: true, install: vi.fn().mockResolvedValue(true) }
     renderApp(undefined, undefined, install)
 
+    await user.click(await screen.findByRole("button", { name: /settings/i }))
     await user.click(await screen.findByRole("button", { name: /install app/i }))
 
     expect(install.install).toHaveBeenCalledOnce()
@@ -313,6 +375,41 @@ describe("MTG Rules Desk", () => {
     await user.click(await screen.findByRole("button", { name: /^helpful answer$/i }))
 
     expect(api.feedback).toHaveBeenCalledWith(ANSWER.message_id, 1)
+    expect(await screen.findByText(/feedback saved/i)).toBeVisible()
+    expect(screen.getByRole("button", { name: /^helpful answer$/i })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    )
+  })
+
+  it("surfaces answer feedback failures", async () => {
+    const user = userEvent.setup()
+    const api = fakeApi()
+    api.feedback = vi.fn().mockRejectedValue(new ApiClientError("NETWORK"))
+    renderApp(undefined, api)
+
+    await user.type(
+      await screen.findByRole("textbox", { name: /rules question/i }),
+      "Define flying",
+    )
+    await user.click(screen.getByRole("button", { name: /^ask$/i }))
+    await user.click(await screen.findByRole("button", { name: /^helpful answer$/i }))
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/feedback.*try again/i)
+  })
+
+  it("keeps secondary product links in Settings and removes the decorative empty desk", async () => {
+    const user = userEvent.setup()
+    renderApp()
+
+    expect(screen.queryByText("704.5")).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /open navigation/i })).not.toBeInTheDocument()
+    await user.click(await screen.findByRole("button", { name: /settings/i }))
+    expect(screen.getByRole("link", { name: /about/i })).toBeVisible()
+    expect(screen.getByRole("link", { name: /terms of service/i })).toBeVisible()
+    expect(screen.getByRole("link", { name: /privacy policy/i })).toBeVisible()
+    expect(screen.queryByText(/^language$/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^offline use$/i)).not.toBeInTheDocument()
   })
 
   it("renders answer markdown without raw HTML or arbitrary links", async () => {

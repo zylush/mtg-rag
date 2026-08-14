@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
 import { AppLink, normalizeRoute, RouterProvider } from "./routing"
@@ -15,11 +15,20 @@ describe("routing", () => {
   it("normalizes supported, harness, and unknown paths", () => {
     expect(normalizeRoute("/login")).toBe("/login")
     expect(normalizeRoute("/desk")).toBe("/desk")
+    expect(normalizeRoute("/desk/history")).toBe("/desk/history")
+    expect(normalizeRoute("/desk/settings")).toBe("/desk/settings")
     expect(normalizeRoute("/about")).toBe("/about")
     expect(normalizeRoute("/terms")).toBe("/terms")
     expect(normalizeRoute("/privacy")).toBe("/privacy")
     expect(normalizeRoute("/e2e.html")).toBe("/desk")
     expect(normalizeRoute("/not-a-route")).toBe("/")
+  })
+
+  it("replaces an unknown URL with its normalized route", async () => {
+    window.history.replaceState({}, "", "/not-a-route")
+    render(<LinkHarness />)
+
+    await waitFor(() => expect(window.location.pathname).toBe("/"))
   })
 
   it("navigates on a primary click and preserves modified clicks", () => {
