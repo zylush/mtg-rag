@@ -14,7 +14,7 @@ interface MetadataOptions {
 
 const descriptions: Record<AppRoute, string> = {
   "/": "Citation-first Magic: The Gathering answers grounded in the Comprehensive Rules, current Oracle text, and attributed card rulings.",
-  "/login": "Sign in to MTG Rules Desk to ask grounded Magic: The Gathering rules questions.",
+  "/auth": "Sign in to MTG Rules Desk to ask grounded Magic: The Gathering rules questions.",
   "/desk": "Ask a grounded Magic: The Gathering rules question and review its citations.",
   "/desk/history": "Review saved MTG Rules Desk conversations.",
   "/desk/settings": "Manage MTG Rules Desk product links, installation, and account controls.",
@@ -25,7 +25,7 @@ const descriptions: Record<AppRoute, string> = {
 
 const titles: Record<AppRoute, string> = {
   "/": "MTG Rules Desk | Citation-First Magic Rules Answers",
-  "/login": "Sign in | MTG Rules Desk",
+  "/auth": "Sign in | MTG Rules Desk",
   "/desk": "Rules Desk | MTG Rules Desk",
   "/desk/history": "History | MTG Rules Desk",
   "/desk/settings": "Settings | MTG Rules Desk",

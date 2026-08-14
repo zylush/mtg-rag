@@ -283,14 +283,14 @@ function HistoryPanel({
 
 function SettingsPanel({
   api,
-  auth,
+  onSignOut,
   installReady,
   onInstall,
   onClose,
   returnFocusRef,
 }: {
   api: ApiPort
-  auth: AuthPort
+  onSignOut: () => Promise<void>
   installReady: boolean
   onInstall: () => Promise<void>
   onClose: () => void
@@ -301,7 +301,7 @@ function SettingsPanel({
   const closeButtonRef = useModalDrawer(onClose, returnFocusRef)
   const deletion = useMutation({
     mutationFn: () => api.deleteAccount(),
-    onSuccess: () => auth.signOut(),
+    onSuccess: onSignOut,
   })
 
   return (
@@ -459,13 +459,28 @@ function AppContent({ auth, api, install }: AppProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const historyTriggerRef = useRef<HTMLButtonElement>(null)
   const settingsTriggerRef = useRef<HTMLButtonElement>(null)
+  const intentionalSignOut = useRef(false)
   const panel: Panel =
     route === "/desk/history" ? "history" : route === "/desk/settings" ? "settings" : "chat"
 
-  useEffect(() => auth.subscribe(setUser), [auth])
+  useEffect(
+    () =>
+      auth.subscribe((nextUser) => {
+        setUser(nextUser)
+        if (nextUser === null && intentionalSignOut.current) {
+          intentionalSignOut.current = false
+          navigate("/", { replace: true })
+        }
+      }),
+    [auth, navigate],
+  )
   useEffect(() => {
-    if (user === null && route.startsWith("/desk")) navigate("/login", { replace: true })
-    if (user && (route === "/" || route === "/login")) navigate("/desk", { replace: true })
+    if (user === null && route.startsWith("/desk")) {
+      navigate(intentionalSignOut.current ? "/" : "/auth", { replace: true })
+    }
+    if (user && (route === "/" || route === "/auth") && !intentionalSignOut.current) {
+      navigate("/desk", { replace: true })
+    }
   }, [navigate, route, user])
   useEffect(() => {
     applyRouteMetadata(
@@ -510,6 +525,16 @@ function AppContent({ auth, api, install }: AppProps) {
     ask.mutate({ text, id: conversationId })
   }
 
+  const handleSignOut = async () => {
+    intentionalSignOut.current = true
+    try {
+      await auth.signOut()
+      navigate("/", { replace: true })
+    } catch {
+      intentionalSignOut.current = false
+    }
+  }
+
   if (user === undefined) {
     return <div className="loading-screen">Opening the rules desk…</div>
   }
@@ -520,7 +545,7 @@ function AppContent({ auth, api, install }: AppProps) {
   if (route === "/privacy") {
     return <LegalDocumentPage authenticated={Boolean(user)} kind="privacy" />
   }
-  if (route === "/login") return <Login auth={auth} />
+  if (route === "/auth") return <Login auth={auth} />
   if (route === "/" && user === null) return <WelcomePage />
   if (user === null) return <Login auth={auth} />
 
@@ -537,7 +562,7 @@ function AppContent({ auth, api, install }: AppProps) {
           </div>
         </div>
         <div className="topbar-actions">
-          <button className="icon-button" onClick={() => auth.signOut()} aria-label="Sign out">
+          <button className="icon-button" onClick={() => void handleSignOut()} aria-label="Sign out">
             <LogOut aria-hidden="true" />
           </button>
         </div>
@@ -694,7 +719,7 @@ function AppContent({ auth, api, install }: AppProps) {
       {panel === "settings" && (
         <SettingsPanel
           api={api}
-          auth={auth}
+          onSignOut={handleSignOut}
           installReady={installReady}
           returnFocusRef={settingsTriggerRef}
           onInstall={async () => {

@@ -21,7 +21,7 @@ function PublicHeader({ authenticated }: { authenticated: boolean }) {
       </AppLink>
       <nav aria-label="Public">
         <AppLink to="/about">About</AppLink>
-        <AppLink className="public-nav-cta" to={authenticated ? "/desk" : "/login"}>
+        <AppLink className="public-nav-cta" to={authenticated ? "/desk" : "/auth"}>
           {authenticated ? "Back to desk" : "Sign in"}
         </AppLink>
       </nav>
@@ -114,7 +114,7 @@ export function WelcomePage() {
               current Oracle text, and attributed card rulings.
             </p>
             <div className="hero-actions">
-              <AppLink className="primary-button" to="/login">
+              <AppLink className="primary-button" to="/auth">
                 Sign in with Google
                 <ArrowRight aria-hidden="true" size={17} />
               </AppLink>

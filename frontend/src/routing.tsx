@@ -13,7 +13,7 @@ import {
 
 export type AppRoute =
   | "/"
-  | "/login"
+  | "/auth"
   | "/desk"
   | "/desk/history"
   | "/desk/settings"
@@ -22,8 +22,9 @@ export type AppRoute =
   | "/privacy"
 
 export function normalizeRoute(pathname: string): AppRoute {
+  if (pathname === "/login") return "/auth"
   if (
-    pathname === "/login" ||
+    pathname === "/auth" ||
     pathname === "/desk" ||
     pathname === "/desk/history" ||
     pathname === "/desk/settings" ||
