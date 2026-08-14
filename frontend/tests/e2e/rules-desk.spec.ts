@@ -27,6 +27,15 @@ test("signs in, answers from sources, and reports remaining quota", async ({ pag
   )
 })
 
+test("returns to the public first screen after sign-out", async ({ page }) => {
+  await signIn(page)
+
+  await page.getByRole("button", { name: "Sign out" }).click()
+
+  await expect(page).toHaveURL(/\/$/)
+  await expect(page.getByText(/question.*answer.*sources/i)).toBeVisible()
+})
+
 test("opens and permanently deletes conversation history", async ({ page }) => {
   await signIn(page)
   await page.getByRole("button", { name: "History" }).click()

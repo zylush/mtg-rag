@@ -136,6 +136,18 @@ describe("MTG Rules Desk", () => {
     expect(screen.getByRole("link", { name: /privacy policy/i })).toBeVisible()
   })
 
+  it("routes the public sign-in link to the dedicated auth screen", async () => {
+    const user = userEvent.setup()
+    const auth = new FakeAuth(null)
+    renderApp(auth, undefined, undefined, "/")
+
+    await user.click(screen.getByRole("link", { name: /sign in with google/i }))
+
+    expect(window.location.pathname).toBe("/auth")
+    expect(screen.getByRole("button", { name: /sign in with google/i })).toBeVisible()
+    expect(auth.user).toBeNull()
+  })
+
   it("renders about and legal pages without authentication or API calls", async () => {
     const api = fakeApi()
     renderApp(new FakeAuth(null), api, undefined, "/about")
@@ -164,31 +176,41 @@ describe("MTG Rules Desk", () => {
     expect(window.location.pathname).toBe("/desk")
   })
 
-  it("links the login wordmark back to the public home", async () => {
+  it("links the auth wordmark back to the public home", async () => {
     const user = userEvent.setup()
-    renderApp(new FakeAuth(null), undefined, undefined, "/login")
+    renderApp(new FakeAuth(null), undefined, undefined, "/auth")
 
     await user.click(screen.getByRole("link", { name: /mtg rules desk home/i }))
     expect(window.location.pathname).toBe("/")
   })
 
-  it("redirects a protected desk route to login and returns after sign-in", async () => {
+  it("redirects a protected desk route to auth and returns after sign-in", async () => {
     const user = userEvent.setup()
     renderApp(new FakeAuth(null), undefined, undefined, "/desk")
 
     expect(screen.getByRole("heading", { name: /settle the rules question/i })).toBeVisible()
-    expect(window.location.pathname).toBe("/login")
+    expect(window.location.pathname).toBe("/auth")
     await user.click(screen.getByRole("button", { name: /sign in with google/i }))
 
     expect(await screen.findByRole("textbox", { name: /rules question/i })).toBeVisible()
     expect(window.location.pathname).toBe("/desk")
   })
 
+  it("returns an intentional sign-out to the public first screen", async () => {
+    const user = userEvent.setup()
+    renderApp(undefined, undefined, undefined, "/desk")
+
+    await user.click(await screen.findByRole("button", { name: /sign out/i }))
+
+    expect(await screen.findByText(/question.*answer.*sources/i)).toBeVisible()
+    expect(window.location.pathname).toBe("/")
+  })
+
   it("shows sign-in progress while authentication is pending", async () => {
     const user = userEvent.setup()
     const auth = new FakeAuth(null)
     auth.signIn = vi.fn(() => new Promise<void>(() => undefined))
-    renderApp(auth, undefined, undefined, "/login")
+    renderApp(auth, undefined, undefined, "/auth")
 
     await user.click(screen.getByRole("button", { name: /sign in with google/i }))
 
