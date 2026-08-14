@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { NAVIGATION_FALLBACK_DENYLIST } from "./pwa-navigation"
+import { NAVIGATION_FALLBACK_DENYLIST } from "../pwa-navigation.ts"
 
 describe("PWA navigation fallback", () => {
   it("never serves the app shell for Firebase auth helper routes", () => {

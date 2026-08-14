@@ -14,15 +14,21 @@ import { registerSW } from "virtual:pwa-register"
 import { App } from "./App"
 import { createApiClient } from "./api-client"
 import { resolveApiBaseUrl } from "./api-origin"
+import { createFirebaseConfig } from "./firebase-config"
 import type { AuthPort, InstallPort } from "./types"
 import "./index.css"
 
-const firebaseApp = initializeApp({
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-})
+const firebaseApp = initializeApp(
+  createFirebaseConfig(
+    {
+      VITE_FIREBASE_API_KEY: import.meta.env.VITE_FIREBASE_API_KEY,
+      VITE_FIREBASE_AUTH_DOMAIN: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+      VITE_FIREBASE_PROJECT_ID: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+      VITE_FIREBASE_APP_ID: import.meta.env.VITE_FIREBASE_APP_ID,
+    },
+    window.location.hostname,
+  ),
+)
 const firebaseAuth = getAuth(firebaseApp)
 const googleProvider = new GoogleAuthProvider()
 googleProvider.setCustomParameters({ prompt: "select_account" })

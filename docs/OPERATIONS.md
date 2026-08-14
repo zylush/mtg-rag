@@ -97,6 +97,28 @@ configuration and deploy it separately with `firebase deploy --only hosting`.
 and no-store handling to the service worker. Verify installation and an authenticated
 question flow from a clean browser profile after deployment.
 
+### Firebase sign-in loop prevention
+
+For a deployment served from `PROJECT_ID.web.app`, Firebase Authentication must use
+that same `web.app` hostname as its effective `authDomain`. The browser configuration
+resolver enforces this for the matching Firebase project. The PWA navigation fallback
+must also deny every `/__/` path so the service worker cannot replace Firebase's OAuth
+handler or iframe with `index.html`. `npm run check:pwa` verifies the generated service
+worker contains this exclusion.
+
+If Google sign-in returns to the login screen:
+
+1. Confirm the Google provider is enabled and `PROJECT_ID.web.app` is an authorized
+   Firebase Authentication domain.
+2. Confirm the deployed page and effective `authDomain` are the same `web.app` origin.
+3. Request `/__/auth/handler` directly and confirm Firebase Hosting serves the reserved
+   helper rather than the SPA shell.
+4. Rebuild with `npm run check:pwa`, deploy Hosting, close stale sign-in popups, and
+   reload the original tab so the new service worker controls it.
+5. Reproduce from a clean supported browser profile. Record the Firebase error code,
+   browser/version, deployed commit, and whether popup blocking or storage protection
+   is enabled; never record ID tokens or account cookies.
+
 `/healthz` is reserved for Cloud Run startup and liveness probes and is not exposed by
 Firebase Hosting. For an edge-to-service smoke check, request `/v1/conversations`
 without credentials and expect the API's JSON `401` response rather than the SPA shell.
