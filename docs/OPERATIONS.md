@@ -97,27 +97,49 @@ configuration and deploy it separately with `firebase deploy --only hosting`.
 and no-store handling to the service worker. Verify installation and an authenticated
 question flow from a clean browser profile after deployment.
 
-### Firebase sign-in loop prevention
+### Firebase Google OAuth callback and sign-in loop prevention
 
 For a deployment served from `PROJECT_ID.web.app`, Firebase Authentication must use
 that same `web.app` hostname as its effective `authDomain`. The browser configuration
-resolver enforces this for the matching Firebase project. The PWA navigation fallback
-must also deny every `/__/` path so the service worker cannot replace Firebase's OAuth
-handler or iframe with `index.html`. `npm run check:pwa` verifies the generated service
-worker contains this exclusion.
+resolver enforces this for the matching Firebase project. Three separate controls must
+agree; one does not substitute for another:
 
-If Google sign-in returns to the login screen:
+1. Firebase Authentication **Authorized domains** must contain both
+   `PROJECT_ID.web.app` and `PROJECT_ID.firebaseapp.com`.
+2. The exact Google OAuth web client selected under the Firebase Google provider must
+   contain both callbacks under **Authorized redirect URIs**:
+
+   ```text
+   https://PROJECT_ID.web.app/__/auth/handler
+   https://PROJECT_ID.firebaseapp.com/__/auth/handler
+   ```
+
+   Match the scheme, hostname, path, and absence of a trailing slash exactly. Do not add
+   wildcards, rotate the client secret, or create a replacement client to repair a missing
+   callback.
+3. The PWA navigation fallback must deny every `/__/` path so the service worker cannot
+   replace Firebase's OAuth handler or iframe with `index.html`. `npm run check:pwa`
+   verifies the generated service worker contains this exclusion.
+
+Before a release, and whenever Google reports `redirect_uri_mismatch`:
 
 1. Confirm the Google provider is enabled and `PROJECT_ID.web.app` is an authorized
    Firebase Authentication domain.
-2. Confirm the deployed page and effective `authDomain` are the same `web.app` origin.
-3. Request `/__/auth/handler` directly and confirm Firebase Hosting serves the reserved
+2. Confirm the Firebase provider's Web SDK client ID is the same Google OAuth client being
+   inspected. Client IDs are identifiers; never copy the client secret into logs or docs.
+3. Confirm the deployed page and effective `authDomain` are the same `web.app` origin and
+   that the exact `web.app/__/auth/handler` callback is present on that OAuth client.
+4. Request `/__/auth/handler` directly and confirm Firebase Hosting serves the reserved
    helper rather than the SPA shell.
-4. Rebuild with `npm run check:pwa`, deploy Hosting, close stale sign-in popups, and
+5. Rebuild with `npm run check:pwa`, deploy Hosting, close stale sign-in popups, and
    reload the original tab so the new service worker controls it.
-5. Reproduce from a clean supported browser profile. Record the Firebase error code,
+6. Reproduce from a clean supported browser profile. Record the Firebase error code,
    browser/version, deployed commit, and whether popup blocking or storage protection
    is enabled; never record ID tokens or account cookies.
+
+Google notes that OAuth client changes can take from several minutes to several hours to
+propagate. During that window, verify the saved URI in the console before retrying; do not
+repeat unrelated Hosting deploys or secret rotations.
 
 `/healthz` is reserved for Cloud Run startup and liveness probes and is not exposed by
 Firebase Hosting. For an edge-to-service smoke check, request `/v1/conversations`

@@ -208,9 +208,9 @@ Privacy must accurately cover Firebase identity, questions/answers/history/feedb
 
 | Criterion | Engineering status | Remaining evidence |
 | --- | --- | --- |
-| **AC-001:** Public routes render without auth; `/desk` redirects signed-out users to Login. | Verified by unit and Playwright deep-link tests. | None for this feature. |
+| **AC-001:** Public routes render without auth; signed-out `/desk` access returns to `/`. | Verified by unit and Playwright deep-link tests. | None for this feature. |
 | **AC-002:** Welcome renders purpose, a static cited preview, attribution, limitations, and sign-in CTA without API calls. | Verified by unit and E2E tests. | None for this feature. |
-| **AC-003:** Login exposes Terms/Privacy and recoverable sign-in failure feedback. | Verified by component and browser checks. | None for this feature. |
+| **AC-003:** Public sign-in controls invoke Firebase directly and expose recoverable provider-failure feedback without an intermediate app screen. | Verified by component and browser checks. | Live provider configuration is tracked in the OAuth redirect evidence report. |
 | **AC-004:** Authenticated chat behavior and API contracts remain unchanged. | Verified locally and through a real development sign-in/chat/history flow. | Production smoke test belongs to the release plan. |
 | **AC-005:** Terms/Privacy expose structured outlines and do not present placeholders as final legal advice. | Implementation verified. | Qualified legal/operator approval and final copy remain pending. |
 | **AC-006:** Public and authenticated routes pass accessibility, keyboard, responsive, and no-overflow checks. | Verified by axe and Playwright across desktop/mobile paths. | Final human accessibility review is recommended before launch. |

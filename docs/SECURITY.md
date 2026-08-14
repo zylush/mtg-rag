@@ -59,7 +59,8 @@ In addition, verify:
   entries;
 - `terraform plan` creates no unintended public IAM, firewall, database IP, or secret
   versions;
-- Firebase authorized domains exactly match intended origins;
+- Firebase authorized domains exactly match intended origins, and the selected Google OAuth
+  client authorizes only the exact project-owned `/__/auth/handler` callbacks;
 - deletion is tested against both the database and Firebase project;
 - production alerts reach their named responders.
 
