@@ -1,6 +1,6 @@
 # OAuth Redirect Allowlist — TDD Evidence
 
-**Status:** RED — live Google OAuth callback rejected; external fix awaiting approval
+**Status:** GREEN — OAuth callback, authenticated chat, logout, and route protection verified
 **Date:** 2026-08-14
 **Source:** User-provided OAuth remediation plan and live failure report
 
@@ -43,27 +43,48 @@ npm test -- --run src/firebase-config.test.ts src/App.test.tsx
 Result: **2 files passed; 26/26 tests passed**. This proves the local auth adapter and navigation
 contracts are green while the live provider configuration remains RED.
 
-## Minimal fix
+## Applied fix
 
-Add exactly this callback to the existing Google OAuth web client and retain the existing fallback:
+With explicit operator approval, the existing Google OAuth web client was updated to retain its
+fallback and add exactly this callback:
 
 ```text
 https://mtg-rules-desk-dev.web.app/__/auth/handler
 ```
 
-No wildcard, client-secret rotation, provider replacement, backend change, or OpenAI configuration
-change is required.
+The saved client was reopened and showed both project-owned callbacks. No wildcard, client-secret
+rotation, provider replacement, backend change, or OpenAI configuration change was made.
+
+## GREEN evidence
+
+- A fresh live sign-in opens Google's account chooser instead of
+  `Error 400: redirect_uri_mismatch`.
+- The callback list persisted after reopening the Google OAuth client.
+- A real Google account completed the provider flow and reached `/desk` without a loop.
+- One authenticated rules question returned a rendered answer with two cited sources. The answer
+  correctly exposed low confidence because the retrieved passages did not contain the decisive rule;
+  this is a retrieval-corpus gap, not an authentication or rendering failure.
+- `Sign out` returned to `/`, and a subsequent signed-out visit to `/desk` redirected to `/`.
+- `npm run test:coverage`: **7 files and 41/41 tests passed**; coverage remained
+  **91.00% statements, 89.20% branches, 88.88% functions, and 94.04% lines**.
+- `npm run lint`: passed.
+- `npm run check:pwa`: TypeScript, Vite production build, and PWA checks passed.
+- `npm audit --audit-level=high`: **0 vulnerabilities**.
+- `$env:E2E_PORT='4275'; npm run e2e`: **85/85 passed** across desktop Chromium,
+  Firefox, WebKit, mobile Chrome, and mobile Safari.
+
+No account identifier, token, cookie, API key, or client secret was captured in the evidence.
 
 ## Acceptance criteria
 
 | ID | Guarantee | Verification | Status |
 | --- | --- | --- | --- |
-| AC-001 | Google no longer returns `redirect_uri_mismatch` | Clean live popup flow | RED |
-| AC-002 | A real Google account reaches `/desk` once without a loop | Live browser journey | Pending |
-| AC-003 | An authenticated chatbot request succeeds | Live `/v1/ask` journey | Pending |
-| AC-004 | Logout returns to `/` and `/desk` is protected | Live browser journey + existing E2E | Pending |
-| AC-005 | Only the two project-owned callback domains are authorized | Google Auth Platform review | RED |
-| AC-006 | Operations documentation distinguishes both allowlist layers | Documentation review | Pending |
+| AC-001 | Google no longer returns `redirect_uri_mismatch` | Clean live popup flow | PASS |
+| AC-002 | A real Google account reaches `/desk` once without a loop | Live browser journey | PASS |
+| AC-003 | An authenticated chatbot request succeeds | Live `/v1/ask` journey | PASS |
+| AC-004 | Logout returns to `/` and `/desk` is protected | Live browser journey + existing E2E | PASS |
+| AC-005 | Only the two project-owned callback domains are authorized | Google Auth Platform review | PASS |
+| AC-006 | Operations documentation distinguishes both allowlist layers | Documentation review | PASS |
 
 ## Rollback
 
