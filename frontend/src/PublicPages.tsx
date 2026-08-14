@@ -3,7 +3,14 @@ import type { ReactNode } from "react"
 
 import { AppLink } from "./routing"
 
-function PublicHeader({ authenticated }: { authenticated: boolean }) {
+interface PublicAuthActions {
+  authenticated?: boolean
+  onSignIn?: () => void
+  signingIn?: boolean
+  signInError?: boolean
+}
+
+function PublicHeader({ authenticated = false, onSignIn, signingIn }: PublicAuthActions) {
   return (
     <header className="public-header">
       <AppLink
@@ -21,9 +28,20 @@ function PublicHeader({ authenticated }: { authenticated: boolean }) {
       </AppLink>
       <nav aria-label="Public">
         <AppLink to="/about">About</AppLink>
-        <AppLink className="public-nav-cta" to={authenticated ? "/desk" : "/auth"}>
-          {authenticated ? "Back to desk" : "Sign in"}
-        </AppLink>
+        {authenticated ? (
+          <AppLink className="public-nav-cta" to="/desk">
+            Back to desk
+          </AppLink>
+        ) : (
+          <button
+            className="public-nav-cta"
+            type="button"
+            disabled={signingIn}
+            onClick={onSignIn}
+          >
+            {signingIn ? "Signing in..." : "Sign in"}
+          </button>
+        )}
       </nav>
     </header>
   )
@@ -43,8 +61,9 @@ function PublicFooter() {
         <a href="mailto:paoloinigo30@gmail.com">Support</a>
       </nav>
       <p className="attribution-copy">
-        Wizards of the Coast neither approves nor endorses this app. Card data and rulings are
-        provided by Scryfall; Scryfall does not endorse this app.
+        MTG Rules Desk is unofficial fan content. Wizards of the Coast neither approves nor
+        endorses this app. Card data and rulings are provided by Scryfall; Scryfall does not
+        endorse this app.
       </p>
     </footer>
   )
@@ -52,14 +71,21 @@ function PublicFooter() {
 
 function PublicLayout({
   authenticated = false,
+  onSignIn,
+  signingIn = false,
+  signInError = false,
   children,
 }: {
-  authenticated?: boolean
   children: ReactNode
-}) {
+} & PublicAuthActions) {
   return (
     <div className="public-site">
-      <PublicHeader authenticated={authenticated} />
+      <PublicHeader authenticated={authenticated} onSignIn={onSignIn} signingIn={signingIn} />
+      {signInError && (
+        <div className="public-auth-error status-message error" role="alert">
+          Sign-in did not complete. Check popup permissions and try again.
+        </div>
+      )}
       {children}
       <PublicFooter />
     </div>
@@ -101,9 +127,9 @@ function SourceSpinePreview() {
   )
 }
 
-export function WelcomePage() {
+export function WelcomePage({ onSignIn, signingIn, signInError }: PublicAuthActions) {
   return (
-    <PublicLayout>
+    <PublicLayout onSignIn={onSignIn} signingIn={signingIn} signInError={signInError}>
       <main className="public-page welcome-page">
         <section className="welcome-hero">
           <div className="hero-copy">
@@ -114,10 +140,15 @@ export function WelcomePage() {
               current Oracle text, and attributed card rulings.
             </p>
             <div className="hero-actions">
-              <AppLink className="primary-button" to="/auth">
-                Sign in with Google
+              <button
+                className="primary-button"
+                type="button"
+                disabled={signingIn}
+                onClick={onSignIn}
+              >
+                {signingIn ? "Signing you in..." : "Sign in with Google"}
                 <ArrowRight aria-hidden="true" size={17} />
-              </AppLink>
+              </button>
               <AppLink className="text-button hero-secondary" to="/about">
                 See how it works
               </AppLink>
@@ -161,9 +192,19 @@ export function WelcomePage() {
   )
 }
 
-export function AboutPage({ authenticated = false }: { authenticated?: boolean }) {
+export function AboutPage({
+  authenticated = false,
+  onSignIn,
+  signingIn,
+  signInError,
+}: PublicAuthActions) {
   return (
-    <PublicLayout authenticated={authenticated}>
+    <PublicLayout
+      authenticated={authenticated}
+      onSignIn={onSignIn}
+      signingIn={signingIn}
+      signInError={signInError}
+    >
       <main className="public-page document-page about-page">
         <div className="document-intro">
           <span className="eyebrow">About the desk</span>
@@ -250,17 +291,24 @@ const PRIVACY_SECTIONS: LegalSection[] = [
 
 export function LegalDocumentPage({
   authenticated = false,
+  onSignIn,
+  signingIn,
+  signInError,
   kind,
 }: {
-  authenticated?: boolean
   kind: LegalKind
-}) {
+} & PublicAuthActions) {
   const isTerms = kind === "terms"
   const title = isTerms ? "Terms of Service" : "Privacy Policy"
   const sections = isTerms ? TERMS_SECTIONS : PRIVACY_SECTIONS
 
   return (
-    <PublicLayout authenticated={authenticated}>
+    <PublicLayout
+      authenticated={authenticated}
+      onSignIn={onSignIn}
+      signingIn={signingIn}
+      signInError={signInError}
+    >
       <main className="public-page document-page legal-page">
         <div className="document-intro">
           <span className="eyebrow">MTG Rules Desk legal document</span>

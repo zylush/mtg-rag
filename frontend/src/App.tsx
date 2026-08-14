@@ -7,7 +7,6 @@ import {
   LogOut,
   MessageSquareQuote,
   Settings,
-  ShieldCheck,
   Sparkles,
   ThumbsDown,
   ThumbsUp,
@@ -386,53 +385,6 @@ function SettingsPanel({
   )
 }
 
-function Login({ auth }: { auth: AuthPort }) {
-  const signIn = useMutation({ mutationFn: () => auth.signIn() })
-  return (
-    <main className="login-shell">
-      <section className="login-card">
-        <AppLink className="login-home" to="/" aria-label="MTG Rules Desk home">
-          <span className="wordmark-mark" aria-hidden="true">
-            R
-          </span>
-        </AppLink>
-        <span className="eyebrow">MTG Rules Desk</span>
-        <h1>Settle the rules question. Keep the game moving.</h1>
-        <p>
-          Ask against the Comprehensive Rules, current Oracle text, and attributed card
-          rulings. Every material claim comes with a source.
-        </p>
-        <button
-          className="primary-button"
-          disabled={signIn.isPending}
-          onClick={() => signIn.mutate()}
-        >
-          <ShieldCheck aria-hidden="true" />
-          {signIn.isPending ? "Signing you in…" : "Sign in with Google"}
-        </button>
-        {signIn.isError && (
-          <div className="status-message error" role="alert">
-            Sign-in did not complete. Check popup permissions and try again.
-          </div>
-        )}
-        <small>Available in Taiwan, Japan, South Korea, and Singapore.</small>
-        <div className="login-links" aria-label="Legal links">
-          <span>By continuing, you acknowledge the</span>
-          <AppLink to="/terms">Terms of Service</AppLink>
-          <span>and</span>
-          <AppLink to="/privacy">Privacy Policy</AppLink>
-          <span>.</span>
-        </div>
-        <small className="legal-notice">
-          MTG Rules Desk is unofficial fan content. Wizards of the Coast neither
-          approves nor endorses it. Card data and rulings are provided by Scryfall;
-          Scryfall does not endorse this app.
-        </small>
-      </section>
-    </main>
-  )
-}
-
 type AppProps = {
   auth: AuthPort
   api: ApiPort
@@ -456,6 +408,7 @@ function AppContent({ auth, api, install }: AppProps) {
   const [offlineMessage, setOfflineMessage] = useState("")
   const [conversationId, setConversationId] = useState<string>()
   const [installReady, setInstallReady] = useState(install.available)
+  const [signInStatus, setSignInStatus] = useState<"idle" | "pending" | "error">("idle")
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const historyTriggerRef = useRef<HTMLButtonElement>(null)
   const settingsTriggerRef = useRef<HTMLButtonElement>(null)
@@ -476,9 +429,9 @@ function AppContent({ auth, api, install }: AppProps) {
   )
   useEffect(() => {
     if (user === null && route.startsWith("/desk")) {
-      navigate(intentionalSignOut.current ? "/" : "/auth", { replace: true })
+      navigate("/", { replace: true })
     }
-    if (user && (route === "/" || route === "/auth") && !intentionalSignOut.current) {
+    if (user && route === "/" && !intentionalSignOut.current) {
       navigate("/desk", { replace: true })
     }
   }, [navigate, route, user])
@@ -535,19 +488,42 @@ function AppContent({ auth, api, install }: AppProps) {
     }
   }
 
+  const handleSignIn = async () => {
+    if (signInStatus === "pending") return
+    setSignInStatus("pending")
+    try {
+      await auth.signIn()
+      setSignInStatus("idle")
+    } catch {
+      setSignInStatus("error")
+    }
+  }
+
+  const publicAuthActions = user
+    ? {}
+    : {
+        onSignIn: () => void handleSignIn(),
+        signingIn: signInStatus === "pending",
+        signInError: signInStatus === "error",
+      }
+
   if (user === undefined) {
     return <div className="loading-screen">Opening the rules desk…</div>
   }
-  if (route === "/about") return <AboutPage authenticated={Boolean(user)} />
+  if (route === "/about") {
+    return <AboutPage authenticated={Boolean(user)} {...publicAuthActions} />
+  }
   if (route === "/terms") {
-    return <LegalDocumentPage authenticated={Boolean(user)} kind="terms" />
+    return (
+      <LegalDocumentPage authenticated={Boolean(user)} kind="terms" {...publicAuthActions} />
+    )
   }
   if (route === "/privacy") {
-    return <LegalDocumentPage authenticated={Boolean(user)} kind="privacy" />
+    return (
+      <LegalDocumentPage authenticated={Boolean(user)} kind="privacy" {...publicAuthActions} />
+    )
   }
-  if (route === "/auth") return <Login auth={auth} />
-  if (route === "/" && user === null) return <WelcomePage />
-  if (user === null) return <Login auth={auth} />
+  if (user === null) return <WelcomePage {...publicAuthActions} />
 
   return (
     <div className="app-shell">

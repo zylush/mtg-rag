@@ -16,7 +16,7 @@ test("shows a public welcome preview and legal navigation", async ({ page }) => 
     "href",
     "mailto:paoloinigo30@gmail.com",
   )
-  await expect(page.getByRole("link", { name: "Sign in with Google" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Sign in with Google" })).toBeVisible()
 })
 
 test("opens About, Terms, and Privacy without authentication", async ({ page }) => {
@@ -27,7 +27,7 @@ test("opens About, Terms, and Privacy without authentication", async ({ page }) 
   ] as const) {
     await visit(page, route)
     await expect(page.getByRole("heading", { name: heading })).toBeVisible()
-    await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible()
+    await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible()
   }
 })
 
