@@ -143,7 +143,7 @@ test("supports keyboard entry and stable layouts at release breakpoints", async 
   page,
 }) => {
   await page.goto("/e2e.html")
-  const signInButton = page.getByRole("button", { name: "Sign in with Google" })
+  const signInButton = page.getByRole("button", { name: "Sign in", exact: true })
   await expect(signInButton).toBeVisible()
   if (browserName === "webkit") {
     // Safari tab traversal follows the host's Full Keyboard Access preference.
@@ -151,6 +151,8 @@ test("supports keyboard entry and stable layouts at release breakpoints", async 
   } else {
     await page.keyboard.press("Tab")
     await expect(page.getByRole("link", { name: "MTG Rules Desk home" })).toBeFocused()
+    await page.keyboard.press("Tab")
+    await expect(page.getByRole("link", { name: "About" }).first()).toBeFocused()
     await page.keyboard.press("Tab")
   }
   await expect(signInButton).toBeFocused()

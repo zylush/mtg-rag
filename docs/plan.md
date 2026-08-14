@@ -1,7 +1,7 @@
 # MTG Rules Desk — Public UX and Legal Pages
 
-**Status:** Revision 3 implemented and development verified; legal approval remains pending
-**Revision:** 3
+**Status:** Revision 4 implemented and development verified; legal approval remains pending
+**Revision:** 4
 **Last reconciled:** 2026-08-14
 
 This is a scoped implementation record, not the project-wide launch plan. The canonical
@@ -17,10 +17,13 @@ live integration evidence is in [`INTEGRATION-LESSONS.md`](INTEGRATION-LESSONS.m
 | 1 | 2026-08-12 | Defined the public, authenticated, and legal-page implementation scope. |
 | 2 | 2026-08-14 | Reconciled engineering completion and development evidence while preserving legal launch blockers. |
 | 3 | 2026-08-14 | Added the navigation, responsive-browser, accessible-feedback, and development-safe SEO deployment plan. |
+| 4 | 2026-08-14 | Removed the intermediate sign-in page; public sign-in controls now invoke Firebase directly, and logout returns home. |
 
 ## Goal
 
-Add a coherent public-to-authenticated experience with Welcome, Login, Chat, About, Terms of Service, and Privacy Policy pages while preserving the existing RAG chat behavior.
+Add a coherent public-to-authenticated experience with Welcome, direct Google authentication,
+Chat, About, Terms of Service, and Privacy Policy pages while preserving the existing RAG chat
+behavior.
 
 ## Reconciled outcome
 
@@ -38,7 +41,6 @@ Add a coherent public-to-authenticated experience with Welcome, Login, Chat, Abo
 
 ```text
 /          Welcome page
-/login     Firebase/Google sign-in
 /desk      Authenticated MTG rules chat
 /about     Product, methodology, and attribution
 /terms     Terms of Service
@@ -52,16 +54,20 @@ Revision 3 adds refreshable authenticated subroutes:
 /desk/settings   Authenticated settings and product-link drawer
 ```
 
-Signed-out visitors can view static public pages and a non-interactive cited-answer preview. Live questions remain sign-in gated. Signed-out `/desk` access redirects to `/login`; signed-in visitors at `/` or `/login` go to `/desk`.
+Signed-out visitors can view static public pages and a non-interactive cited-answer preview. Public
+sign-in controls invoke Firebase/Google authentication directly without an intermediate app page.
+Live questions remain sign-in gated. Signed-out `/desk` access, logout, and legacy `/login` or
+`/auth` URLs return to `/`; successful authentication routes to `/desk`.
 
-## Revision 3 implementation plan
+## Revision 4 implementation plan
 
 This slice improves the existing frontend without changing the backend, RAG pipeline, quotas,
 authentication provider, or legal/public-launch decisions.
 
 1. **Make navigation state durable.** Represent History and Settings in the URL, use history
    replacement for authentication redirects and unknown routes, give authenticated public pages
-   a clear route back to the desk, and make the Login wordmark return home.
+   a clear route back to the desk, invoke authentication from public screens, and return logout
+   to the Welcome page.
 2. **Remove competing controls.** Remove the duplicate mobile menu, authenticated header links,
    and decorative empty-desk panel. Keep one primary navigation system and move About, Terms,
    Privacy, and install controls into Settings.
