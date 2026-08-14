@@ -236,6 +236,81 @@ observation wins.
 
 ## Verification evidence
 
+### 13. Local drawer state was not browser navigation
+
+**Symptom:** History and Settings opened correctly, but refresh, Back, Forward, and deep links had
+no stable meaning because the active panel existed only in React state.
+
+**Root cause:** The first implementation treated visible application screens like transient widget
+state instead of navigation state.
+
+**Fix:** `/desk/history` and `/desk/settings` now drive the drawers. Authentication redirects and
+unknown-route recovery use history replacement, while user navigation uses normal history entries.
+
+**Prevention:** For each visible screen, test direct URL, refresh, Back, Forward, and auth boundary.
+
+**Lesson:** If users perceive it as a screen, the URL should usually be able to represent it.
+
+### 14. A harmless-looking responsive selector hid a moved control
+
+**Symptom:** The Install action passed on desktop but disappeared from Settings on mobile Chrome
+and mobile Safari after it was moved out of the top bar.
+
+**Root cause:** A compact-layout rule hid every `.utility-button`; its original intent was to hide
+top-bar utilities only.
+
+**Fix:** The global hide was removed and the Install control remains visible inside Settings.
+
+**Prevention:** After moving a component, search for selectors based on its generic utility class and
+run behavior tests at the destination's responsive widths.
+
+**Lesson:** CSS ownership is part of component ownership; broad utility selectors create invisible
+coupling.
+
+### 15. WebKit invalidated an implicit focus assumption
+
+**Symptom:** Chromium restored focus to the History trigger after Escape, while WebKit left focus
+inactive.
+
+**Root cause:** The drawer captured `document.activeElement`, but WebKit automation does not always
+focus a control merely because it was clicked.
+
+**Fix:** Each drawer receives an explicit ref to its navigation trigger and restores that element on
+unmount. Safari keyboard traversal is tested without assuming the host Full Keyboard Access setting.
+
+**Prevention:** Test focus movement and restoration in Chromium, Firefox, and WebKit; do not derive
+critical focus targets from incidental browser click behavior.
+
+**Lesson:** Accessibility behavior must be explicit, not an emergent side effect of one engine.
+
+### 16. The SPA fallback disguised missing SEO assets
+
+**Symptom:** `/robots.txt` and `/sitemap.xml` returned HTTP 200 but contained the application HTML.
+
+**Root cause:** Firebase Hosting's SPA fallback correctly served `index.html` for unknown paths,
+which made status-only crawler checks pass.
+
+**Fix:** Real crawler assets are built and deployed; artifact and live checks validate MIME type and
+body shape. The development site deliberately returns `Disallow: /` until launch approval.
+
+**Prevention:** SEO smoke tests must assert status, content type, and semantic body?not status alone.
+
+**Lesson:** A successful HTTP response can still be the wrong resource.
+
+### Revision 3 frontend evidence
+
+- Frontend: 36 unit tests passed with 88.55% branch coverage; lint completed without warnings;
+  `npm audit --audit-level=high` found zero vulnerabilities.
+- Browser matrix: 80 scenarios passed across desktop Chromium, Firefox, WebKit, mobile Chrome, and
+  mobile Safari, including axe and seven release widths.
+- Artifact: TypeScript/Vite, PWA, crawler-file, source-map, API-origin, and OpenAI-key leak checks
+  passed.
+- Hosting: development Firebase release completed at `https://mtg-rules-desk-dev.web.app`.
+- Edge: crawler MIME types are correct and unsigned `/v1/conversations` still returns backend JSON
+  `401`.
+
+## Earlier integration verification evidence
+
 - Cloud Build: `SUCCESS`, build `78760892-d133-4e12-a112-421622e349ed`.
 - Backend: 136 tests in the release build, branch coverage above 80%, Ruff and strict mypy
   clean, and `pip-audit` reported no known vulnerable dependencies.
