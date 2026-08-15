@@ -18,6 +18,10 @@ Cloud Build quality gates, and a versioned 110-case RAG evaluation suite.
 - `frontend` - React PWA and browser acceptance tests.
 - `infra` - Google Cloud dev/prod Terraform.
 - `cloudbuild.yaml` - CI and versioned container delivery.
+- `docs/PRD.md` - product requirements, scope, acceptance criteria, and launch gates.
+- `docs/Architecture.md` - complete runtime, data, retrieval, and cloud architecture.
+- `docs/architecture-essentials.md` - concise learning and onboarding guide.
+- `docs/agent.md` - RAG assistant behavior, grounding, citation, and cache contract.
 - `docs/OPERATIONS.md` - bootstrap, deploy, rollback, and recovery runbook.
 - `docs/SECURITY.md` - trust boundaries and security verification.
 - `docs/ATTRIBUTION-AND-LAUNCH.md` - policy evidence and launch blockers.

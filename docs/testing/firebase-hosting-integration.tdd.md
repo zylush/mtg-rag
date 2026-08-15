@@ -1,6 +1,6 @@
 # Firebase Hosting Integration - TDD Evidence
 
-**Source plan:** `MTG-PLAN.md`
+**Source architecture:** [Architecture.md](../Architecture.md#2-system-context)
 **Environment:** `mtg-rules-desk-dev` / `asia-east1`
 **Status:** Deployed; real authenticated answer/citations/history flow verified
 **Date:** 2026-08-14

@@ -2,7 +2,7 @@
 
 **Status:** GREEN, development deployed, and live verified
 **Date:** 2026-08-14
-**Scope:** `docs/plan.md` Revision 3
+**Scope:** [PRD.md](../PRD.md#8-user-experience-and-navigation), preserving the verified Revision 3 evidence.
 
 This record will capture the failing tests, implementation changes, verification results,
 deployment identifier, and live smoke evidence for AC-UX-001 through AC-DEPLOY-001.

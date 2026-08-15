@@ -2,7 +2,7 @@
 
 **Status:** GREEN, deployed to the Firebase development site and live-verified
 **Date:** 2026-08-14
-**Scope:** `docs/plan.md` Revision 4
+**Scope:** [PRD.md](../PRD.md#8-user-experience-and-navigation), preserving the verified Revision 4 evidence.
 
 ## User journeys
 

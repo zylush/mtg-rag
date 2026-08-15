@@ -1,6 +1,6 @@
 # Public UX and Legal Pages — TDD Evidence
 
-**Source plan:** `plan.md` from the approved UX implementation discussion.
+**Source requirements:** [PRD.md](../PRD.md#8-user-experience-and-navigation).
 **Status:** Verified locally
 **Date:** 2026-08-12
 

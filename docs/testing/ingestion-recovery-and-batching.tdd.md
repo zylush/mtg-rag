@@ -2,7 +2,7 @@
 
 ## Source and user journeys
 
-Derived from [MTG-PLAN.md](../../MTG-PLAN.md) during the Google Cloud deployment.
+Derived from [Architecture.md](../Architecture.md#6-ingestion-architecture) during the Google Cloud deployment.
 
 As an operator, I can retry a failed authoritative corpus snapshot, so that a
 transient parser or validation failure does not block the next scheduled refresh.
