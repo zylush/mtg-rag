@@ -266,27 +266,144 @@ type LegalKind = "terms" | "privacy"
 interface LegalSection {
   id: string
   title: string
-  body: string
+  paragraphs: readonly ReactNode[]
+  items?: readonly ReactNode[]
 }
 
 const TERMS_SECTIONS: LegalSection[] = [
-  { id: "service", title: "1. Service", body: "Describe the MTG Rules Desk service and its supported scope here." },
-  { id: "accounts", title: "2. Accounts and eligibility", body: "Provide operator-approved account, age, and eligibility terms here." },
-  { id: "use", title: "3. Acceptable use", body: "Provide operator-approved rules for using the service here." },
-  { id: "sources", title: "4. Sources and attribution", body: "Describe third-party sources, links, attribution, and non-endorsement language here." },
-  { id: "answers", title: "5. AI-generated answers", body: "Describe limitations, disclaimers, and the non-official nature of answers here." },
-  { id: "account-controls", title: "6. Deletion and termination", body: "Describe conversation deletion, account deletion, and termination conditions here." },
-  { id: "changes", title: "7. Changes and contact", body: "Provide change-notice, governing-law, dispute, and support-contact language here." },
+  { id: "service", title: "1. Service", paragraphs: ["Describe the MTG Rules Desk service and its supported scope here."] },
+  { id: "accounts", title: "2. Accounts and eligibility", paragraphs: ["Provide operator-approved account, age, and eligibility terms here."] },
+  { id: "use", title: "3. Acceptable use", paragraphs: ["Provide operator-approved rules for using the service here."] },
+  { id: "sources", title: "4. Sources and attribution", paragraphs: ["Describe third-party sources, links, attribution, and non-endorsement language here."] },
+  { id: "answers", title: "5. AI-generated answers", paragraphs: ["Describe limitations, disclaimers, and the non-official nature of answers here."] },
+  { id: "account-controls", title: "6. Deletion and termination", paragraphs: ["Describe conversation deletion, account deletion, and termination conditions here."] },
+  { id: "changes", title: "7. Changes and contact", paragraphs: ["Provide change-notice, governing-law, dispute, and support-contact language here."] },
 ]
 
 const PRIVACY_SECTIONS: LegalSection[] = [
-  { id: "data", title: "1. Data we process", body: "Describe Firebase identity, questions, answers, conversations, feedback, and quota data here." },
-  { id: "providers", title: "2. Service providers", body: "Describe OpenAI, PostgreSQL, Cloud Storage, Firebase, and monitoring providers here." },
-  { id: "use", title: "3. How data is used", body: "Describe authentication, answer generation, retrieval, support, security, and operations here." },
-  { id: "retention", title: "4. Retention and deletion", body: "Provide operator-approved retention periods and account/conversation deletion behavior here." },
-  { id: "cookies", title: "5. Cookies, storage, and the PWA", body: "Describe Firebase auth storage, service-worker behavior, and any optional analytics here." },
-  { id: "rights", title: "6. Rights and regional processing", body: "Provide applicable rights, regional processing, minors, and contact language here." },
-  { id: "updates", title: "7. Updates and contact", body: "Provide policy-update and privacy-contact language here." },
+  {
+    id: "scope",
+    title: "1. Scope and summary",
+    paragraphs: [
+      "This Privacy Policy explains how MTG Rules Desk processes information when you sign in, ask a rules question, save or delete a conversation, submit feedback, install the progressive web app, or contact support.",
+      "MTG Rules Desk is an unofficial, English-language Magic: The Gathering rules reference. Please do not include personal, confidential, or sensitive information in a rules question or feedback comment.",
+    ],
+  },
+  {
+    id: "data",
+    title: "2. Information we process",
+    paragraphs: [
+      "We process the information needed to authenticate you, answer questions, operate usage limits, retain your history, and protect the service.",
+    ],
+    items: [
+      "Account information: your Firebase user ID and email address received from Google sign-in.",
+      "Rules-desk content: your questions, generated answers, assumptions, confidence, citations, conversation titles, and creation times.",
+      "Feedback: a positive or negative rating, an optional comment, and the answer the feedback concerns.",
+      "Usage and reliability data: ask-attempt timestamps, daily answer counts, model and cache status, request identifiers, token counts, latency, response size, route, status code, and error category.",
+      "Support information: your email address and anything you choose to include when you contact us.",
+      "Infrastructure metadata: Google and other infrastructure providers may process IP address, browser, device, and request metadata to deliver and secure the service.",
+    ],
+  },
+  {
+    id: "use",
+    title: "3. How we use information",
+    paragraphs: [
+      "We use this information to verify your identity, retrieve relevant MTG rules and card passages, generate and save grounded answers, show conversation history, enforce usage limits, process feedback, investigate failures or abuse, secure the service, and respond to support or privacy requests.",
+      "We do not use personal information for advertising, sell it, rent it, or use it to make decisions that produce legal or similarly significant effects.",
+    ],
+  },
+  {
+    id: "ai",
+    title: "4. OpenAI and RAG processing",
+    paragraphs: [
+      "OpenAI receives your question when it creates a search embedding. When an answer is not served from cache, OpenAI receives your question, selected public MTG reference passages, and a one-way pseudonymous safety identifier to generate a structured answer. The backend requests that generated responses are not stored by the OpenAI Responses API.",
+      "We do not intentionally send your email address or raw Firebase user ID to OpenAI. Do not place personal information in a question, because question text is part of the request. OpenAI processes API data under its own applicable terms and privacy commitments.",
+      "The RAG system can reduce unsupported answers, but it cannot guarantee that every answer is correct. Retrieved citations, confidence labels, clarification requests, and abstention are product safeguards, not automated decisions about you.",
+    ],
+  },
+  {
+    id: "providers",
+    title: "5. Service providers and sources",
+    paragraphs: [
+      "We disclose information only as needed to operate the service, comply with law, protect rights and safety, or complete a business transfer. The current service uses the following providers:",
+    ],
+    items: [
+      "Google Firebase Authentication for Google sign-in and identity tokens.",
+      "Firebase Hosting and Google Cloud Run to deliver the web app and API.",
+      "Google Cloud SQL for PostgreSQL account, conversation, answer, citation, feedback, quota, and cache records.",
+      "Google Cloud Logging and Monitoring for content-free application telemetry and infrastructure operations.",
+      "Google Secret Manager for server credentials. Secret values are not sent to the browser.",
+      "OpenAI for question embeddings and grounded answer generation.",
+      "Wizards of the Coast and Scryfall as sources for public rules, Oracle card data, and rulings. User questions are not sent to those source sites by the ask flow.",
+    ],
+  },
+  {
+    id: "cache",
+    title: "6. Semantic cache",
+    paragraphs: [
+      "Eligible high-confidence, non-ambiguous questions, their embeddings, generated answers, and citation identifiers may remain in a shared semantic cache for up to seven days. The cache is used to return a previously validated answer for a sufficiently similar question using the same active corpus and model configuration.",
+      "A cache record is not linked to a user account, but its normalized question text is retained. This means deleting an account does not immediately target that separate cache entry; it expires automatically within the cache period. Avoid placing identifying or sensitive details in questions.",
+    ],
+  },
+  {
+    id: "retention",
+    title: "7. Retention and deletion",
+    paragraphs: [
+      "Saved conversations, messages, citations, feedback, account identifiers, and usage records remain in Cloud SQL while your account is active unless you delete a conversation or your account. The current application does not apply a shorter automatic retention period to saved history.",
+      "Deleting a conversation removes that conversation, its messages, citations, and associated feedback. Deleting your account removes application-owned records associated with your account and then requests deletion of the Firebase identity. Sign-out only ends the browser session and does not delete saved data.",
+      "Backups, security records, provider records, and information required by law may persist for a limited period under provider or operational retention settings. Shared semantic-cache entries expire separately as described above.",
+    ],
+  },
+  {
+    id: "browser",
+    title: "8. Browser storage and the PWA",
+    paragraphs: [
+      "Firebase Authentication uses browser storage to keep you signed in. The progressive web app service worker caches static files such as HTML, JavaScript, CSS, fonts, and icons so the interface can load reliably. Live questions and conversation history still require an internet connection.",
+      "The application marks API requests as no-store and does not configure the service worker to cache API responses. We do not use advertising cookies or analytics in the current application. If this changes, this policy and any required consent controls will be updated first.",
+    ],
+  },
+  {
+    id: "security",
+    title: "9. Security",
+    paragraphs: [
+      "We use HTTPS, Firebase token verification with revocation checks, account-ownership checks, bounded requests, server-side credentials, Google Secret Manager, and restricted service identities to protect information. Application telemetry is designed not to contain raw question or answer text.",
+      "No security measure can guarantee absolute protection. If you believe your account or information has been compromised, contact us promptly.",
+    ],
+  },
+  {
+    id: "rights",
+    title: "10. Your choices and privacy rights",
+    paragraphs: [
+      "You can review and delete individual conversations in the app, sign out, or request account deletion from Settings. Depending on where you live, you may also have rights to access, correct, delete, restrict, object to, or receive a portable copy of personal information, and to appeal a denied request.",
+      <>
+        To make a request,{" "}
+        <a href="mailto:paoloinigo30@gmail.com">email the privacy contact</a>. We may need to
+        verify your identity before completing a request. You will not be discriminated against
+        for exercising an applicable privacy right.
+      </>,
+      "We do not sell personal information, share it for cross-context behavioral advertising, or use it for targeted advertising. Because the current service does not perform those activities, a Global Privacy Control signal does not change its behavior.",
+    ],
+  },
+  {
+    id: "international-minors",
+    title: "11. International processing and minors",
+    paragraphs: [
+      "Our providers may process information in countries other than the one where you live. Those countries may have different data-protection laws. We use provider contracts and available safeguards where required.",
+      "MTG Rules Desk is not designed to solicit personal information from children. The service does not currently perform age verification. If you believe a child submitted personal information, contact us so we can review and delete it as appropriate.",
+    ],
+  },
+  {
+    id: "updates",
+    title: "12. Updates and contact",
+    paragraphs: [
+      "We may update this policy when the product, providers, or legal requirements change. The date at the top of this page will identify the latest revision. Material changes may also be announced in the application when appropriate.",
+      <>
+        Questions, requests, or complaints can be sent to{" "}
+        <a href="mailto:paoloinigo30@gmail.com">paoloinigo30@gmail.com</a>. MTG Rules Desk
+        currently provides online and email contact only; no public postal address is listed.
+      </>,
+    ],
+  },
 ]
 
 export function LegalDocumentPage({
@@ -301,6 +418,9 @@ export function LegalDocumentPage({
   const isTerms = kind === "terms"
   const title = isTerms ? "Terms of Service" : "Privacy Policy"
   const sections = isTerms ? TERMS_SECTIONS : PRIVACY_SECTIONS
+  const dateLine = isTerms
+    ? "Effective date: operator review required · Last updated: operator review required"
+    : "Effective date: August 17, 2026 · Last updated: August 17, 2026"
 
   return (
     <PublicLayout
@@ -313,14 +433,15 @@ export function LegalDocumentPage({
         <div className="document-intro">
           <span className="eyebrow">MTG Rules Desk legal document</span>
           <h1>{title}</h1>
-          <p>Effective date: operator review required · Last updated: operator review required</p>
+          <p>{dateLine}</p>
         </div>
 
         <div className="legal-review-banner" role="note">
           <strong>Pending legal review</strong>
           <span>
-            This page is a structured content outline. Replace the marked sections with
-            operator-approved policy text before public launch.
+            {isTerms
+              ? "This page is a structured content outline. Replace the marked sections with operator-approved policy text before public launch."
+              : "This implementation-aligned draft must be reviewed and approved by the operator and qualified counsel before public launch."}
           </span>
         </div>
 
@@ -339,16 +460,31 @@ export function LegalDocumentPage({
             {sections.map((section) => (
               <section key={section.id} id={section.id}>
                 <h2>{section.title}</h2>
-                <p>{section.body}</p>
+                {section.paragraphs.map((paragraph, index) => (
+                  <p key={`${section.id}-paragraph-${index}`}>{paragraph}</p>
+                ))}
+                {section.items && (
+                  <ul>
+                    {section.items.map((item, index) => (
+                      <li key={`${section.id}-item-${index}`}>{item}</li>
+                    ))}
+                  </ul>
+                )}
               </section>
             ))}
           </article>
         </div>
 
         <p className="legal-source-note">
-          This outline is not legal advice. Contact the operator listed in the final reviewed
-          document with questions.
-          <ExternalLink aria-hidden="true" size={14} />
+          {isTerms ? (
+            <>
+              This outline is not legal advice. Contact the operator listed in the final reviewed
+              document with questions.
+              <ExternalLink aria-hidden="true" size={14} />
+            </>
+          ) : (
+            "This policy describes the current implementation. It is not a substitute for legal review."
+          )}
         </p>
       </main>
     </PublicLayout>
