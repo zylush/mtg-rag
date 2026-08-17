@@ -7,5 +7,11 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["vite.config.ts", "playwright.config.ts", "eslint.config.js", "pwa-navigation.ts"]
+  "include": [
+    "vite.config.ts",
+    "playwright.config.ts",
+    "eslint.config.js",
+    "pwa-navigation.ts",
+    "seo-config.ts"
+  ]
 }

@@ -438,7 +438,7 @@ function AppContent({ auth, api, install }: AppProps) {
   useEffect(() => {
     applyRouteMetadata(
       getRouteMetadata(route, {
-        origin: window.location.origin,
+        origin: import.meta.env.VITE_PUBLIC_SITE_URL || window.location.origin,
         allowIndexing: import.meta.env.VITE_ALLOW_INDEXING === "true",
       }),
     )

@@ -1,3 +1,0 @@
-# Development deployment: public indexing is disabled until launch approval.
-User-agent: *
-Disallow: /
