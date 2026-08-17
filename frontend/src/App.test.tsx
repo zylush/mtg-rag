@@ -164,6 +164,16 @@ describe("MTG Rules Desk", () => {
     window.history.replaceState({}, "", "/privacy")
     window.dispatchEvent(new PopStateEvent("popstate"))
     expect(await screen.findByRole("heading", { name: /privacy policy/i })).toBeVisible()
+    expect(screen.getByText(/effective date: august 17, 2026/i)).toBeVisible()
+    expect(screen.getByText(/firebase user id and email address/i)).toBeVisible()
+    expect(screen.getByText(/openai receives your question/i)).toBeVisible()
+    expect(screen.getByText(/semantic cache for up to seven days/i)).toBeVisible()
+    expect(screen.getByText(/do not use advertising cookies or analytics/i)).toBeVisible()
+    expect(screen.getByRole("link", { name: /email the privacy contact/i })).toHaveAttribute(
+      "href",
+      "mailto:paoloinigo30@gmail.com",
+    )
+    expect(screen.queryByText(/describe firebase identity/i)).not.toBeInTheDocument()
   })
 
   it("gives authenticated public pages a direct route back to the desk", async () => {
