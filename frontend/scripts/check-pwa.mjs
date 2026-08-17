@@ -34,9 +34,21 @@ assert(!files.some((file) => file.includes("e2e-harness")), "E2E code was includ
 const robots = await readFile(path.join(dist, "robots.txt"), "utf8")
 assert.match(robots, /User-agent:\s*\*/i)
 assert.match(robots, /Disallow:\s*\//i, "development deployment must block indexing")
+assert.doesNotMatch(robots, /Sitemap:/i, "blocked development robots must not advertise a sitemap")
 const sitemap = await readFile(path.join(dist, "sitemap.xml"), "utf8")
 assert.match(sitemap, /<urlset\b/)
 assert.match(sitemap, /https:\/\/mtg-rules-desk-dev\.web\.app\/about/)
+assert.doesNotMatch(sitemap, /\/desk|\/terms|\/privacy/)
+
+for (const filename of ["index.html", "about.html"]) {
+  const html = await readFile(path.join(dist, filename), "utf8")
+  assert.match(html, /<link[^>]+rel="canonical"/i, `${filename} is missing a canonical`)
+  assert.match(html, /<meta[^>]+property="og:title"/i, `${filename} is missing Open Graph`)
+  assert.match(html, /<meta[^>]+name="twitter:card"/i, `${filename} is missing Twitter metadata`)
+}
+const homeHtml = await readFile(path.join(dist, "index.html"), "utf8")
+assert.match(homeHtml, /application\/ld\+json/i, "home page is missing JSON-LD")
+assert.match(homeHtml, /SoftwareApplication/, "home page is missing application schema")
 
 const serviceWorker = await readFile(path.join(dist, "sw.js"), "utf8")
 for (const [filename] of expectedIcons) {
