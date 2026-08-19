@@ -3,9 +3,11 @@ import {
   Archive,
   BookOpenText,
   Check,
+  ChevronDown,
+  Clipboard,
   Download,
   LogOut,
-  MessageSquareQuote,
+  Search,
   Settings,
   Sparkles,
   ThumbsDown,
@@ -32,6 +34,25 @@ import type {
 } from "./types"
 
 type Panel = "chat" | "history" | "settings"
+
+const QUICK_QUERIES = [
+  {
+    label: "Blood Moon + Urza's Saga",
+    question: "How does Blood Moon interact with Urza's Saga?",
+  },
+  {
+    label: "Teferi's Protection on Stack",
+    question: "What happens if Teferi's Protection is on the stack?",
+  },
+  {
+    label: "Humility + Opalescence Layers",
+    question: "How do Humility and Opalescence interact in the layer system?",
+  },
+  {
+    label: "Replacement Effect Priority",
+    question: "Who chooses the order when multiple replacement effects apply?",
+  },
+] as const
 
 function useModalDrawer(
   onClose: () => void,
@@ -409,7 +430,10 @@ function AppContent({ auth, api, install }: AppProps) {
   const [conversationId, setConversationId] = useState<string>()
   const [installReady, setInstallReady] = useState(install.available)
   const [signInStatus, setSignInStatus] = useState<"idle" | "pending" | "error">("idle")
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle")
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const hasFocusedCommand = useRef(false)
   const historyTriggerRef = useRef<HTMLButtonElement>(null)
   const settingsTriggerRef = useRef<HTMLButtonElement>(null)
   const intentionalSignOut = useRef(false)
@@ -448,6 +472,40 @@ function AppContent({ auth, api, install }: AppProps) {
     window.addEventListener("mtg-install-ready", ready)
     return () => window.removeEventListener("mtg-install-ready", ready)
   }, [])
+  useEffect(() => {
+    const markOnline = () => setIsOnline(true)
+    const markOffline = () => setIsOnline(false)
+    window.addEventListener("online", markOnline)
+    window.addEventListener("offline", markOffline)
+    return () => {
+      window.removeEventListener("online", markOnline)
+      window.removeEventListener("offline", markOffline)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!user || panel !== "chat") return
+    if (!hasFocusedCommand.current) {
+      inputRef.current?.focus()
+      hasFocusedCommand.current = true
+    }
+    const focusCommand = (event: KeyboardEvent) => {
+      const target = event.target
+      const isTyping =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      const usesCommandShortcut =
+        (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k"
+      if (usesCommandShortcut || (event.key === "/" && !isTyping)) {
+        event.preventDefault()
+        inputRef.current?.focus()
+      }
+    }
+    window.addEventListener("keydown", focusCommand)
+    return () => window.removeEventListener("keydown", focusCommand)
+  }, [panel, user])
 
   const feedback = useMutation({
     mutationFn: ({ messageId, rating }: { messageId: string; rating: 1 | -1 }) =>
@@ -462,6 +520,7 @@ function AppContent({ auth, api, install }: AppProps) {
       setConversationId(result.conversation_id)
       setQuestion("")
       setFeedbackRating(undefined)
+      setCopyStatus("idle")
       feedback.reset()
     },
   })
@@ -499,6 +558,32 @@ function AppContent({ auth, api, install }: AppProps) {
     }
   }
 
+  const handleInstall = async () => {
+    if (await install.install()) setInstallReady(false)
+  }
+
+  const chooseQuickQuery = (text: string) => {
+    setQuestion(text)
+    inputRef.current?.focus()
+  }
+
+  const copyRuling = async () => {
+    if (!answer) return
+    const citations = answer.citations
+      .map((citation) => `${citation.label}: ${citation.url}`)
+      .join("\n")
+    const copy = [answer.answer, citations && `Sources:\n${citations}`]
+      .filter(Boolean)
+      .join("\n\n")
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable")
+      await navigator.clipboard.writeText(copy)
+      setCopyStatus("copied")
+    } catch {
+      setCopyStatus("error")
+    }
+  }
+
   const publicAuthActions = user
     ? {}
     : {
@@ -532,77 +617,110 @@ function AppContent({ auth, api, install }: AppProps) {
           <span className="wordmark-mark" aria-hidden="true">
             R
           </span>
-          <div>
+          <div className="wordmark-copy">
             <strong>MTG Rules Desk</strong>
-            <span>Grounded rules reference</span>
+            <span className="engine-version">v1.0 <b>RAG Engine</b></span>
           </div>
         </div>
+
         <div className="topbar-actions">
-          <button className="icon-button" onClick={() => void handleSignOut()} aria-label="Sign out">
+          <span className={"engine-status " + (isOnline ? "online" : "offline")}>
+            <span className="status-dot" aria-hidden="true" />
+            {isOnline ? "Retrieval online" : "Offline app shell"}
+          </span>
+          {installReady && (
+            <button
+              className="install-button header-install"
+              onClick={() => void handleInstall()}
+              aria-label="Install PWA"
+            >
+              <Download aria-hidden="true" size={16} />
+              <span>Install PWA</span>
+            </button>
+          )}
+          <nav className="topbar-nav" aria-label="Primary">
+            <button
+              ref={historyTriggerRef}
+              className={panel === "history" ? "active" : ""}
+              onClick={() => navigate("/desk/history")}
+              aria-current={panel === "history" ? "page" : undefined}
+              aria-label="History"
+            >
+              <Archive aria-hidden="true" />
+              <span>History</span>
+            </button>
+            <button
+              ref={settingsTriggerRef}
+              className={panel === "settings" ? "active" : ""}
+              onClick={() => navigate("/desk/settings")}
+              aria-current={panel === "settings" ? "page" : undefined}
+              aria-label="Settings"
+            >
+              <Settings aria-hidden="true" />
+              <span>Settings</span>
+            </button>
+          </nav>
+          <button
+            className="icon-button sign-out-button"
+            onClick={() => void handleSignOut()}
+            aria-label="Sign out"
+          >
             <LogOut aria-hidden="true" />
           </button>
         </div>
       </header>
 
-      <nav className="side-nav" aria-label="Primary">
-        <button
-          className={panel === "chat" ? "active" : ""}
-          onClick={() => navigate("/desk")}
-          aria-current={panel === "chat" ? "page" : undefined}
-          aria-label="Ask a rules question"
-        >
-          <MessageSquareQuote aria-hidden="true" />
-          Ask
-        </button>
-        <button
-          ref={historyTriggerRef}
-          className={panel === "history" ? "active" : ""}
-          onClick={() => navigate("/desk/history")}
-          aria-current={panel === "history" ? "page" : undefined}
-        >
-          <Archive aria-hidden="true" />
-          History
-        </button>
-        <button
-          ref={settingsTriggerRef}
-          className={panel === "settings" ? "active" : ""}
-          onClick={() => navigate("/desk/settings")}
-          aria-current={panel === "settings" ? "page" : undefined}
-        >
-          <Settings aria-hidden="true" />
-          Settings
-        </button>
-      </nav>
-
       <main className="desk">
-        <section className="desk-heading">
-          <span className="eyebrow">Rules inquiry</span>
-          <h1>What happened at the table?</h1>
-          <p>
-            Include card names, zones, timing, controllers, and the action that caused the
-            question.
-          </p>
-        </section>
-
-        <form className="question-form" onSubmit={submit}>
-          <label htmlFor="rules-question">Rules question</label>
-          <textarea
-            id="rules-question"
-            ref={inputRef}
-            maxLength={2000}
-            rows={4}
-            placeholder="Example: If I cast Lightning Bolt and its target becomes illegal, does the whole spell fail?"
-            value={question}
-            onChange={(event) => setQuestion(event.target.value)}
-          />
-          <div className="form-footer">
-            <span>{question.length} / 2,000</span>
-            <button className="primary-button" disabled={ask.isPending}>
-              {ask.isPending ? "Checking sources…" : "Ask"}
-              <Sparkles aria-hidden="true" size={17} />
-            </button>
+        <section className="command-hero" aria-labelledby="command-heading">
+          <div className="command-intro">
+            <span className="eyebrow">Official sources, one clear ruling</span>
+            <h1 id="command-heading">Resolve the board state.</h1>
+            <p>
+              Describe the cards, zones, timing, and controllers. The desk retrieves the
+              relevant rules before it answers.
+            </p>
           </div>
-        </form>
+
+          <form className="question-form" onSubmit={submit}>
+            <div className="command-field">
+              <Search aria-hidden="true" className="command-search-icon" />
+              <label className="sr-only" htmlFor="rules-question">Rules question</label>
+              <textarea
+                id="rules-question"
+                ref={inputRef}
+                maxLength={2000}
+                rows={2}
+                placeholder="Ask a complex Magic rules question..."
+                value={question}
+                onChange={(event) => setQuestion(event.target.value)}
+              />
+              <div className="shortcut-hints" aria-hidden="true">
+                <kbd>/</kbd>
+                <span>or</span>
+                <kbd>Ctrl K</kbd>
+              </div>
+            </div>
+            <div className="form-footer">
+              <span>{question.length} / 2,000</span>
+              <button className="primary-button" disabled={ask.isPending}>
+                {ask.isPending ? "Checking..." : "Ask"}
+                <Sparkles aria-hidden="true" size={17} />
+              </button>
+            </div>
+          </form>
+
+          <div className="quick-queries" role="group" aria-label="Quick rules questions">
+            {QUICK_QUERIES.map((query) => (
+              <button
+                key={query.label}
+                type="button"
+                onClick={() => chooseQuickQuery(query.question)}
+              >
+                {query.label}
+              </button>
+            ))}
+          </div>
+        </section>
 
         {offlineMessage && (
           <div className="status-message warning" role="alert">
@@ -619,71 +737,148 @@ function AppContent({ auth, api, install }: AppProps) {
           </div>
         )}
 
+        {ask.isPending && (
+          <section
+            className="loading-answer"
+            role="status"
+            aria-label="Checking official sources"
+          >
+            <div className="loading-topline">
+              <span className="shimmer short" />
+              <span className="shimmer tiny" />
+            </div>
+            <span className="shimmer wide" />
+            <span className="shimmer medium" />
+            <div className="loading-citations">
+              <span className="shimmer citation" />
+              <span className="shimmer citation" />
+            </div>
+          </section>
+        )}
+
         {answer ? (
           <article className="answer-stack" aria-live="polite">
-            <div className="stack-rail" aria-hidden="true">
-              <span>Q</span>
-              <span>A</span>
-              <span>S</span>
-            </div>
-            <div className="answer-content">
-              <div className="answer-meta">
+            <header className="answer-trust-zone">
+              <div className="trust-indicators">
+                <span className="grounded-label">
+                  <Check aria-hidden="true" size={15} />
+                  Grounded in retrieved rules sources
+                </span>
                 <span className={"confidence " + answer.confidence}>
-                  <Check aria-hidden="true" size={14} />
                   {answer.confidence} confidence
                 </span>
-                <span>{answer.quota_remaining} answers left today</span>
               </div>
-              <section className="ruling">
-                <span className="section-label">Ruling</span>
-                <MarkdownAnswer answer={answer.answer} />
-              </section>
-              {answer.assumptions.length > 0 && (
-                <section className="assumptions">
-                  <span className="section-label">Assumptions</span>
-                  <ul>
-                    {answer.assumptions.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                </section>
+              <div className="answer-utilities">
+                <span className="quota">{answer.quota_remaining} answers left today</span>
+                <button className="copy-button" onClick={() => void copyRuling()}>
+                  <Clipboard aria-hidden="true" size={15} />
+                  Copy ruling
+                </button>
+              </div>
+              {copyStatus === "copied" && (
+                <span className="copy-status" role="status">Ruling copied</span>
               )}
+              {copyStatus === "error" && (
+                <span className="copy-status error" role="alert">
+                  Copy failed. Select the answer text instead.
+                </span>
+              )}
+            </header>
+
+            <section className="ruling answer-summary-zone">
+              <span className="section-label">Plain-English ruling</span>
+              <MarkdownAnswer answer={answer.answer} />
+            </section>
+
+            {answer.assumptions.length > 0 && (
+              <section className="assumptions">
+                <span className="section-label">Assumptions</span>
+                <ul>
+                  {answer.assumptions.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            <section className="evidence-zone" aria-label="Citational evidence">
               <SourceList answer={answer} />
-              <div className="answer-actions">
-                <span>Was this useful?</span>
-                <button
-                  className="icon-button"
-                  aria-label="Helpful answer"
-                  aria-pressed={feedbackRating === 1}
-                  disabled={feedback.isPending}
-                  onClick={() =>
-                    feedback.mutate({ messageId: answer.message_id, rating: 1 })
-                  }
-                >
-                  <ThumbsUp aria-hidden="true" />
-                </button>
-                <button
-                  className="icon-button"
-                  aria-label="Unhelpful answer"
-                  aria-pressed={feedbackRating === -1}
-                  disabled={feedback.isPending}
-                  onClick={() =>
-                    feedback.mutate({ messageId: answer.message_id, rating: -1 })
-                  }
-                >
-                  <ThumbsDown aria-hidden="true" />
-                </button>
-                {feedback.isSuccess && <span className="feedback-status">Feedback saved</span>}
-                {feedback.isError && (
-                  <span className="feedback-status error" role="alert">
-                    Feedback could not be saved. Try again.
-                  </span>
-                )}
-              </div>
+              <details className="citation-tree">
+                <summary>
+                  <ChevronDown aria-hidden="true" size={16} />
+                  Expand full citation tree
+                </summary>
+                <ol>
+                  {answer.citations.map((citation) => (
+                    <li key={citation.passage_id}>
+                      <code>{citation.passage_id}</code>
+                      <span>{citation.claim}</span>
+                    </li>
+                  ))}
+                </ol>
+              </details>
+            </section>
+
+            <div className="answer-actions">
+              <span>Was this useful?</span>
+              <button
+                className="icon-button"
+                aria-label="Helpful answer"
+                aria-pressed={feedbackRating === 1}
+                disabled={feedback.isPending}
+                onClick={() =>
+                  feedback.mutate({ messageId: answer.message_id, rating: 1 })
+                }
+              >
+                <ThumbsUp aria-hidden="true" />
+              </button>
+              <button
+                className="icon-button"
+                aria-label="Unhelpful answer"
+                aria-pressed={feedbackRating === -1}
+                disabled={feedback.isPending}
+                onClick={() =>
+                  feedback.mutate({ messageId: answer.message_id, rating: -1 })
+                }
+              >
+                <ThumbsDown aria-hidden="true" />
+              </button>
+              {feedback.isSuccess && <span className="feedback-status">Feedback saved</span>}
+              {feedback.isError && (
+                <span className="feedback-status error" role="alert">
+                  Feedback could not be saved. Try again.
+                </span>
+              )}
             </div>
           </article>
-        ) : null}
+        ) : (
+          !ask.isPending && (
+            <section className="ready-state" aria-label="Rules desk ready">
+              <div className="ready-orbit" aria-hidden="true">
+                <span>CR</span>
+              </div>
+              <div>
+                <span className="section-label">Ready for a board state</span>
+                <p>
+                  Start with a quick query or describe the exact sequence at your table.
+                </p>
+              </div>
+            </section>
+          )
+        )}
       </main>
+
+      {installReady && (
+        <div className="mobile-install-banner">
+          <div>
+            <strong>Keep the rules desk close</strong>
+            <span>Install the offline-ready app shell for faster access.</span>
+          </div>
+          <button onClick={() => void handleInstall()} aria-label="Install MTG Rules Desk">
+            Add to home screen
+          </button>
+        </div>
+      )}
 
       {panel === "history" && (
         <HistoryPanel
@@ -698,9 +893,7 @@ function AppContent({ auth, api, install }: AppProps) {
           onSignOut={handleSignOut}
           installReady={installReady}
           returnFocusRef={settingsTriggerRef}
-          onInstall={async () => {
-            if (await install.install()) setInstallReady(false)
-          }}
+          onInstall={handleInstall}
           onClose={() => navigate("/desk")}
         />
       )}
