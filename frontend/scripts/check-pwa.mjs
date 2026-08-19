@@ -4,12 +4,15 @@ import path from "node:path"
 
 const dist = path.resolve("dist")
 const manifest = JSON.parse(await readFile(path.join(dist, "manifest.webmanifest"), "utf8"))
+const EMBER_ARCHIVE_BACKGROUND = "#17120f"
 
 assert.equal(manifest.id, "/")
 assert.equal(manifest.start_url, "/")
 assert.equal(manifest.scope, "/")
 assert.equal(manifest.display, "standalone")
 assert.equal(manifest.lang, "en")
+assert.equal(manifest.background_color, EMBER_ARCHIVE_BACKGROUND)
+assert.equal(manifest.theme_color, EMBER_ARCHIVE_BACKGROUND)
 
 const expectedIcons = [
   ["pwa-192x192.png", "192x192", "any"],
@@ -22,8 +25,25 @@ for (const [filename, sizes, purpose] of expectedIcons) {
   assert.equal(icon.type, "image/png")
   assert.equal(icon.sizes, sizes)
   assert.equal(icon.purpose, purpose)
-  assert((await stat(path.join(dist, filename))).size > 0, `${filename} is empty`)
+  const iconPath = path.join(dist, filename)
+  assert((await stat(iconPath)).size > 0, `${filename} is empty`)
+  const png = await readFile(iconPath)
+  assert.equal(png.toString("ascii", 1, 4), "PNG", `${filename} is not a PNG`)
+  const [expectedWidth, expectedHeight] = sizes.split("x").map(Number)
+  assert.equal(png.readUInt32BE(16), expectedWidth, `${filename} has the wrong width`)
+  assert.equal(png.readUInt32BE(20), expectedHeight, `${filename} has the wrong height`)
 }
+
+const appleTouchIcon = await readFile(path.join(dist, "apple-touch-icon-180x180.png"))
+assert.equal(appleTouchIcon.readUInt32BE(16), 180, "Apple touch icon has the wrong width")
+assert.equal(appleTouchIcon.readUInt32BE(20), 180, "Apple touch icon has the wrong height")
+
+const faviconSvg = (await readFile(path.join(dist, "favicon.svg"), "utf8")).toLowerCase()
+for (const color of ["#17120f", "#2a1b14", "#f0e1bf", "#b84a2f", "#c89b4b"]) {
+  assert(faviconSvg.includes(color), `favicon.svg is missing ${color}`)
+}
+assert(!faviconSvg.includes("#102a43"), "favicon.svg still uses the previous blue brand color")
+assert((await stat(path.join(dist, "favicon.ico"))).size > 22, "favicon.ico is invalid or empty")
 
 const files = await readdir(dist, { recursive: true })
 assert(files.includes("sw.js"), "service worker is missing")
@@ -49,6 +69,11 @@ for (const filename of ["index.html", "about.html"]) {
 const homeHtml = await readFile(path.join(dist, "index.html"), "utf8")
 assert.match(homeHtml, /application\/ld\+json/i, "home page is missing JSON-LD")
 assert.match(homeHtml, /SoftwareApplication/, "home page is missing application schema")
+assert.match(
+  homeHtml,
+  /<meta[^>]+name="theme-color"[^>]+content="#17120f"/i,
+  "home page theme color does not match Ember Archive",
+)
 
 const serviceWorker = await readFile(path.join(dist, "sw.js"), "utf8")
 for (const [filename] of expectedIcons) {

@@ -130,8 +130,8 @@ describe("MTG Rules Desk", () => {
   it("renders a public welcome page with a static source preview", () => {
     renderApp(new FakeAuth(null), undefined, undefined, "/")
 
-    expect(screen.getByRole("heading", { name: /settle the rules question/i })).toBeVisible()
-    expect(screen.getByText(/question.*answer.*sources/i)).toBeVisible()
+    expect(screen.getByRole("heading", { name: /settle the ruling/i })).toBeVisible()
+    expect(screen.getByText("Question / Answer / Sources")).toBeVisible()
     expect(screen.getByRole("link", { name: /terms of service/i })).toBeVisible()
     expect(screen.getByRole("link", { name: /privacy policy/i })).toBeVisible()
   })
@@ -190,7 +190,7 @@ describe("MTG Rules Desk", () => {
     const user = userEvent.setup()
     renderApp(new FakeAuth(null), undefined, undefined, "/desk")
 
-    expect(screen.getByRole("heading", { name: /settle the rules question/i })).toBeVisible()
+    expect(screen.getByRole("heading", { name: /settle the ruling/i })).toBeVisible()
     expect(window.location.pathname).toBe("/")
     await user.click(screen.getByRole("button", { name: /sign in with google/i }))
 
@@ -204,7 +204,7 @@ describe("MTG Rules Desk", () => {
 
     await user.click(await screen.findByRole("button", { name: /sign out/i }))
 
-    expect(await screen.findByText(/question.*answer.*sources/i)).toBeVisible()
+    expect(await screen.findByText("Question / Answer / Sources")).toBeVisible()
     expect(window.location.pathname).toBe("/")
   })
 
@@ -235,7 +235,7 @@ describe("MTG Rules Desk", () => {
     const user = userEvent.setup()
     renderApp(new FakeAuth(null))
 
-    expect(screen.getByRole("heading", { name: /settle the rules question/i })).toBeVisible()
+    expect(screen.getByRole("heading", { name: /settle the ruling/i })).toBeVisible()
     await user.click(screen.getByRole("button", { name: /sign in with google/i }))
 
     expect(await screen.findByRole("textbox", { name: /rules question/i })).toBeVisible()

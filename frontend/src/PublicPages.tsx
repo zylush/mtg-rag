@@ -1,6 +1,7 @@
 import { ArrowRight, BookOpenCheck, ExternalLink, FileText, ShieldCheck } from "lucide-react"
 import type { ReactNode } from "react"
 
+import { BrandMark } from "./BrandMark"
 import { AppLink } from "./routing"
 
 interface PublicAuthActions {
@@ -18,9 +19,7 @@ function PublicHeader({ authenticated = false, onSignIn, signingIn }: PublicAuth
         to={authenticated ? "/desk" : "/"}
         aria-label={authenticated ? "Back to MTG Rules Desk" : "MTG Rules Desk home"}
       >
-        <span className="wordmark-mark" aria-hidden="true">
-          R
-        </span>
+        <BrandMark className="wordmark-mark" />
         <span>
           <strong>MTG Rules Desk</strong>
           <small>Grounded rules reference</small>
@@ -92,34 +91,39 @@ function PublicLayout({
   )
 }
 
-function SourceSpinePreview() {
+function RulingLedgerPreview() {
   return (
-    <section className="source-preview" aria-labelledby="preview-heading">
-      <div className="preview-heading">
-        <span className="eyebrow">A sample from the desk</span>
-        <h2 id="preview-heading">A ruling you can trace.</h2>
-        <p className="preview-path">Question → Answer → Sources</p>
-      </div>
-      <div className="preview-card">
-        <div className="preview-rail" aria-hidden="true">
-          <span>Q</span>
-          <span>A</span>
-          <span>S</span>
+    <section className="ruling-ledger" aria-labelledby="preview-heading">
+      <div className="ledger-heading">
+        <div>
+          <span className="eyebrow">Ruling ledger</span>
+          <h2 id="preview-heading">A ruling you can trace.</h2>
         </div>
-        <div className="preview-content">
-          <span className="section-label">Example question</span>
-          <p className="preview-question">
-            If a spell loses its only target, does the spell still resolve?
-          </p>
-          <div className="preview-divider" />
-          <span className="section-label">Example answer</span>
-          <p>
-            The spell is countered by the game rules when all of its targets are illegal as it
-            tries to resolve.
-          </p>
-          <div className="preview-source">
-            <BookOpenCheck aria-hidden="true" size={16} />
-            Comprehensive Rules 608.2b
+        <span className="ledger-stamp">Question / Answer / Sources</span>
+      </div>
+      <div className="ledger-stack">
+        <span className="ledger-sheet-back" aria-hidden="true" />
+        <div className="ledger-sheet">
+          <div className="ledger-section">
+            <span className="section-label">Table question</span>
+            <p className="ledger-question">
+              If a spell loses its only target, does the spell still resolve?
+            </p>
+          </div>
+          <div className="ledger-rule" aria-hidden="true" />
+          <div className="ledger-section">
+            <span className="section-label">Desk ruling</span>
+            <p>
+              The spell does not resolve when all of its targets are illegal as it tries to
+              resolve. The game rules put it into its owner's graveyard.
+            </p>
+          </div>
+          <div className="ledger-source-tabs" aria-label="Example sources">
+            <span>
+              <BookOpenCheck aria-hidden="true" size={15} />
+              CR 608.2b
+            </span>
+            <span>Targets checked on resolution</span>
           </div>
         </div>
       </div>
@@ -133,11 +137,11 @@ export function WelcomePage({ onSignIn, signingIn, signInError }: PublicAuthActi
       <main className="public-page welcome-page">
         <section className="welcome-hero">
           <div className="hero-copy">
-            <span className="eyebrow">Citation-first rules reference</span>
-            <h1>Settle the rules question. Keep the game moving.</h1>
+            <span className="eyebrow">Rules answers with receipts</span>
+            <h1>Settle the ruling. Keep the game moving.</h1>
             <p className="hero-lede">
-              Ask about a game state and get a concise ruling grounded in the Comprehensive Rules,
-              current Oracle text, and attributed card rulings.
+              Ask an MTG rules question and get a concise answer grounded in the Comprehensive
+              Rules, current Oracle text, and official rulings.
             </p>
             <div className="hero-actions">
               <button
@@ -153,29 +157,37 @@ export function WelcomePage({ onSignIn, signingIn, signInError }: PublicAuthActi
                 See how it works
               </AppLink>
             </div>
+            <p className="hero-trust-note">
+              <ShieldCheck aria-hidden="true" size={16} />
+              Your API key stays on the server. Answers show their sources.
+            </p>
             <p className="hero-note">
               Live questions require an account and an internet connection. The preview on this
               page is static.
             </p>
           </div>
-          <SourceSpinePreview />
+          <RulingLedgerPreview />
         </section>
 
-        <section className="trust-strip" id="how-it-works" aria-label="How it works">
+        <section
+          className="trust-strip source-trust-rail"
+          id="how-it-works"
+          aria-label="Reference sources"
+        >
           <article>
             <BookOpenCheck aria-hidden="true" />
-            <h2>Trace the source</h2>
-            <p>Every material claim points back to a rules or card passage.</p>
-          </article>
-          <article>
-            <ShieldCheck aria-hidden="true" />
-            <h2>See the assumptions</h2>
-            <p>Missing game-state details are called out instead of hidden.</p>
+            <h2>Comprehensive Rules</h2>
+            <p>General rules and corner cases, cited by rule number.</p>
           </article>
           <article>
             <FileText aria-hidden="true" />
-            <h2>Keep the ruling</h2>
-            <p>Signed-in players can revisit conversations and delete them later.</p>
+            <h2>Oracle text</h2>
+            <p>Current card wording, identified by the exact card record.</p>
+          </article>
+          <article>
+            <ShieldCheck aria-hidden="true" />
+            <h2>Official rulings</h2>
+            <p>Dated card-specific clarification when the question needs it.</p>
           </article>
         </section>
 
