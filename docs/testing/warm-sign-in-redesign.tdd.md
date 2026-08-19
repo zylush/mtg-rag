@@ -1,6 +1,6 @@
 # Warm Sign-In Redesign Plan
 
-Status: implemented and locally verified; preview deployment awaits visual approval
+Status: implemented, pushed, and deployed to the Firebase development preview
 Surface: unauthenticated welcome and sign-in screen, shared brand assets, install prompt
 Working title: Ember Archive
 
@@ -199,7 +199,7 @@ Also verify:
 
 - Implement on a dedicated preview branch, beginning with tests.
 - Keep visual changes separate from authentication or backend commits.
-- Do not push or deploy until mobile and desktop screenshots are approved.
+- Push and deploy only after mobile and desktop screenshots are approved. Completed on 2026-08-19.
 - If the redesign causes regressions, revert the isolated visual/install commits while retaining the current authentication behavior.
 - Record any intentional deviations from this plan in the implementation notes before merge.
 
@@ -251,8 +251,18 @@ Branch: `preview/single-screen-rag-desk`
 
 The browser suite captured the welcome page at 375 by 812, 768 by 1024, 1366 by 768, and 1440 by 900 during the final run. The signed-in responsive snapshots were refreshed at 375, 768, and 1440 pixels. Visual review found no overlap, clipping, or horizontal overflow.
 
+### Push and Deployment Evidence
+
+- Pushed commit `604dfb2` to `origin/preview/single-screen-rag-desk`.
+- Built and deployed a clean checkout of that exact commit to Firebase Hosting project `mtg-rules-desk-dev`.
+- Live URL: https://mtg-rules-desk-dev.web.app.
+- The clean deployment build used the ignored local Firebase client configuration; no environment file or OpenAI credential was committed.
+- Live smoke checks returned successful responses for the app shell, favicon, manifest, About, Terms, Privacy, and Desk routes.
+- The live page rendered the warm welcome heading and Google sign-in action with Obsidian Ink background, no background image, no horizontal overflow, no console errors, and no failed requests.
+- Signed-out `/desk` redirected to `/`. Desktop and mobile live screenshots were captured as `.tmp/live-warm-1440.png` and `.tmp/live-warm-375.png`.
+
 ### Intentional Deviations and Remaining External Checks
 
 - Install behavior lives in `useInstallPrompt.ts` instead of the optional single-file extraction proposed above. This keeps stateful browser behavior separate from presentation and removed a hot-reload lint warning.
 - A neutral loading shimmer still uses a functional CSS gradient. The public welcome screen and primary brand treatment use no gradients.
-- Firebase redirect/logout behavior is covered locally and was not changed. A real Firebase preview auth pass, browser-tab favicon inspection, and operating-system install preview remain post-deployment checks because deployment and publishing are excluded until the screenshots receive explicit approval.
+- Firebase redirect/logout behavior is covered locally and was not changed. A real OAuth account sign-in was not exercised during live QA; browser-tab favicon inspection and operating-system install preview remain manual checks for the next authenticated QA session.
