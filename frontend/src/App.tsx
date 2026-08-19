@@ -21,11 +21,12 @@ import ReactMarkdown from "react-markdown"
 import rehypeSanitize from "rehype-sanitize"
 
 import { BrandMark } from "./BrandMark"
-import { InstallPromptBanner, useInstallPrompt } from "./InstallPrompt"
+import { InstallPromptBanner } from "./InstallPrompt"
 import { AboutPage, LegalDocumentPage, WelcomePage } from "./PublicPages"
 import { userMessageFor } from "./api-client"
 import { applyRouteMetadata, getRouteMetadata } from "./route-meta"
 import { AppLink, RouterProvider, useRouter } from "./routing"
+import { useInstallPrompt } from "./useInstallPrompt"
 import type {
   ApiPort,
   AskResponse,

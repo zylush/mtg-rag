@@ -2,8 +2,9 @@ import { act, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { InstallPromptBanner, useInstallPrompt } from "./InstallPrompt"
+import { InstallPromptBanner } from "./InstallPrompt"
 import type { InstallPort } from "./types"
+import { useInstallPrompt } from "./useInstallPrompt"
 
 function installPort(available = true): InstallPort {
   return {

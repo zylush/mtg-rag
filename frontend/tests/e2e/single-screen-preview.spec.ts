@@ -39,3 +39,20 @@ test("single-screen command desk stays usable at release widths", async ({ page 
     .analyze()
   expect(results.violations).toEqual([])
 })
+
+test("mobile install banner can be dismissed without losing the explicit install action", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.goto("/e2e.html")
+  await page.getByRole("button", { name: "Sign in with Google" }).click()
+
+  await expect(page.getByText("Keep the rules desk close")).toBeVisible()
+  await page.getByRole("button", { name: "Dismiss install prompt" }).click()
+  await expect(page.getByText("Keep the rules desk close")).toBeHidden()
+
+  await page.getByRole("button", { name: "Settings" }).click()
+  await expect(page.getByRole("button", { name: "Install app" })).toBeVisible()
+
+  await page.goto("/e2e.html")
+  await page.getByRole("button", { name: "Sign in with Google" }).click()
+  await expect(page.getByText("Keep the rules desk close")).toBeHidden()
+})
