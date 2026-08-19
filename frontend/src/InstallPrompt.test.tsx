@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { act, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -94,7 +94,7 @@ describe("install prompt", () => {
   it("clears all install UI after the browser reports installation", () => {
     render(<Harness install={installPort()} />)
 
-    window.dispatchEvent(new Event("appinstalled"))
+    act(() => window.dispatchEvent(new Event("appinstalled")))
 
     expect(screen.queryByText("Add to home screen")).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Explicit install" })).not.toBeInTheDocument()

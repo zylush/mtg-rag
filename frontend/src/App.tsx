@@ -20,6 +20,8 @@ import { type FormEvent, type RefObject, useEffect, useRef, useState } from "rea
 import ReactMarkdown from "react-markdown"
 import rehypeSanitize from "rehype-sanitize"
 
+import { BrandMark } from "./BrandMark"
+import { InstallPromptBanner, useInstallPrompt } from "./InstallPrompt"
 import { AboutPage, LegalDocumentPage, WelcomePage } from "./PublicPages"
 import { userMessageFor } from "./api-client"
 import { applyRouteMetadata, getRouteMetadata } from "./route-meta"
@@ -428,7 +430,7 @@ function AppContent({ auth, api, install }: AppProps) {
   const [feedbackRating, setFeedbackRating] = useState<1 | -1>()
   const [offlineMessage, setOfflineMessage] = useState("")
   const [conversationId, setConversationId] = useState<string>()
-  const [installReady, setInstallReady] = useState(install.available)
+  const { dismissBanner, installApp, installReady, showBanner } = useInstallPrompt(install)
   const [signInStatus, setSignInStatus] = useState<"idle" | "pending" | "error">("idle")
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle")
   const [isOnline, setIsOnline] = useState(navigator.onLine)
@@ -467,11 +469,6 @@ function AppContent({ auth, api, install }: AppProps) {
       }),
     )
   }, [route])
-  useEffect(() => {
-    const ready = () => setInstallReady(true)
-    window.addEventListener("mtg-install-ready", ready)
-    return () => window.removeEventListener("mtg-install-ready", ready)
-  }, [])
   useEffect(() => {
     const markOnline = () => setIsOnline(true)
     const markOffline = () => setIsOnline(false)
@@ -559,7 +556,7 @@ function AppContent({ auth, api, install }: AppProps) {
   }
 
   const handleInstall = async () => {
-    if (await install.install()) setInstallReady(false)
+    await installApp()
   }
 
   const chooseQuickQuery = (text: string) => {
@@ -614,9 +611,7 @@ function AppContent({ auth, api, install }: AppProps) {
     <div className="app-shell">
       <header className="topbar">
         <div className="wordmark">
-          <span className="wordmark-mark" aria-hidden="true">
-            R
-          </span>
+          <BrandMark className="wordmark-mark" />
           <div className="wordmark-copy">
             <strong>MTG Rules Desk</strong>
             <span className="engine-version">v1.0 <b>RAG Engine</b></span>
@@ -868,16 +863,11 @@ function AppContent({ auth, api, install }: AppProps) {
         )}
       </main>
 
-      {installReady && (
-        <div className="mobile-install-banner">
-          <div>
-            <strong>Keep the rules desk close</strong>
-            <span>Install the offline-ready app shell for faster access.</span>
-          </div>
-          <button onClick={() => void handleInstall()} aria-label="Install MTG Rules Desk">
-            Add to home screen
-          </button>
-        </div>
+      {showBanner && (
+        <InstallPromptBanner
+          onDismiss={dismissBanner}
+          onInstall={() => void handleInstall()}
+        />
       )}
 
       {panel === "history" && (
