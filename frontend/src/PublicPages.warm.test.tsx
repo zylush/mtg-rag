@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
@@ -134,5 +134,31 @@ describe("patch history page", () => {
     const collapsedList = document.getElementById("patch-list-2026-08-25")
     expect(collapsedList).not.toBeNull()
     expect(collapsedList).toHaveAttribute("hidden")
+  })
+
+  it("groups patch notes by deployment and paginates each release", async () => {
+    const user = userEvent.setup()
+    window.history.replaceState({}, "", "/patch-history")
+    render(
+      <RouterProvider>
+        <PatchHistoryPage />
+      </RouterProvider>,
+    )
+
+    expect(screen.getByRole("heading", { name: "Patch notes by version" })).toBeVisible()
+    expect(screen.getByRole("heading", { name: "First hosted preview" })).toBeVisible()
+    expect(screen.getByText("Deployed 2026-08-13")).toBeVisible()
+
+    const notes = screen.getByRole("list", { name: "v0.1.0 patch notes" })
+    expect(within(notes).getAllByRole("listitem")).toHaveLength(8)
+    expect(screen.getByText("Page 1 of 12")).toBeVisible()
+
+    const pageTwo = screen.getByRole("button", {
+      name: "Go to v0.1.0 patch notes page 2",
+    })
+    await user.click(pageTwo)
+    expect(pageTwo).toHaveAttribute("aria-current", "page")
+    expect(screen.getByText("Page 2 of 12")).toBeVisible()
+    expect(within(notes).getByText("e4b2462")).toBeVisible()
   })
 })

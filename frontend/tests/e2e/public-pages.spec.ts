@@ -93,11 +93,23 @@ test("shows the complete patch ledger without authentication", async ({ page }) 
   await expect(page.getByText("8251f6e").last()).toBeVisible()
   await expect(page.getByText("Record chat history verification checkpoints")).toBeVisible()
 
+  await expect(page.getByRole("heading", { name: "Patch notes by version" })).toBeVisible()
+  const notes = page.getByRole("list", { name: "v0.1.0 patch notes" })
+  await expect(notes.getByRole("listitem")).toHaveCount(8)
+  await expect(page.getByText("Page 1 of 12")).toBeVisible()
+  const pageTwo = page.getByRole("button", { name: "Go to v0.1.0 patch notes page 2" })
+  await pageTwo.click()
+  await expect(pageTwo).toHaveAttribute("aria-current", "page")
+  await expect(page.getByText("Page 2 of 12")).toBeVisible()
+
   const order = page.getByRole("combobox", { name: "Patch history order" })
   await expect(order).toHaveValue("oldest")
   await expect(page.locator(".patch-day").first().getByRole("heading")).toHaveText("Aug 12, 2026")
   await order.selectOption("newest")
   await expect(page.locator(".patch-day").first().getByRole("heading")).toHaveText("Aug 25, 2026")
+  await expect(page.locator(".patch-release-card").first().getByRole("heading", { level: 3 })).toHaveText(
+    "Chat history desk",
+  )
 
   const collapse = page.locator(".patch-day").first().getByRole("button")
   await collapse.click()
