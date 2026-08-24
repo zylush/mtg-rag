@@ -101,6 +101,8 @@ test("shows the complete patch ledger without authentication", async ({ page }) 
   await pageTwo.click()
   await expect(pageTwo).toHaveAttribute("aria-current", "page")
   await expect(page.getByText("Page 2 of 12")).toBeVisible()
+  await expect(notes.getByText("Add reproducible Python and Postgres runtime")).toBeVisible()
+  await expect(notes.getByText("e4b2462")).toHaveCount(0)
 
   const order = page.getByRole("combobox", { name: "Patch history order" })
   await expect(order).toHaveValue("oldest")

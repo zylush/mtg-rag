@@ -407,16 +407,12 @@ function entriesForPatchRelease(release: PatchRelease): readonly PatchHistoryEnt
   return PATCH_HISTORY.slice(startIndex + 1, endIndex + 1)
 }
 
-function PatchEntryItem({ entry }: { entry: PatchHistoryEntry }) {
+function PatchNoteItem({ entry }: { entry: PatchHistoryEntry }) {
   const patch = concisePatchMessage(entry.subject)
   return (
-    <li className="patch-entry" key={entry.hash}>
-      <code>{entry.hash}</code>
-      <div>
-        <span className="patch-entry-kind">{patch.kind}</span>
-        <p className="patch-entry-subject">{patch.message}</p>
-        <span className="patch-entry-author">{entry.author}</span>
-      </div>
+    <li className="patch-note-item">
+      <span aria-hidden="true">-</span>
+      <span>{patch.message}</span>
     </li>
   )
 }
@@ -501,8 +497,8 @@ export function PatchHistoryPage({
               <span className="section-label">Deployment releases</span>
               <h2 id="patch-notes-heading">Patch notes by version</h2>
               <p>
-                Each hosted checkpoint gets its own concise notes. Git hashes link back to the
-                exact evidence commit; the current local preview is marked separately.
+                Each hosted checkpoint gets its own concise notes, while the current local preview
+                is marked separately.
               </p>
             </div>
             <span className="patch-release-order">
@@ -518,7 +514,6 @@ export function PatchHistoryPage({
               const pageEntries = entries.slice(pageStart, pageStart + PATCH_NOTES_PAGE_SIZE)
               const releaseHeadingId = `patch-release-heading-${release.id}`
               const notesListId = `patch-notes-${release.id}`
-              const checkpointHref = `${PATCH_HISTORY_CAPTURE.repository}/commit/${release.checkpoint}`
 
               return (
                 <article
@@ -549,21 +544,6 @@ export function PatchHistoryPage({
                         <dt>Release date</dt>
                         <dd>{release.deployedAt ? `Deployed ${release.deployedAt}` : "Not deployed"}</dd>
                       </div>
-                      <div>
-                        <dt>Git proof</dt>
-                        <dd>
-                          <a
-                            className="patch-release-checkpoint"
-                            href={checkpointHref}
-                            rel="noreferrer"
-                            target="_blank"
-                            aria-label={`${release.version} checkpoint ${release.checkpoint}`}
-                          >
-                            <code>{release.checkpoint}</code>
-                            <ExternalLink aria-hidden="true" size={13} />
-                          </a>
-                        </dd>
-                      </div>
                     </dl>
                   </header>
 
@@ -583,7 +563,7 @@ export function PatchHistoryPage({
                       aria-label={`${release.version} patch notes`}
                     >
                       {pageEntries.map((entry) => (
-                        <PatchEntryItem entry={entry} key={entry.hash} />
+                        <PatchNoteItem entry={entry} key={entry.hash} />
                       ))}
                     </ol>
                     <nav

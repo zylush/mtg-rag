@@ -19,12 +19,11 @@ export interface PatchRelease {
 }
 
 export const PATCH_HISTORY_CAPTURE = {
-  commitCount: 160,
+  commitCount: 162,
   firstDate: "2026-08-12",
   lastDate: "2026-08-25",
   branch: "preview/single-screen-rag-desk",
-  head: "8251f6e",
-  repository: "https://github.com/zylush/mtg-rag",
+  head: "49873ff",
 } as const
 
 /**
@@ -76,9 +75,9 @@ export const PATCH_RELEASES: readonly PatchRelease[] = [
     environment: "Local preview",
     deployedAt: null,
     status: "preview",
-    checkpoint: "8251f6e",
+    checkpoint: "49873ff",
     startAfter: "604dfb2",
-    endAt: "8251f6e",
+    endAt: "49873ff",
   },
 ]
 
@@ -243,4 +242,6 @@ export const PATCH_HISTORY: readonly PatchHistoryEntry[] = [
   { hash: "76ae629", date: "2026-08-25", author: "Fare Estimator", subject: "feat: publish concise website patch history" },
   { hash: "f3f28b7", date: "2026-08-25", author: "Fare Estimator", subject: "test: define patch history compaction controls" },
   { hash: "8251f6e", date: "2026-08-25", author: "Fare Estimator", subject: "feat: compact and sort patch history dates" },
+  { hash: "1052170", date: "2026-08-25", author: "Fare Estimator", subject: "test: define versioned patch notes pagination" },
+  { hash: "49873ff", date: "2026-08-25", author: "Fare Estimator", subject: "feat: add versioned patch notes" },
 ]

@@ -894,18 +894,6 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   overflow-wrap: anywhere;
 }
 .patch-release-status.is-deployed { color: #b4c99a; }
-.patch-release-checkpoint {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--blue);
-  text-decoration: none;
-}
-.patch-release-checkpoint:hover { color: var(--copper-dark); text-decoration: underline; text-underline-offset: 3px; }
-.patch-release-checkpoint code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: .72rem;
-}
 .patch-notes-panel { padding: 18px 26px 24px; }
 .patch-notes-heading {
   display: flex;
@@ -920,6 +908,18 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
 .patch-notes-heading > div { display: inline-flex; align-items: center; gap: 12px; }
 .patch-notes-heading > div > span:last-child { color: var(--muted); font-size: .66rem; letter-spacing: .04em; }
 .patch-notes-list { margin-top: 16px; }
+.patch-note-item {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  font-size: .84rem;
+  line-height: 1.5;
+}
+.patch-note-item:last-child { border-bottom: 0; }
+.patch-note-item > span:first-child { color: var(--blue); font-weight: 800; }
 .patch-notes-pagination {
   display: flex;
   align-items: center;

@@ -2,12 +2,14 @@
 
 This is the repository’s complete chronological patch ledger. It records every commit reachable from the configured Git refs, including feature work, tests, refactors, documentation, merges, and release qualification. Keeping the ledger in the repository makes the applied changes auditable without relying on a local Git UI.
 
-**Snapshot:** 160 commits, 2026-08-12 through 2026-08-25
+**Snapshot:** 162 commits, 2026-08-12 through 2026-08-25
 **Branch at capture:** `preview/single-screen-rag-desk`
-**HEAD at capture:** `8251f6e`
+**HEAD at capture:** `49873ff`
 **Remote:** https://github.com/zylush/mtg-rag.git
 
-The website’s [Patch history](https://mtg-rules-desk-dev.web.app/patch-history) view presents these same entries as concise release-note messages while retaining each commit hash and author.
+The website’s [Patch history](https://mtg-rules-desk-dev.web.app/patch-history) view presents each
+version as concise bullet notes, with the complete chronological ledger kept below for internal
+review.
 
 ## Release overview
 
@@ -17,7 +19,7 @@ The website’s [Patch history](https://mtg-rules-desk-dev.web.app/patch-history
 | 2026-08-13 | Hardened deployment and cloud integration, including Cloud SQL/Run/Build/IAM, Firebase hosting, environment handling, ingestion safety, and operational documentation. |
 | 2026-08-14–18 | Expanded platform behavior and assurance around routing, auth, SEO, API/hosting integration, privacy, security, and operational readiness. |
 | 2026-08-19 | Delivered the single-screen Rules Desk, responsive/PWA behavior, warm sign-in/install experience, branded assets, browser verification, and preview deployment. |
-| 2026-08-25 | Qualified the development release, added resumable `/desk` chat history, published the public patch-history ledger, and added compact date summaries with oldest/newest sorting. |
+| 2026-08-25 | Qualified the development release, added resumable `/desk` chat history, and published versioned patch notes with concise bullets, compact date summaries, and oldest/newest sorting. |
 
 ## Current release checkpoint
 
@@ -215,3 +217,5 @@ git log --all --reverse --date=short --pretty=format:"%h|%ad|%an|%s"
 - `76ae629` — Fare Estimator — feat: publish concise website patch history
 - `f3f28b7` — Fare Estimator — test: define patch history compaction controls
 - `8251f6e` — Fare Estimator — feat: compact and sort patch history dates
+- `1052170` — Fare Estimator — test: define versioned patch notes pagination
+- `49873ff` — Fare Estimator — feat: add versioned patch notes

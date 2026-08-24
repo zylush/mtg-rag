@@ -103,7 +103,7 @@ describe("patch history page", () => {
       screen.getByRole("heading", { name: "Every patch, with a paper trail." }),
     ).toBeVisible()
     expect(screen.getByText("162 commits recorded")).toBeVisible()
-    expect(screen.getAllByText("49873ff")).toHaveLength(3)
+    expect(screen.getAllByText("49873ff")).toHaveLength(2)
     expect(screen.getAllByText("Record chat history verification checkpoints")).toHaveLength(2)
     expect(screen.queryByText(/docs: record chat history verification checkpoints/i)).not.toBeInTheDocument()
     expect(document.querySelectorAll(".patch-day .patch-entry")).toHaveLength(162)
@@ -148,9 +148,8 @@ describe("patch history page", () => {
     expect(screen.getByRole("heading", { name: "Patch notes by version" })).toBeVisible()
     expect(screen.getByRole("heading", { name: "First hosted preview" })).toBeVisible()
     expect(screen.getByText("Deployed 2026-08-13")).toBeVisible()
-    expect(
-      screen.getByRole("link", { name: "v0.1.0 checkpoint bd44b3a" }),
-    ).toHaveAttribute("href", "https://github.com/zylush/mtg-rag/commit/bd44b3a")
+    expect(screen.queryByText("Git proof")).not.toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: "v0.1.0 checkpoint bd44b3a" })).not.toBeInTheDocument()
 
     const notes = screen.getByRole("list", { name: "v0.1.0 patch notes" })
     expect(within(notes).getAllByRole("listitem")).toHaveLength(8)
@@ -162,6 +161,7 @@ describe("patch history page", () => {
     await user.click(pageTwo)
     expect(pageTwo).toHaveAttribute("aria-current", "page")
     expect(screen.getByText("Page 2 of 12")).toBeVisible()
-    expect(within(notes).getByText("e4b2462")).toBeVisible()
+    expect(within(notes).getByText("Add reproducible Python and Postgres runtime")).toBeVisible()
+    expect(within(notes).queryByText("e4b2462")).not.toBeInTheDocument()
   })
 })
