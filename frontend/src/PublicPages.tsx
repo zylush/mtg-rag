@@ -551,8 +551,8 @@ export function PatchHistoryPage({
           <span className="eyebrow">Release notes</span>
           <h1>Patch notes by version.</h1>
           <p>
-            A concise history of hosted Rules Desk releases, with the current local preview clearly
-            marked.
+            A concise history of hosted Rules Desk releases, with deployment state shown for each
+            version.
           </p>
         </div>
 
@@ -562,8 +562,8 @@ export function PatchHistoryPage({
               <span className="section-label">Deployment releases</span>
               <h2 id="patch-notes-heading">Patch notes by version</h2>
               <p>
-                Each hosted checkpoint gets its own concise notes, while the current local preview
-                is marked separately.
+                Each hosted checkpoint gets its own concise notes, with deployment state kept
+                visible on every release card.
               </p>
             </div>
             <label className="patch-order-filter">
