@@ -92,6 +92,12 @@ test("shows versioned patch releases without authentication", async ({ page }) =
   await expect(page.getByText("Chronological ledger")).toHaveCount(0)
 
   await expect(page.getByRole("heading", { name: "Patch notes by version", exact: true })).toBeVisible()
+  const order = page.getByRole("combobox", { name: "Patch history order" })
+  await expect(order).toHaveValue("newest")
+  await expect(page.locator(".patch-release-card").first().getByRole("heading", { level: 3 })).toHaveText(
+    "Chat history desk",
+  )
+  await order.selectOption("oldest")
   await expect(page.locator(".patch-release-card")).toHaveCount(2)
   await expect(page.getByText("Page 1 of 2")).toBeVisible()
   const releasePageTwo = page.getByRole("button", { name: "Go to deployment releases page 2" })
@@ -113,7 +119,6 @@ test("shows versioned patch releases without authentication", async ({ page }) =
   await expect(notes.getByText("Add reproducible Python and Postgres runtime")).toBeVisible()
   await expect(notes.getByText("e4b2462")).toHaveCount(0)
 
-  const order = page.getByRole("combobox", { name: "Patch history order" })
   await expect(order).toHaveValue("oldest")
   await order.selectOption("newest")
   await expect(page.locator(".patch-release-card").first().getByRole("heading", { level: 3 })).toHaveText(

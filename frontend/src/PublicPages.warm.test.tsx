@@ -104,8 +104,6 @@ describe("patch history page", () => {
     ).toBeVisible()
     expect(screen.queryByText("Chronological ledger")).not.toBeInTheDocument()
     expect(document.querySelectorAll(".patch-day, .patch-entry")).toHaveLength(0)
-    expect(screen.queryByText("Record chat history verification checkpoints")).not.toBeInTheDocument()
-    expect(screen.queryByText(/docs: record chat history verification checkpoints/i)).not.toBeInTheDocument()
     expect(screen.queryByText("49873ff")).not.toBeInTheDocument()
   })
 
@@ -119,11 +117,11 @@ describe("patch history page", () => {
     )
 
     const order = screen.getByRole("combobox", { name: "Patch history order" })
-    expect(order).toHaveValue("oldest")
-    expect(screen.getAllByRole("heading", { level: 3 })[0]).toHaveTextContent("First hosted preview")
-
-    await user.selectOptions(order, "newest")
+    expect(order).toHaveValue("newest")
     expect(screen.getAllByRole("heading", { level: 3 })[0]).toHaveTextContent("Chat history desk")
+
+    await user.selectOptions(order, "oldest")
+    expect(screen.getAllByRole("heading", { level: 3 })[0]).toHaveTextContent("First hosted preview")
   })
 
   it("groups patch notes by deployment and paginates each release", async () => {
@@ -136,6 +134,10 @@ describe("patch history page", () => {
     )
 
     expect(screen.getByRole("heading", { name: "Patch notes by version" })).toBeVisible()
+    const order = screen.getByRole("combobox", { name: "Patch history order" })
+    expect(order).toHaveValue("newest")
+    expect(screen.getByRole("heading", { name: "Chat history desk" })).toBeVisible()
+    await user.selectOptions(order, "oldest")
     expect(screen.getByRole("heading", { name: "First hosted preview" })).toBeVisible()
     expect(screen.getByText("Deployed 2026-08-13")).toBeVisible()
     expect(document.querySelectorAll(".patch-release-card")).toHaveLength(2)

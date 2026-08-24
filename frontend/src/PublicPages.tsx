@@ -368,7 +368,7 @@ export function PatchHistoryPage({
   signingIn,
   signInError,
 }: PublicAuthActions) {
-  const [order, setOrder] = useState<PatchHistoryOrder>("oldest")
+  const [order, setOrder] = useState<PatchHistoryOrder>("newest")
   const [releasePage, setReleasePage] = useState(1)
   const [patchNotePages, setPatchNotePages] = useState<Record<string, number>>({})
   const releaseGroups = useMemo(() => {
