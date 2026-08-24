@@ -58,6 +58,7 @@ snapshot files use the same reviewed layout baseline with a 1% pixel allowance f
 
 - RED checkpoint: `2b67108`
 - GREEN checkpoint: `e2494e3`
+- Refactor and browser-QA checkpoint: `2faa893`
 - Automated axe coverage is necessary but not a substitute for a manual screen-reader pass.
 - The Linux-named screenshot baselines were normalized from the reviewed Windows captures; Linux CI
   should confirm that the 1% host-rendering allowance is sufficient.
