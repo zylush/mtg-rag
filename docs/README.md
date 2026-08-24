@@ -31,6 +31,10 @@ implementation, operation, and verification details.
 - [Integration lessons](operations/INTEGRATION-LESSONS.md) — deployment and
   integration findings.
 
+## Change history
+
+- [Patch history](PATCH-HISTORY.md) — complete chronological commit ledger and release checkpoints.
+
 ## Verification evidence
 
 Feature-level TDD records and live verification notes are kept in
