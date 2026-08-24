@@ -99,7 +99,7 @@ test("shows the complete patch ledger without authentication", async ({ page }) 
   await order.selectOption("newest")
   await expect(page.locator(".patch-day").first().getByRole("heading")).toHaveText("Aug 25, 2026")
 
-  const collapse = page.getByRole("button", { name: "Collapse August 25, 2026 patches" })
+  const collapse = page.locator(".patch-day").first().getByRole("button")
   await collapse.click()
   await expect(collapse).toHaveAttribute("aria-expanded", "false")
   await expect(page.getByRole("list", { name: "August 25, 2026 patches" })).toBeHidden()

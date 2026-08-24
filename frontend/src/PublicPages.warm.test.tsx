@@ -124,15 +124,15 @@ describe("patch history page", () => {
 
     await user.selectOptions(order, "newest")
     expect(screen.getAllByRole("heading", { level: 2 })[0]).toHaveTextContent("Aug 25, 2026")
-    expect(screen.getByText(/patches ·/i)).toBeVisible()
+    expect(screen.getByText(/^\d+ Feature/)).toBeVisible()
 
     const collapse = screen.getByRole("button", {
       name: "Collapse August 25, 2026 patches",
     })
     await user.click(collapse)
     expect(collapse).toHaveAttribute("aria-expanded", "false")
-    expect(
-      screen.getByRole("list", { name: "August 25, 2026 patches", hidden: true }),
-    ).toHaveAttribute("hidden")
+    const collapsedList = document.getElementById("patch-list-2026-08-25")
+    expect(collapsedList).not.toBeNull()
+    expect(collapsedList).toHaveAttribute("hidden")
   })
 })

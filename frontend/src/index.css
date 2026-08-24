@@ -845,11 +845,41 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   gap: 14px;
   padding: 18px 0 12px;
 }
-.patch-history-ledger-heading > span:last-child {
+.patch-history-ledger-title {
+  display: grid;
+  gap: 5px;
+}
+.patch-history-ledger-title > span:last-child {
   color: var(--faint);
   font-size: .68rem;
   letter-spacing: .08em;
   text-transform: uppercase;
+}
+.patch-order-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--faint);
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.patch-order-filter select {
+  min-height: 36px;
+  border: 1px solid var(--line-dark);
+  border-radius: 5px;
+  padding: 7px 30px 7px 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: .68rem;
+  letter-spacing: .02em;
+  text-transform: none;
+}
+.patch-order-filter select:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
 }
 .patch-day {
   display: grid;
@@ -857,6 +887,11 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   gap: 24px;
   border-top: 1px solid var(--line);
   padding: 25px 0 28px;
+}
+.patch-day-rail {
+  display: grid;
+  align-content: start;
+  gap: 13px;
 }
 .patch-day-heading h2 {
   margin: 0;
@@ -873,6 +908,35 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: .66rem;
 }
+.patch-day-info {
+  max-width: 17ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: .68rem;
+  line-height: 1.5;
+}
+.patch-day-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 5px;
+  border: 1px solid var(--line-dark);
+  border-radius: 5px;
+  padding: 7px 9px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: .64rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+}
+.patch-day-toggle:hover {
+  border-color: var(--blue);
+  color: var(--ink);
+}
+.patch-day-toggle svg { transition: transform 150ms ease; }
+.patch-day.is-collapsed .patch-day-toggle svg { transform: rotate(-90deg); }
 .patch-list {
   display: grid;
   gap: 0;
@@ -930,6 +994,9 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   .patch-history-summary > div:last-child { border-bottom: 0; }
   .patch-day { grid-template-columns: 1fr; gap: 18px; }
   .patch-entry { grid-template-columns: 60px minmax(0, 1fr); gap: 11px; }
+  .patch-history-ledger-heading { align-items: flex-start; flex-direction: column; }
+  .patch-order-filter { justify-content: space-between; width: 100%; }
+  .patch-order-filter select { flex: 1; }
 }
 
 @media (max-width: 800px) {

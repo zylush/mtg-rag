@@ -1,5 +1,12 @@
-import { ArrowRight, BookOpenCheck, ExternalLink, FileText, ShieldCheck } from "lucide-react"
-import { useState, type FormEvent, type ReactNode } from "react"
+import {
+  ArrowRight,
+  BookOpenCheck,
+  ChevronDown,
+  ExternalLink,
+  FileText,
+  ShieldCheck,
+} from "lucide-react"
+import { useMemo, useState, type FormEvent, type ReactNode } from "react"
 
 import { BrandMark } from "./BrandMark"
 import { PATCH_HISTORY, PATCH_HISTORY_CAPTURE, type PatchHistoryEntry } from "./patch-history"
@@ -330,7 +337,7 @@ function groupPatchHistory(entries: readonly PatchHistoryEntry[]) {
     group.push(entry)
     groups.set(entry.date, group)
   }
-  return groups
+  return Array.from(groups, ([date, groupedEntries]) => ({ date, entries: groupedEntries }))
 }
 
 const PATCH_KIND_LABELS: Record<string, string> = {
@@ -358,13 +365,50 @@ function concisePatchMessage(subject: string): { kind: string; message: string }
   }
 }
 
+function patchDateLongLabel(date: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+    year: "numeric",
+  }).format(new Date(`${date}T00:00:00Z`))
+}
+
+function patchKindSummary(entries: readonly PatchHistoryEntry[]): string {
+  const counts = new Map<string, number>()
+  for (const entry of entries) {
+    const { kind } = concisePatchMessage(entry.subject)
+    counts.set(kind, (counts.get(kind) ?? 0) + 1)
+  }
+  return Array.from(counts.entries())
+    .sort(([leftKind, leftCount], [rightKind, rightCount]) => rightCount - leftCount || leftKind.localeCompare(rightKind))
+    .map(([kind, count]) => `${count} ${kind}`)
+    .join(" · ")
+}
+
+type PatchHistoryOrder = "oldest" | "newest"
+
 export function PatchHistoryPage({
   authenticated = false,
   onSignIn,
   signingIn,
   signInError,
 }: PublicAuthActions) {
-  const groups = groupPatchHistory(PATCH_HISTORY)
+  const [order, setOrder] = useState<PatchHistoryOrder>("oldest")
+  const [collapsedDates, setCollapsedDates] = useState<Set<string>>(() => new Set())
+  const groups = useMemo(() => {
+    const grouped = groupPatchHistory(PATCH_HISTORY)
+    return order === "newest" ? grouped.reverse() : grouped
+  }, [order])
+
+  const toggleDate = (date: string) => {
+    setCollapsedDates((current) => {
+      const next = new Set(current)
+      if (next.has(date)) next.delete(date)
+      else next.add(date)
+      return next
+    })
+  }
 
   return (
     <PublicLayout
@@ -423,20 +467,59 @@ export function PatchHistoryPage({
 
           <div className="patch-history-ledger">
             <div className="patch-history-ledger-heading">
-              <span className="section-label">Chronological ledger</span>
-              <span>Oldest first</span>
+              <div className="patch-history-ledger-title">
+                <span className="section-label">Chronological ledger</span>
+                <span>{order === "oldest" ? "Oldest first" : "Newest first"}</span>
+              </div>
+              <label className="patch-order-filter">
+                <span>Order</span>
+                <select
+                  aria-label="Patch history order"
+                  value={order}
+                  onChange={(event) => setOrder(event.target.value as PatchHistoryOrder)}
+                >
+                  <option value="oldest">Oldest first</option>
+                  <option value="newest">Newest first</option>
+                </select>
+              </label>
             </div>
-            {Array.from(groups, ([date, entries]) => {
+            {groups.map(({ date, entries }) => {
               const label = patchDateLabel(date)
+              const longLabel = patchDateLongLabel(date)
+              const collapsed = collapsedDates.has(date)
+              const listId = `patch-list-${date}`
               return (
-                <section className="patch-day" key={date} aria-labelledby={`patch-day-${date}`}>
-                  <div className="patch-day-heading">
-                    <h2 id={`patch-day-${date}`}>{label}</h2>
-                    <span>
-                      {entries.length} {entries.length === 1 ? "patch" : "patches"}
-                    </span>
+                <section
+                  className={`patch-day${collapsed ? " is-collapsed" : ""}`}
+                  key={date}
+                  aria-labelledby={`patch-day-${date}`}
+                >
+                  <div className="patch-day-rail">
+                    <div className="patch-day-heading">
+                      <h2 id={`patch-day-${date}`}>{label}</h2>
+                      <span>
+                        {entries.length} {entries.length === 1 ? "patch" : "patches"}
+                      </span>
+                    </div>
+                    <p className="patch-day-info">{patchKindSummary(entries)}</p>
+                    <button
+                      className="patch-day-toggle"
+                      type="button"
+                      aria-controls={listId}
+                      aria-expanded={!collapsed}
+                      aria-label={`${collapsed ? "Expand" : "Collapse"} ${longLabel} patches`}
+                      onClick={() => toggleDate(date)}
+                    >
+                      <ChevronDown aria-hidden="true" size={15} />
+                      {collapsed ? "Expand" : "Collapse"}
+                    </button>
                   </div>
-                  <ol className="patch-list" aria-label={`${label} patches`}>
+                  <ol
+                    className="patch-list"
+                    id={listId}
+                    aria-label={`${longLabel} patches`}
+                    hidden={collapsed}
+                  >
                     {entries.map((entry) => {
                       const patch = concisePatchMessage(entry.subject)
                       return (
