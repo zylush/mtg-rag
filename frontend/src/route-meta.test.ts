@@ -45,7 +45,7 @@ describe("route metadata", () => {
 
     const history = getRouteMetadata("/patch-history", { origin: ORIGIN, allowIndexing: true })
     expect(history.title).toBe("Patch History | MTG Rules Desk")
-    expect(history.description).toMatch(/complete chronological/i)
+    expect(history.description).toMatch(/versioned patch notes/i)
   })
 
   it("applies canonical, social, and structured metadata and clears stale schema", () => {

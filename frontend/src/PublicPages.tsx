@@ -2,7 +2,6 @@ import {
   ArrowRight,
   BookOpenCheck,
   ChevronLeft,
-  ChevronDown,
   ChevronRight,
   ExternalLink,
   FileText,
@@ -328,72 +327,17 @@ export function WelcomePage({ onSignIn, signingIn, signInError, onPublicAsk }: P
   )
 }
 
-function patchDateLabel(date: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-    year: "numeric",
-  }).format(new Date(`${date}T00:00:00Z`))
-}
-
-function groupPatchHistory(entries: readonly PatchHistoryEntry[]) {
-  const groups = new Map<string, PatchHistoryEntry[]>()
-  for (const entry of entries) {
-    const group = groups.get(entry.date) ?? []
-    group.push(entry)
-    groups.set(entry.date, group)
-  }
-  return Array.from(groups, ([date, groupedEntries]) => ({ date, entries: groupedEntries }))
-}
-
-const PATCH_KIND_LABELS: Record<string, string> = {
-  chore: "Maintenance",
-  ci: "Build",
-  docs: "Documentation",
-  feat: "Feature",
-  fix: "Fix",
-  perf: "Performance",
-  refactor: "Refactor",
-  revert: "Revert",
-  test: "Test",
-}
-
-function concisePatchMessage(subject: string): { kind: string; message: string } {
+function concisePatchMessage(subject: string): string {
   const conventional = subject.match(/^([a-z]+)(?:\([^)]*\))?:\s*(.+)$/i)
   if (!conventional) {
-    return { kind: "Merge", message: subject.replace(/\.$/, "") }
+    return subject.replace(/\.$/, "")
   }
-  const kind = PATCH_KIND_LABELS[conventional[1].toLowerCase()] ?? conventional[1]
   const rawMessage = conventional[2].trim().replace(/\.$/, "")
-  return {
-    kind,
-    message: rawMessage.charAt(0).toUpperCase() + rawMessage.slice(1),
-  }
-}
-
-function patchDateLongLabel(date: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    day: "numeric",
-    month: "long",
-    timeZone: "UTC",
-    year: "numeric",
-  }).format(new Date(`${date}T00:00:00Z`))
-}
-
-function patchKindSummary(entries: readonly PatchHistoryEntry[]): string {
-  const counts = new Map<string, number>()
-  for (const entry of entries) {
-    const { kind } = concisePatchMessage(entry.subject)
-    counts.set(kind, (counts.get(kind) ?? 0) + 1)
-  }
-  return Array.from(counts.entries())
-    .sort(([leftKind, leftCount], [rightKind, rightCount]) => rightCount - leftCount || leftKind.localeCompare(rightKind))
-    .map(([kind, count]) => `${count} ${kind}`)
-    .join(" · ")
+  return rawMessage.charAt(0).toUpperCase() + rawMessage.slice(1)
 }
 
 const PATCH_NOTES_PAGE_SIZE = 8
+const PATCH_RELEASE_PAGE_SIZE = 2
 
 function entriesForPatchRelease(release: PatchRelease): readonly PatchHistoryEntry[] {
   const endIndex = PATCH_HISTORY.findIndex((entry) => entry.hash === release.endAt)
@@ -407,11 +351,11 @@ function entriesForPatchRelease(release: PatchRelease): readonly PatchHistoryEnt
 }
 
 function PatchNoteItem({ entry }: { entry: PatchHistoryEntry }) {
-  const patch = concisePatchMessage(entry.subject)
+  const message = concisePatchMessage(entry.subject)
   return (
     <li className="patch-note-item">
       <span aria-hidden="true">-</span>
-      <span>{patch.message}</span>
+      <span>{message}</span>
     </li>
   )
 }
@@ -425,12 +369,8 @@ export function PatchHistoryPage({
   signInError,
 }: PublicAuthActions) {
   const [order, setOrder] = useState<PatchHistoryOrder>("oldest")
-  const [collapsedDates, setCollapsedDates] = useState<Set<string>>(() => new Set())
+  const [releasePage, setReleasePage] = useState(1)
   const [patchNotePages, setPatchNotePages] = useState<Record<string, number>>({})
-  const groups = useMemo(() => {
-    const grouped = groupPatchHistory(PATCH_HISTORY)
-    return order === "newest" ? grouped.reverse() : grouped
-  }, [order])
   const releaseGroups = useMemo(() => {
     const grouped = PATCH_RELEASES.map((release) => ({
       release,
@@ -444,18 +384,20 @@ export function PatchHistoryPage({
     }
     return grouped
   }, [order])
-
-  const toggleDate = (date: string) => {
-    setCollapsedDates((current) => {
-      const next = new Set(current)
-      if (next.has(date)) next.delete(date)
-      else next.add(date)
-      return next
-    })
-  }
+  const releasePageCount = Math.max(1, Math.ceil(releaseGroups.length / PATCH_RELEASE_PAGE_SIZE))
+  const visibleReleasePage = Math.min(releasePage, releasePageCount)
+  const visibleReleaseGroups = releaseGroups.slice(
+    (visibleReleasePage - 1) * PATCH_RELEASE_PAGE_SIZE,
+    visibleReleasePage * PATCH_RELEASE_PAGE_SIZE,
+  )
 
   const setPatchNotePage = (releaseId: string, page: number) => {
     setPatchNotePages((current) => ({ ...current, [releaseId]: page }))
+  }
+
+  const setPatchHistoryOrder = (nextOrder: PatchHistoryOrder) => {
+    setOrder(nextOrder)
+    setReleasePage(1)
   }
 
   return (
@@ -467,11 +409,11 @@ export function PatchHistoryPage({
     >
       <main className="public-page document-page patch-history-page">
         <div className="document-intro patch-history-intro">
-          <span className="eyebrow">Change ledger</span>
-          <h1>Every patch, with a paper trail.</h1>
+          <span className="eyebrow">Release notes</span>
+          <h1>Patch notes by version.</h1>
           <p>
-            A chronological record of the Rules Desk preview: product work, tests, refactors,
-            documentation, and release checkpoints in the order they landed.
+            A concise history of hosted Rules Desk releases, with the current local preview clearly
+            marked.
           </p>
         </div>
 
@@ -485,13 +427,21 @@ export function PatchHistoryPage({
                 is marked separately.
               </p>
             </div>
-            <span className="patch-release-order">
-              Releases: {order === "oldest" ? "Oldest first" : "Newest first"}
-            </span>
+            <label className="patch-order-filter">
+              <span>Order</span>
+              <select
+                aria-label="Patch history order"
+                value={order}
+                onChange={(event) => setPatchHistoryOrder(event.target.value as PatchHistoryOrder)}
+              >
+                <option value="oldest">Oldest first</option>
+                <option value="newest">Newest first</option>
+              </select>
+            </label>
           </div>
 
           <div className="patch-release-list">
-            {releaseGroups.map(({ release, entries }) => {
+            {visibleReleaseGroups.map(({ release, entries }) => {
               const pageCount = Math.max(1, Math.ceil(entries.length / PATCH_NOTES_PAGE_SIZE))
               const page = Math.min(patchNotePages[release.id] ?? 1, pageCount)
               const pageStart = (page - 1) * PATCH_NOTES_PAGE_SIZE
@@ -594,81 +544,47 @@ export function PatchHistoryPage({
               )
             })}
           </div>
-        </section>
 
-        <div className="patch-history-ledger">
-          <div className="patch-history-ledger-heading">
-            <div className="patch-history-ledger-title">
-              <span className="section-label">Chronological ledger</span>
-              <span>{order === "oldest" ? "Oldest first" : "Newest first"}</span>
-            </div>
-            <label className="patch-order-filter">
-              <span>Order</span>
-              <select
-                aria-label="Patch history order"
-                value={order}
-                onChange={(event) => setOrder(event.target.value as PatchHistoryOrder)}
-              >
-                <option value="oldest">Oldest first</option>
-                <option value="newest">Newest first</option>
-              </select>
-            </label>
-          </div>
-          {groups.map(({ date, entries }) => {
-            const label = patchDateLabel(date)
-            const longLabel = patchDateLongLabel(date)
-            const collapsed = collapsedDates.has(date)
-            const listId = `patch-list-${date}`
-            return (
-              <section
-                className={`patch-day${collapsed ? " is-collapsed" : ""}`}
-                key={date}
-                aria-labelledby={`patch-day-${date}`}
-              >
-                <div className="patch-day-rail">
-                  <div className="patch-day-heading">
-                    <h2 id={`patch-day-${date}`}>{label}</h2>
-                    <span>
-                      {entries.length} {entries.length === 1 ? "patch" : "patches"}
-                    </span>
-                  </div>
-                  <p className="patch-day-info">{patchKindSummary(entries)}</p>
-                  <button
-                    className="patch-day-toggle"
-                    type="button"
-                    aria-controls={listId}
-                    aria-expanded={!collapsed}
-                    aria-label={`${collapsed ? "Expand" : "Collapse"} ${longLabel} patches`}
-                    onClick={() => toggleDate(date)}
-                  >
-                    <ChevronDown aria-hidden="true" size={15} />
-                    {collapsed ? "Expand" : "Collapse"}
-                  </button>
-                </div>
-                <ol
-                  className="patch-list"
-                  id={listId}
-                  aria-label={`${longLabel} patches`}
-                  hidden={collapsed}
+          <nav className="patch-release-pagination" aria-label="Deployment releases pagination">
+            <button
+              className="patch-notes-nav"
+              type="button"
+              disabled={visibleReleasePage === 1}
+              aria-label="Previous deployment releases page"
+              onClick={() => setReleasePage((page) => Math.max(1, page - 1))}
+            >
+              <ChevronLeft aria-hidden="true" size={14} />
+              Previous
+            </button>
+            <div className="patch-notes-pages">
+              {Array.from({ length: releasePageCount }, (_, index) => index + 1).map((pageNumber) => (
+                <button
+                  className="patch-notes-page"
+                  type="button"
+                  key={pageNumber}
+                  aria-current={pageNumber === visibleReleasePage ? "page" : undefined}
+                  aria-label={`Go to deployment releases page ${pageNumber}`}
+                  onClick={() => setReleasePage(pageNumber)}
                 >
-                  {entries.map((entry) => {
-                    const patch = concisePatchMessage(entry.subject)
-                    return (
-                      <li className="patch-entry" key={entry.hash}>
-                        <code>{entry.hash}</code>
-                        <div>
-                          <span className="patch-entry-kind">{patch.kind}</span>
-                          <p className="patch-entry-subject">{patch.message}</p>
-                          <span className="patch-entry-author">{entry.author}</span>
-                        </div>
-                      </li>
-                    )
-                  })}
-                </ol>
-              </section>
-            )
-          })}
-        </div>
+                  {pageNumber}
+                </button>
+              ))}
+            </div>
+            <span className="patch-release-page-count">
+              Page {visibleReleasePage} of {releasePageCount}
+            </span>
+            <button
+              className="patch-notes-nav"
+              type="button"
+              disabled={visibleReleasePage === releasePageCount}
+              aria-label="Next deployment releases page"
+              onClick={() => setReleasePage((page) => Math.min(releasePageCount, page + 1))}
+            >
+              Next
+              <ChevronRight aria-hidden="true" size={14} />
+            </button>
+          </nav>
+        </section>
       </main>
     </PublicLayout>
   )

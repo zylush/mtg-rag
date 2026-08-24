@@ -28,7 +28,7 @@ const descriptions: Record<AppRoute, string> = {
   "/desk/settings": "Manage MTG Rules Desk product links, installation, and account controls.",
   "/about": SEO_PAGES["/about"].description,
   "/patch-history":
-    "Review the complete chronological patch history for the MTG Rules Desk development preview.",
+    "Review versioned patch notes for the MTG Rules Desk development preview.",
   "/terms": "Operational Terms of Service for MTG Rules Desk, with source attribution and support contact.",
   "/privacy": SEO_PAGES["/privacy"].description,
 }

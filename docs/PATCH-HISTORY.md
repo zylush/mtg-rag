@@ -7,9 +7,8 @@ This is the repository’s complete chronological patch ledger. It records every
 **HEAD at capture:** `49873ff`
 **Remote:** https://github.com/zylush/mtg-rag.git
 
-The website’s [Patch history](https://mtg-rules-desk-dev.web.app/patch-history) view presents each
-version as concise bullet notes, with the complete chronological ledger kept below for internal
-review.
+The website’s [Patch history](https://mtg-rules-desk-dev.web.app/patch-history) view presents
+versioned releases as concise bullet notes with independent section and per-release pagination.
 
 ## Release overview
 
@@ -19,12 +18,12 @@ review.
 | 2026-08-13 | Hardened deployment and cloud integration, including Cloud SQL/Run/Build/IAM, Firebase hosting, environment handling, ingestion safety, and operational documentation. |
 | 2026-08-14–18 | Expanded platform behavior and assurance around routing, auth, SEO, API/hosting integration, privacy, security, and operational readiness. |
 | 2026-08-19 | Delivered the single-screen Rules Desk, responsive/PWA behavior, warm sign-in/install experience, branded assets, browser verification, and preview deployment. |
-| 2026-08-25 | Qualified the development release, added resumable `/desk` chat history, and published versioned patch notes with concise bullets, compact date summaries, and oldest/newest sorting. |
+| 2026-08-25 | Qualified the development release, added resumable `/desk` chat history, and published versioned patch notes with concise bullets, release pagination, and oldest/newest sorting. |
 
 ## Current release checkpoint
 
 - Live preview: [mtg-rules-desk-dev.web.app](https://mtg-rules-desk-dev.web.app)
-- Website ledger: [mtg-rules-desk-dev.web.app/patch-history](https://mtg-rules-desk-dev.web.app/patch-history)
+- Website release notes: [mtg-rules-desk-dev.web.app/patch-history](https://mtg-rules-desk-dev.web.app/patch-history)
 - Latest feature evidence: [resumable chat history desk TDD record](testing/chat-history-desk.tdd.md)
 - Deployment record: [operations runbook](operations/OPERATIONS.md)
 - The TDD record captures the automated verification results and the remaining manual screen-reader/Linux visual-baseline follow-ups.

@@ -78,7 +78,7 @@ test("opens About, Terms, and Privacy without authentication", async ({ page }) 
     ["/about", "About MTG Rules Desk"],
     ["/terms", "Terms of Service"],
     ["/privacy", "Privacy Policy"],
-    ["/patch-history", "Every patch, with a paper trail."],
+    ["/patch-history", "Patch notes by version."],
   ] as const) {
     await visit(page, route)
     await expect(page.getByRole("heading", { name: heading })).toBeVisible()
@@ -86,14 +86,23 @@ test("opens About, Terms, and Privacy without authentication", async ({ page }) 
   }
 })
 
-test("shows the complete patch ledger without authentication", async ({ page }) => {
+test("shows versioned patch releases without authentication", async ({ page }) => {
   await visit(page, "/patch-history")
 
-  await expect(page.getByText("Snapshot details")).toHaveCount(0)
-  await expect(page.getByText("49873ff").last()).toBeVisible()
-  await expect(page.getByText("Record chat history verification checkpoints").first()).toBeVisible()
+  await expect(page.getByText("Chronological ledger")).toHaveCount(0)
 
-  await expect(page.getByRole("heading", { name: "Patch notes by version" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Patch notes by version", exact: true })).toBeVisible()
+  await expect(page.locator(".patch-release-card")).toHaveCount(2)
+  await expect(page.getByText("Page 1 of 2")).toBeVisible()
+  const releasePageTwo = page.getByRole("button", { name: "Go to deployment releases page 2" })
+  await releasePageTwo.click()
+  await expect(releasePageTwo).toHaveAttribute("aria-current", "page")
+  await expect(page.locator(".patch-release-card").first().getByRole("heading", { level: 3 })).toHaveText(
+    "Warm preview",
+  )
+  await expect(page.getByText("Page 2 of 2")).toBeVisible()
+  await page.getByRole("button", { name: "Go to deployment releases page 1" }).click()
+
   const notes = page.getByRole("list", { name: "v0.1.0 patch notes" })
   await expect(notes.getByRole("listitem")).toHaveCount(8)
   await expect(page.getByText("Page 1 of 12")).toBeVisible()
@@ -106,17 +115,10 @@ test("shows the complete patch ledger without authentication", async ({ page }) 
 
   const order = page.getByRole("combobox", { name: "Patch history order" })
   await expect(order).toHaveValue("oldest")
-  await expect(page.locator(".patch-day").first().getByRole("heading")).toHaveText("Aug 12, 2026")
   await order.selectOption("newest")
-  await expect(page.locator(".patch-day").first().getByRole("heading")).toHaveText("Aug 25, 2026")
   await expect(page.locator(".patch-release-card").first().getByRole("heading", { level: 3 })).toHaveText(
     "Chat history desk",
   )
-
-  const collapse = page.locator(".patch-day").first().getByRole("button")
-  await collapse.click()
-  await expect(collapse).toHaveAttribute("aria-expanded", "false")
-  await expect(page.getByRole("list", { name: "August 25, 2026 patches" })).toBeHidden()
 })
 
 test("redirects signed-out desk access home and starts auth from the first screen", async ({ page }) => {

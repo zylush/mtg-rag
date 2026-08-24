@@ -91,7 +91,7 @@ describe("Ember Archive welcome screen", () => {
 })
 
 describe("patch history page", () => {
-  it("shows the complete captured ledger with release context", () => {
+  it("shows versioned releases without a chronological ledger", () => {
     window.history.replaceState({}, "", "/patch-history")
     render(
       <RouterProvider>
@@ -100,17 +100,16 @@ describe("patch history page", () => {
     )
 
     expect(
-      screen.getByRole("heading", { name: "Every patch, with a paper trail." }),
+      screen.getByRole("heading", { name: "Patch notes by version." }),
     ).toBeVisible()
-    expect(screen.queryByText("Snapshot details")).not.toBeInTheDocument()
-    expect(screen.queryByText(/commits recorded/i)).not.toBeInTheDocument()
-    expect(screen.getAllByText("49873ff")).toHaveLength(1)
-    expect(screen.getAllByText("Record chat history verification checkpoints")).toHaveLength(2)
+    expect(screen.queryByText("Chronological ledger")).not.toBeInTheDocument()
+    expect(document.querySelectorAll(".patch-day, .patch-entry")).toHaveLength(0)
+    expect(screen.queryByText("Record chat history verification checkpoints")).not.toBeInTheDocument()
     expect(screen.queryByText(/docs: record chat history verification checkpoints/i)).not.toBeInTheDocument()
-    expect(document.querySelectorAll(".patch-day .patch-entry")).toHaveLength(162)
+    expect(screen.queryByText("49873ff")).not.toBeInTheDocument()
   })
 
-  it("compacts date sections and reorders the ledger", async () => {
+  it("reorders deployment releases", async () => {
     const user = userEvent.setup()
     window.history.replaceState({}, "", "/patch-history")
     render(
@@ -121,20 +120,10 @@ describe("patch history page", () => {
 
     const order = screen.getByRole("combobox", { name: "Patch history order" })
     expect(order).toHaveValue("oldest")
-    expect(screen.getByRole("heading", { name: "Aug 12, 2026" })).toBeVisible()
+    expect(screen.getAllByRole("heading", { level: 3 })[0]).toHaveTextContent("First hosted preview")
 
     await user.selectOptions(order, "newest")
-    expect(screen.getByRole("heading", { name: "Aug 25, 2026" })).toBeVisible()
-    expect(screen.getByText(/^\d+ Feature/)).toBeVisible()
-
-    const collapse = screen.getByRole("button", {
-      name: "Collapse August 25, 2026 patches",
-    })
-    await user.click(collapse)
-    expect(collapse).toHaveAttribute("aria-expanded", "false")
-    const collapsedList = document.getElementById("patch-list-2026-08-25")
-    expect(collapsedList).not.toBeNull()
-    expect(collapsedList).toHaveAttribute("hidden")
+    expect(screen.getAllByRole("heading", { level: 3 })[0]).toHaveTextContent("Chat history desk")
   })
 
   it("groups patch notes by deployment and paginates each release", async () => {
@@ -149,8 +138,20 @@ describe("patch history page", () => {
     expect(screen.getByRole("heading", { name: "Patch notes by version" })).toBeVisible()
     expect(screen.getByRole("heading", { name: "First hosted preview" })).toBeVisible()
     expect(screen.getByText("Deployed 2026-08-13")).toBeVisible()
+    expect(document.querySelectorAll(".patch-release-card")).toHaveLength(2)
     expect(screen.queryByText("Git proof")).not.toBeInTheDocument()
     expect(screen.queryByRole("link", { name: "v0.1.0 checkpoint bd44b3a" })).not.toBeInTheDocument()
+    expect(screen.getByText("Page 1 of 2")).toBeVisible()
+
+    const releasePageTwo = screen.getByRole("button", {
+      name: "Go to deployment releases page 2",
+    })
+    await user.click(releasePageTwo)
+    expect(releasePageTwo).toHaveAttribute("aria-current", "page")
+    expect(screen.getByRole("heading", { name: "Warm preview" })).toBeVisible()
+    expect(screen.getByText("Page 2 of 2")).toBeVisible()
+
+    await user.click(screen.getByRole("button", { name: "Go to deployment releases page 1" }))
 
     const notes = screen.getByRole("list", { name: "v0.1.0 patch notes" })
     expect(within(notes).getAllByRole("listitem")).toHaveLength(8)

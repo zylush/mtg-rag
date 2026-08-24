@@ -796,14 +796,6 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   font-size: .84rem;
   line-height: 1.65;
 }
-.patch-release-order {
-  flex: 0 0 auto;
-  color: var(--faint);
-  font-size: .68rem;
-  font-weight: 700;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
 .patch-release-list { display: grid; gap: 24px; }
 .patch-release-card {
   border: 1px solid var(--line-dark);
@@ -899,6 +891,21 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   padding-top: 14px;
   border-top: 1px solid var(--line);
 }
+.patch-release-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 17px;
+  border-top: 1px solid var(--line);
+}
+.patch-release-page-count {
+  color: var(--faint);
+  font-size: .68rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
 .patch-notes-pages { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
 .patch-notes-page,
 .patch-notes-nav {
@@ -921,24 +928,6 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
 .patch-notes-nav:hover:not(:disabled) { border-color: var(--blue); color: var(--ink); }
 .patch-notes-page[aria-current="page"] { border-color: var(--blue); background: var(--blue); color: var(--paper); }
 .patch-notes-nav:disabled { cursor: default; opacity: .4; }
-.patch-history-ledger { margin-top: 58px; border-top: 1px solid var(--line-dark); }
-.patch-history-ledger-heading {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 18px 0 12px;
-}
-.patch-history-ledger-title {
-  display: grid;
-  gap: 5px;
-}
-.patch-history-ledger-title > span:last-child {
-  color: var(--faint);
-  font-size: .68rem;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
 .patch-order-filter {
   display: inline-flex;
   align-items: center;
@@ -965,62 +954,6 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
-.patch-day {
-  display: grid;
-  grid-template-columns: 132px minmax(0, 1fr);
-  gap: 24px;
-  border-top: 1px solid var(--line);
-  padding: 25px 0 28px;
-}
-.patch-day-rail {
-  display: grid;
-  align-content: start;
-  gap: 13px;
-}
-.patch-day-heading h2 {
-  margin: 0;
-  color: var(--ink);
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.2rem;
-  font-weight: 500;
-  letter-spacing: -.03em;
-}
-.patch-day-heading > span {
-  display: block;
-  margin-top: 7px;
-  color: var(--faint);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: .66rem;
-}
-.patch-day-info {
-  max-width: 17ch;
-  margin: 0;
-  color: var(--muted);
-  font-size: .68rem;
-  line-height: 1.5;
-}
-.patch-day-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-self: start;
-  gap: 5px;
-  border: 1px solid var(--line-dark);
-  border-radius: 5px;
-  padding: 7px 9px;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  font: inherit;
-  font-size: .64rem;
-  font-weight: 700;
-  letter-spacing: .03em;
-}
-.patch-day-toggle:hover {
-  border-color: var(--blue);
-  color: var(--ink);
-}
-.patch-day-toggle svg { transition: transform 150ms ease; }
-.patch-day.is-collapsed .patch-day-toggle svg { transform: rotate(-90deg); }
 .patch-list {
   display: grid;
   gap: 0;
@@ -1028,45 +961,6 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   padding: 0;
   list-style: none;
 }
-.patch-entry {
-  display: grid;
-  grid-template-columns: 68px minmax(0, 1fr);
-  gap: 16px;
-  padding: 10px 0;
-  border-bottom: 1px solid rgb(118 83 59 / 45%);
-}
-.patch-entry:first-child { padding-top: 0; }
-.patch-entry:last-child { border-bottom: 0; padding-bottom: 0; }
-.patch-entry > code {
-  color: var(--blue);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: .68rem;
-  line-height: 1.5;
-}
-.patch-entry-kind {
-  display: block;
-  margin-bottom: 3px;
-  color: var(--blue);
-  font-size: .61rem;
-  font-weight: 800;
-  letter-spacing: .09em;
-  text-transform: uppercase;
-}
-.patch-entry-subject {
-  margin: 0;
-  color: var(--ink);
-  font-size: .84rem;
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-.patch-entry-author {
-  display: block;
-  margin-top: 4px;
-  color: var(--faint);
-  font-size: .66rem;
-  letter-spacing: .04em;
-}
-
 @media (max-width: 800px) {
   .patch-release-card-header { grid-template-columns: 1fr; gap: 22px; }
 }
@@ -1075,11 +969,11 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   .patch-release-notes-intro { align-items: flex-start; flex-direction: column; gap: 13px; }
   .patch-release-card-header, .patch-notes-panel { padding-left: 18px; padding-right: 18px; }
   .patch-release-meta { gap: 14px 12px; }
-  .patch-day { grid-template-columns: 1fr; gap: 18px; }
-  .patch-entry { grid-template-columns: 60px minmax(0, 1fr); gap: 11px; }
-  .patch-history-ledger-heading { align-items: flex-start; flex-direction: column; }
   .patch-order-filter { justify-content: space-between; width: 100%; }
   .patch-order-filter select { flex: 1; }
+  .patch-release-pagination { align-items: stretch; flex-wrap: wrap; }
+  .patch-release-pagination .patch-notes-pages { order: 3; width: 100%; }
+  .patch-release-page-count { align-self: center; }
   .patch-notes-pagination { align-items: stretch; flex-wrap: wrap; }
   .patch-notes-nav { flex: 1; }
   .patch-notes-pages { order: 3; width: 100%; }

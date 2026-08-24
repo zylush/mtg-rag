@@ -11,15 +11,15 @@
   proof links in the public UI.
 - As a reviewer, I can page through concise patch notes within one version without paginating the
   whole patch-history page.
-- As a reviewer, I can keep the existing oldest/newest filter and see release cards reorder with
-  the chronological ledger.
+- As a reviewer, I can page through deployment releases, keep the oldest/newest filter, and see
+  release cards reorder without a chronological ledger in the public UI.
 
 ## RED and GREEN evidence
 
 | Stage | Command | Result |
 | --- | --- | --- |
 | RED | `npm test -- --run src/PublicPages.warm.test.tsx` | 1 of 8 failed because the versioned patch-notes heading did not exist. |
-| GREEN | `npm test -- --run src/PublicPages.warm.test.tsx` | 8 of 8 passed, including per-release pagination and concise note rendering. |
+| GREEN | `npm test -- --run src/PublicPages.warm.test.tsx` | 8 of 8 passed, including deployment-release pagination, per-release note pagination, and concise rendering. |
 | Full unit suite | `npm test` | 12 files and 71 tests passed. |
 | Static quality | `npm run lint` | Passed with no warnings. |
 | Production build | `npm run build` | TypeScript and Vite build passed. |
@@ -37,9 +37,8 @@ explicit evidence checkpoints rather than a live Git API feed:
 - `v0.3.0` — current local chat-history preview, not deployed (`49873ff`).
 
 The public release cards intentionally keep their notes concise and omit Git proof links. The
-complete chronological ledger remains available below the release notes for internal review. New
-deployments should add an explicit release record when the owner requests the next versioned patch
-post.
+repository-only chronological ledger is not rendered on the public page. New deployments should
+add an explicit release record when the owner requests the next versioned patch post.
 
 ## Known gaps
 

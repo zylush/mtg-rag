@@ -33,7 +33,7 @@ implementation, operation, and verification details.
 
 ## Change history
 
-- [Patch history](PATCH-HISTORY.md) — complete chronological commit ledger and release checkpoints.
+- [Patch history](PATCH-HISTORY.md) — versioned release notes and the repository-only commit ledger.
 
 ## Verification evidence
 
