@@ -92,6 +92,17 @@ test("shows the complete patch ledger without authentication", async ({ page }) 
   await expect(page.getByText("158 commits recorded")).toBeVisible()
   await expect(page.getByText("76ae629").last()).toBeVisible()
   await expect(page.getByText("Record chat history verification checkpoints")).toBeVisible()
+
+  const order = page.getByRole("combobox", { name: "Patch history order" })
+  await expect(order).toHaveValue("oldest")
+  await expect(page.locator(".patch-day").first().getByRole("heading")).toHaveText("Aug 12, 2026")
+  await order.selectOption("newest")
+  await expect(page.locator(".patch-day").first().getByRole("heading")).toHaveText("Aug 25, 2026")
+
+  const collapse = page.getByRole("button", { name: "Collapse August 25, 2026 patches" })
+  await collapse.click()
+  await expect(collapse).toHaveAttribute("aria-expanded", "false")
+  await expect(page.getByRole("list", { name: "August 25, 2026 patches" })).toBeHidden()
 })
 
 test("redirects signed-out desk access home and starts auth from the first screen", async ({ page }) => {

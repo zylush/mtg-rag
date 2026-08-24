@@ -108,4 +108,31 @@ describe("patch history page", () => {
     expect(screen.queryByText(/docs: record chat history verification checkpoints/i)).not.toBeInTheDocument()
     expect(screen.getAllByRole("listitem")).toHaveLength(158)
   })
+
+  it("compacts date sections and reorders the ledger", async () => {
+    const user = userEvent.setup()
+    window.history.replaceState({}, "", "/patch-history")
+    render(
+      <RouterProvider>
+        <PatchHistoryPage />
+      </RouterProvider>,
+    )
+
+    const order = screen.getByRole("combobox", { name: "Patch history order" })
+    expect(order).toHaveValue("oldest")
+    expect(screen.getAllByRole("heading", { level: 2 })[0]).toHaveTextContent("Aug 12, 2026")
+
+    await user.selectOptions(order, "newest")
+    expect(screen.getAllByRole("heading", { level: 2 })[0]).toHaveTextContent("Aug 25, 2026")
+    expect(screen.getByText(/patches ·/i)).toBeVisible()
+
+    const collapse = screen.getByRole("button", {
+      name: "Collapse August 25, 2026 patches",
+    })
+    await user.click(collapse)
+    expect(collapse).toHaveAttribute("aria-expanded", "false")
+    expect(
+      screen.getByRole("list", { name: "August 25, 2026 patches", hidden: true }),
+    ).toHaveAttribute("hidden")
+  })
 })
