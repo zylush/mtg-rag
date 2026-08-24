@@ -5,8 +5,8 @@
 
 ## User journeys
 
-- As a release reviewer, I can distinguish each documented Firebase deployment checkpoint from
-  the current local preview.
+- As a release reviewer, I can distinguish each documented Firebase deployment checkpoint and see
+  its current deployment state.
 - As a reviewer, I can scan concise hyphen-prefixed notes for each release without Git-specific
   proof links in the public UI.
 - As a reviewer, I see related changes merged into grouped notes, with every visible note using at
@@ -36,7 +36,7 @@ explicit evidence checkpoints rather than a live Git API feed:
 - `v0.1.1` — navigation and direct-auth development release, recorded on 2026-08-14
   (`247157d`).
 - `v0.2.0` — warm Firebase development preview, recorded on 2026-08-19 (`604dfb2`).
-- `v0.3.0` — current local chat-history preview, not deployed (`49873ff`).
+- `v0.3.0` — chat-history release deployed to Firebase development on 2026-08-25 (`61c258f`).
 
 The public release cards intentionally keep their notes grouped and concise, merging related
 changes into multi-sentence bullets while omitting Git proof links. The
