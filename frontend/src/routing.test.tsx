@@ -21,6 +21,7 @@ describe("routing", () => {
     expect(normalizeRoute("/about")).toBe("/about")
     expect(normalizeRoute("/terms")).toBe("/terms")
     expect(normalizeRoute("/privacy")).toBe("/privacy")
+    expect(normalizeRoute("/patch-history")).toBe("/patch-history")
     expect(normalizeRoute("/e2e.html")).toBe("/desk")
     expect(normalizeRoute("/not-a-route")).toBe("/")
   })

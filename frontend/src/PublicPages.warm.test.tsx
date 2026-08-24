@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import { WelcomePage } from "./PublicPages"
+import { PatchHistoryPage, WelcomePage } from "./PublicPages"
 import { RouterProvider } from "./routing"
 
 function renderWelcome(props: Parameters<typeof WelcomePage>[0] = {}) {
@@ -87,5 +87,24 @@ describe("Ember Archive welcome screen", () => {
 
     expect(await screen.findByText("Flying restricts which creatures can block.")).toBeVisible()
     expect(onPublicAsk).toHaveBeenCalledWith("What is flying?")
+  })
+})
+
+describe("patch history page", () => {
+  it("shows the complete captured ledger with release context", () => {
+    window.history.replaceState({}, "", "/patch-history")
+    render(
+      <RouterProvider>
+        <PatchHistoryPage />
+      </RouterProvider>,
+    )
+
+    expect(
+      screen.getByRole("heading", { name: "Every patch, with a paper trail." }),
+    ).toBeVisible()
+    expect(screen.getByText("155 commits recorded")).toBeVisible()
+    expect(screen.getByText("3e50395")).toBeVisible()
+    expect(screen.getByText(/docs: record chat history verification checkpoints/i)).toBeVisible()
+    expect(screen.getAllByRole("listitem")).toHaveLength(155)
   })
 })

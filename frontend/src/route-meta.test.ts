@@ -36,11 +36,16 @@ describe("route metadata", () => {
       "/desk/settings",
       "/terms",
       "/privacy",
+      "/patch-history",
     ] as const) {
       const metadata = getRouteMetadata(route, { origin: ORIGIN, allowIndexing: true })
       expect(metadata.robots, route).toBe("noindex, nofollow")
       expect(metadata.canonical, route).toBe(`${ORIGIN}${route}`)
     }
+
+    const history = getRouteMetadata("/patch-history", { origin: ORIGIN, allowIndexing: true })
+    expect(history.title).toBe("Patch History | MTG Rules Desk")
+    expect(history.description).toMatch(/complete chronological/i)
   })
 
   it("applies canonical, social, and structured metadata and clears stale schema", () => {

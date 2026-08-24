@@ -78,11 +78,20 @@ test("opens About, Terms, and Privacy without authentication", async ({ page }) 
     ["/about", "About MTG Rules Desk"],
     ["/terms", "Terms of Service"],
     ["/privacy", "Privacy Policy"],
+    ["/patch-history", "Every patch, with a paper trail."],
   ] as const) {
     await visit(page, route)
     await expect(page.getByRole("heading", { name: heading })).toBeVisible()
     await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible()
   }
+})
+
+test("shows the complete patch ledger without authentication", async ({ page }) => {
+  await visit(page, "/patch-history")
+
+  await expect(page.getByText("155 commits recorded")).toBeVisible()
+  await expect(page.getByText("3e50395")).toBeVisible()
+  await expect(page.getByText(/docs: record chat history verification checkpoints/i)).toBeVisible()
 })
 
 test("redirects signed-out desk access home and starts auth from the first screen", async ({ page }) => {
@@ -108,7 +117,7 @@ test("normalizes unknown routes and applies development-safe metadata", async ({
 })
 
 test("public pages have no detectable WCAG violations", async ({ page }) => {
-  for (const route of ["/", "/about", "/terms", "/privacy"]) {
+  for (const route of ["/", "/about", "/terms", "/privacy", "/patch-history"]) {
     await visit(page, route)
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
