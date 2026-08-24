@@ -388,6 +388,58 @@ describe("MTG Rules Desk", () => {
     await waitFor(() => expect(api.deleteConversation).toHaveBeenCalledWith("conversation-1"))
   })
 
+  it("loads a saved chat into the desk and continues the same conversation", async () => {
+    const user = userEvent.setup()
+    const api = fakeApi()
+    renderApp(undefined, api)
+
+    await user.click(await screen.findByRole("button", { name: /flying blockers/i }))
+
+    expect(await screen.findByText("What blocks flying?")).toBeVisible()
+    expect(api.conversation).toHaveBeenCalledWith("conversation-1")
+    expect(window.location.pathname).toBe("/desk")
+
+    await user.type(
+      screen.getByRole("textbox", { name: /rules question/i }),
+      "What if the blocker has reach?",
+    )
+    await user.click(screen.getByRole("button", { name: /^ask$/i }))
+
+    await waitFor(() =>
+      expect(api.ask).toHaveBeenCalledWith(
+        "What if the blocker has reach?",
+        "conversation-1",
+        expect.any(String),
+      ),
+    )
+  })
+
+  it("starts a new chat without attaching the next question to loaded history", async () => {
+    const user = userEvent.setup()
+    const api = fakeApi()
+    renderApp(undefined, api)
+
+    await user.click(await screen.findByRole("button", { name: /flying blockers/i }))
+    expect(await screen.findByText("What blocks flying?")).toBeVisible()
+
+    await user.click(screen.getByRole("button", { name: /new chat/i }))
+
+    expect(screen.queryByText("What blocks flying?")).not.toBeInTheDocument()
+    await user.type(
+      screen.getByRole("textbox", { name: /rules question/i }),
+      "How does deathtouch change combat?",
+    )
+    await user.click(screen.getByRole("button", { name: /^ask$/i }))
+
+    await waitFor(() =>
+      expect(api.ask).toHaveBeenCalledWith(
+        "How does deathtouch change combat?",
+        undefined,
+        expect.any(String),
+      ),
+    )
+  })
+
   it("uses route-backed modal drawers and restores trigger focus on Escape", async () => {
     const user = userEvent.setup()
     renderApp()
