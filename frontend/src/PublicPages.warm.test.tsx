@@ -18,6 +18,7 @@ describe("Ember Archive welcome screen", () => {
   it("presents the warm citation-first welcome hierarchy and shared mark", () => {
     const { container } = renderWelcome()
 
+    expect(screen.getByText("Public development preview")).toBeVisible()
     expect(screen.getByText("Rules answers with receipts")).toBeVisible()
     expect(
       screen.getByRole("heading", { name: "Settle the ruling. Keep the game moving." }),
@@ -27,6 +28,16 @@ describe("Ember Archive welcome screen", () => {
     expect(screen.getByText("Oracle text")).toBeVisible()
     expect(screen.getByText("Official rulings")).toBeVisible()
     expect(container.querySelector("[data-brand-mark]")).toBeInTheDocument()
+  })
+
+  it("keeps the required Wizards notice alongside the preview label", () => {
+    renderWelcome()
+
+    expect(screen.getByText("Public development preview")).toBeVisible()
+    expect(
+      screen.getByText(/unofficial fan content permitted under the fan content policy/i),
+    ).toBeVisible()
+    expect(screen.getByText(/not approved or endorsed by wizards of the coast/i)).toBeVisible()
   })
 
   it("preserves the Google sign-in action and pending state", async () => {
@@ -51,5 +62,30 @@ describe("Ember Archive welcome screen", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Sign-in did not complete. Check popup permissions and try again.",
     )
+  })
+
+  it("offers a free public question without requiring sign-in", async () => {
+    const user = userEvent.setup()
+    const onPublicAsk = vi.fn().mockResolvedValue({
+      conversation_id: "conversation-public",
+      message_id: "message-public",
+      answer: "Flying restricts which creatures can block.",
+      citations: [],
+      assumptions: [],
+      confidence: "high",
+      needs_clarification: false,
+      quota_remaining: 0,
+      cache_status: "miss",
+    })
+    renderWelcome({ onPublicAsk })
+
+    await user.type(
+      screen.getByRole("textbox", { name: "Your rules question" }),
+      "What is flying?",
+    )
+    await user.click(screen.getByRole("button", { name: "Ask for free" }))
+
+    expect(await screen.findByText("Flying restricts which creatures can block.")).toBeVisible()
+    expect(onPublicAsk).toHaveBeenCalledWith("What is flying?")
   })
 })

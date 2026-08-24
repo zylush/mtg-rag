@@ -94,25 +94,35 @@ removes instances according to demand and configured limits.
 
 An authenticated ask request follows this sequence:
 
-1. The browser obtains a Firebase ID token.
-2. The browser sends `POST /v1/ask` to the configured same-origin or API endpoint.
+1. The browser obtains a Firebase ID token and assigns a UUID to the user submission. An unchanged
+   retry reuses that UUID; editing the question or conversation creates a new one.
+2. The browser sends `POST /v1/ask` with the UUID to the configured same-origin or API endpoint.
 3. FastAPI bounds request size and total request time.
-4. The Firebase token is verified and the application user is loaded or created.
-5. The rolling one-minute burst allowance is checked.
-6. The backend loads active rules, cards, and rulings version IDs into a cache context.
-7. An exact cache fingerprint is calculated from the normalized question and the complete context.
-8. On an exact miss, the normalized question is embedded once.
-9. Eligible simple questions check semantic cache similarity.
-10. On a cache miss, exact, lexical, and vector retrieval run and their rankings are fused.
-11. At most eight active passages are sent to the OpenAI Responses API.
-12. The model returns a structured answer with internal passage IDs.
-13. The backend validates citations, performs at most one repair call, and resolves canonical
+4. The Firebase token is verified.
+5. When context is enabled and a conversation ID is supplied, the backend loads an
+   ownership-scoped snapshot of at most six messages and 6,000 serialized characters.
+6. The application user is loaded or created and the `(user, request UUID)` claim is acquired.
+   A completed match replays its stored response, a live duplicate returns a retryable conflict,
+   and reuse with different content returns an idempotency conflict.
+7. The rolling one-minute burst allowance is checked.
+8. The backend loads active rules, cards, and rulings version IDs into a cache context.
+9. Standalone requests check exact cache; contextual requests skip all shared cache operations.
+10. The standalone question or deterministic contextual query is embedded once.
+11. Eligible standalone questions check semantic cache similarity.
+12. Exact, lexical, and vector retrieval run and their rankings are fused.
+13. At most eight active passages are sent to OpenAI with the original question and separately
+    labeled untrusted conversation messages.
+14. The model returns a structured answer with internal passage IDs.
+15. The backend validates citations, performs at most one repair call, and resolves canonical
     labels and URLs.
-14. The answer, usage counter, conversation messages, and citations are committed atomically.
-15. A high-confidence eligible answer is written to semantic cache. Cache-write failure is logged
+16. For a contextual request, the committer locks the conversation and returns `409` if its tail
+    changed after the snapshot was loaded.
+17. The answer, usage counter, conversation messages, citations, and replayable idempotency
+    response are committed atomically.
+18. A high-confidence eligible standalone answer is written to semantic cache. Cache-write failure is logged
     without failing the completed answer.
 
-The question embedding generated at step 8 is reused by semantic-cache search and vector
+The query embedding generated at step 10 is reused by semantic-cache search and vector
 retrieval. This avoids a second embedding call and guarantees both comparisons use the same query
 vector.
 
@@ -256,9 +266,11 @@ default to scenario handling. Complex scenarios are regenerated rather than sema
 
 ## 9. Generation and citation architecture
 
-The model receives the question and a JSON representation of retrieved passages. System
-instructions state that passages are untrusted reference data, not instructions. The model is
-given no SQL, HTTP, ingestion, or general-purpose tools.
+The model receives the original question, bounded structured conversation messages, and a JSON
+representation of retrieved passages. System instructions state that history and passages are
+untrusted reference data, not instructions, and that prior assistant text is not evidence. Only
+current retrieved passage IDs can satisfy citation requirements. The model is given no SQL, HTTP,
+ingestion, or general-purpose tools.
 
 The required response schema contains:
 
@@ -344,7 +356,8 @@ endpoints.
   Terraform variables, repository, and content logs.
 - API, ingestion, and migration identities receive only required roles.
 
-Detailed controls and residual risks are maintained in [SECURITY.md](SECURITY.md).
+Detailed controls and residual risks are maintained in
+[SECURITY.md](../operations/SECURITY.md).
 
 ## 13. Scaling and cost behavior
 
@@ -378,12 +391,13 @@ cache inside the application.
 | Request exceeds application timeout | Return bounded `504` response |
 | Cache unavailable or write fails | Continue with fresh retrieval/generation when possible |
 | Retrieval or model fails | Return bounded error; do not consume successful-answer quota |
+| Conversation tail changed | Return `409`; commit no message pair or successful-answer quota |
 | Unknown generated citation | One repair call, then low-confidence abstention |
 | Ingestion parse or validation fails | Keep the preceding active corpus |
 | Bad application revision | Roll back Cloud Run to a known image |
 | Bad active source version | Run the corpus rollback command |
 
-Operational procedures are in [OPERATIONS.md](OPERATIONS.md).
+Operational procedures are in [OPERATIONS.md](../operations/OPERATIONS.md).
 
 ## 15. Observability and verification
 
@@ -397,8 +411,8 @@ Quality gates include:
 - Frontend unit, accessibility, responsive, navigation, and multi-browser Playwright tests.
 - Dependency audits, secret scans, non-root image checks, and image vulnerability scans.
 - Terraform formatting and validation.
-- A versioned 110-case RAG evaluation suite covering retrieval, citations, ambiguity, abstention,
-  prompt injection, and semantic-cache adversarial pairs.
+- A versioned 121-case RAG evaluation suite covering retrieval, citations, ambiguity, abstention,
+  prompt injection, follow-up context, and semantic-cache adversarial pairs.
 
 ## 16. Code map
 
@@ -438,9 +452,9 @@ Quality gates include:
 
 ## 18. Related documents
 
-- [PRD.md](PRD.md): product requirements, user experience, metrics, and launch gates.
+- [PRD.md](../PRD.md): product requirements, user experience, metrics, and launch gates.
 - [architecture-essentials.md](architecture-essentials.md): concise architecture learning guide.
 - [agent.md](agent.md): RAG agent contract and safeguards.
-- [OPERATIONS.md](OPERATIONS.md): deploy, rollback, recovery, and incident procedures.
-- [SECURITY.md](SECURITY.md): security model and evidence.
-- [INTEGRATION-LESSONS.md](INTEGRATION-LESSONS.md): development issues and lessons.
+- [OPERATIONS.md](../operations/OPERATIONS.md): deploy, rollback, recovery, and incident procedures.
+- [SECURITY.md](../operations/SECURITY.md): security model and evidence.
+- [INTEGRATION-LESSONS.md](../operations/INTEGRATION-LESSONS.md): development issues and lessons.

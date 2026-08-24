@@ -27,7 +27,6 @@ class OpenAIEmbeddingAdapter:
             model=self._model,
             input=texts,
             dimensions=self._dimensions,
-            encoding_format="float",
         )
         if len(response.data) != len(texts):
             raise ValueError("embedding response contained no vectors")

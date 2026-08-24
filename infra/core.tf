@@ -167,6 +167,13 @@ resource "google_service_account" "ingestion" {
   display_name = "MTG RAG ${var.environment} ingestion"
 }
 
+resource "google_service_account" "evaluation" {
+  count = var.environment == "prod" ? 0 : 1
+
+  account_id   = "${local.prefix}-eval"
+  display_name = "MTG RAG ${var.environment} evaluation"
+}
+
 resource "google_service_account" "scheduler" {
   account_id   = "${local.prefix}-schedule"
   display_name = "MTG RAG ${var.environment} scheduler"
@@ -197,6 +204,11 @@ locals {
     "roles/logging.logWriter",
     "roles/monitoring.metricWriter",
   ])
+  evaluation_project_roles = toset([
+    "roles/cloudsql.client",
+    "roles/logging.logWriter",
+    "roles/monitoring.metricWriter",
+  ])
 }
 
 resource "google_project_iam_member" "api" {
@@ -219,6 +231,14 @@ resource "google_project_iam_member" "ingestion" {
   project = var.project_id
   role    = each.value
   member  = "serviceAccount:${google_service_account.ingestion.email}"
+}
+
+resource "google_project_iam_member" "evaluation" {
+  for_each = var.environment == "prod" ? toset([]) : local.evaluation_project_roles
+
+  project = var.project_id
+  role    = each.value
+  member  = "serviceAccount:${google_service_account.evaluation[0].email}"
 }
 
 resource "google_secret_manager_secret_iam_member" "api_openai" {
@@ -245,8 +265,32 @@ resource "google_secret_manager_secret_iam_member" "ingestion_database" {
   member    = "serviceAccount:${google_service_account.ingestion.email}"
 }
 
+resource "google_secret_manager_secret_iam_member" "evaluation_openai" {
+  count = var.environment == "prod" ? 0 : 1
+
+  secret_id = google_secret_manager_secret.openai_api_key.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.evaluation[0].email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "evaluation_database" {
+  count = var.environment == "prod" ? 0 : 1
+
+  secret_id = google_secret_manager_secret.database_url.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.evaluation[0].email}"
+}
+
 resource "google_storage_bucket_iam_member" "ingestion_snapshots" {
   bucket = google_storage_bucket.snapshots.name
   role   = "roles/storage.objectAdmin"
   member = "serviceAccount:${google_service_account.ingestion.email}"
+}
+
+resource "google_storage_bucket_iam_member" "evaluation_captures" {
+  count = var.environment == "prod" ? 0 : 1
+
+  bucket = google_storage_bucket.snapshots.name
+  role   = "roles/storage.objectCreator"
+  member = "serviceAccount:${google_service_account.evaluation[0].email}"
 }

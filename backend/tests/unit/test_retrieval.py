@@ -26,3 +26,54 @@ def test_valid_exact_matches_are_pinned_above_approximate_results() -> None:
 
     assert [item.passage_id for item in result] == ["exact", "approx"]
 
+
+def test_exact_matches_leave_half_the_context_for_multi_path_evidence() -> None:
+    exact = [
+        RankedPassage(f"exact-{index}", rank=index, source="exact", exact=True)
+        for index in range(1, 9)
+    ]
+    lexical = [
+        RankedPassage(f"corroborated-{index}", rank=index, source="lexical")
+        for index in range(1, 5)
+    ]
+    vector = [
+        RankedPassage(f"corroborated-{index}", rank=index, source="vector")
+        for index in range(1, 5)
+    ]
+
+    result = reciprocal_rank_fusion(lexical, vector, exact=exact, limit=8)
+
+    assert [item.passage_id for item in result[:4]] == [
+        "exact-1",
+        "exact-2",
+        "exact-3",
+        "exact-4",
+    ]
+    assert {item.passage_id for item in result[4:]} == {
+        "corroborated-1",
+        "corroborated-2",
+        "corroborated-3",
+        "corroborated-4",
+    }
+
+
+def test_protected_anchored_rule_survives_exact_pins_and_multi_path_noise() -> None:
+    exact = [
+        RankedPassage(f"exact-{index}", rank=index, source="exact", exact=True)
+        for index in range(1, 5)
+    ]
+    lexical = [
+        RankedPassage("lexical-1", rank=1, source="lexical"),
+        RankedPassage("lexical-2", rank=2, source="lexical"),
+        RankedPassage("governing-rule", rank=3, source="lexical", protected=True),
+        RankedPassage("lexical-4", rank=4, source="lexical"),
+    ]
+    vector = [
+        RankedPassage(f"vector-{index}", rank=index, source="vector")
+        for index in range(1, 9)
+    ]
+
+    result = reciprocal_rank_fusion(lexical, vector, exact=exact, limit=8)
+
+    assert "governing-rule" in {item.passage_id for item in result}
+    assert next(item for item in result if item.passage_id == "governing-rule").protected

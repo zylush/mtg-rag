@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Self
+from typing import Any, Self, cast
 
 from pydantic import HttpUrl, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -19,10 +19,13 @@ class Settings(BaseSettings):
     openai_generation_model: str = "gpt-5.6-luna"
     openai_embedding_model: str = "text-embedding-3-small"
     embedding_dimensions: int = 1536
-    prompt_version: str = "mtg-answer-v1"
-    retrieval_version: str = "rrf-v1"
+    prompt_version: str = "mtg-answer-v14"
+    retrieval_version: str = "rrf-v10"
     semantic_cache_similarity: float = 0.98
     semantic_cache_ttl_days: int = 7
+    conversation_context_enabled: bool = False
+    conversation_context_max_messages: int = 6
+    conversation_context_max_characters: int = 6000
     daily_answer_limit: int = 20
     burst_limit_per_minute: int = 5
     max_question_characters: int = 2000
@@ -56,6 +59,8 @@ class Settings(BaseSettings):
         "daily_answer_limit",
         "burst_limit_per_minute",
         "max_question_characters",
+        "conversation_context_max_messages",
+        "conversation_context_max_characters",
         "max_request_body_bytes",
         "max_response_body_bytes",
     )
@@ -91,4 +96,5 @@ class Settings(BaseSettings):
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    return Settings()
+    # Required values are supplied by BaseSettings from MTG_RAG_* environment variables.
+    return cast(Settings, cast(Any, Settings)())

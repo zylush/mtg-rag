@@ -1,14 +1,16 @@
 import { ArrowRight, BookOpenCheck, ExternalLink, FileText, ShieldCheck } from "lucide-react"
-import type { ReactNode } from "react"
+import { useState, type FormEvent, type ReactNode } from "react"
 
 import { BrandMark } from "./BrandMark"
 import { AppLink } from "./routing"
+import type { AskResponse } from "./types"
 
 interface PublicAuthActions {
   authenticated?: boolean
   onSignIn?: () => void
   signingIn?: boolean
   signInError?: boolean
+  onPublicAsk?: (question: string) => Promise<AskResponse>
 }
 
 function PublicHeader({ authenticated = false, onSignIn, signingIn }: PublicAuthActions) {
@@ -22,7 +24,7 @@ function PublicHeader({ authenticated = false, onSignIn, signingIn }: PublicAuth
         <BrandMark className="wordmark-mark" />
         <span>
           <strong>MTG Rules Desk</strong>
-          <small>Grounded rules reference</small>
+          <small>Public development preview</small>
         </span>
       </AppLink>
       <nav aria-label="Public">
@@ -51,7 +53,7 @@ function PublicFooter() {
     <footer className="public-footer">
       <div>
         <span className="eyebrow">MTG Rules Desk</span>
-        <p>Unofficial fan reference for English-language rules questions.</p>
+        <p>Unofficial development preview for English-language rules questions.</p>
       </div>
       <nav aria-label="Footer">
         <AppLink to="/about">About</AppLink>
@@ -60,9 +62,10 @@ function PublicFooter() {
         <a href="mailto:paoloinigo30@gmail.com">Support</a>
       </nav>
       <p className="attribution-copy">
-        MTG Rules Desk is unofficial fan content. Wizards of the Coast neither approves nor
-        endorses this app. Card data and rulings are provided by Scryfall; Scryfall does not
-        endorse this app.
+        MTG Rules Desk is unofficial Fan Content permitted under the Fan Content Policy. Not
+        approved or endorsed by Wizards of the Coast. Portions of the materials used are property
+        of Wizards of the Coast LLC. Card data and rulings are provided through Scryfall; Scryfall
+        does not endorse this app.
       </p>
     </footer>
   )
@@ -88,6 +91,108 @@ function PublicLayout({
       {children}
       <PublicFooter />
     </div>
+  )
+}
+
+function publicCitationUrl(url: string): string | undefined {
+  try {
+    const parsed = new URL(url)
+    if (
+      parsed.protocol === "https:" &&
+      ["magic.wizards.com", "scryfall.com"].includes(parsed.hostname)
+    ) {
+      return parsed.toString()
+    }
+  } catch {
+    return undefined
+  }
+  return undefined
+}
+
+function PublicAskPanel({ onAsk }: { onAsk?: PublicAuthActions["onPublicAsk"] }) {
+  const [question, setQuestion] = useState("")
+  const [answer, setAnswer] = useState<AskResponse>()
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState(false)
+
+  if (!onAsk) return null
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const text = question.trim()
+    if (!text || pending) return
+    setPending(true)
+    setError(false)
+    try {
+      setAnswer(await onAsk(text))
+      setQuestion("")
+    } catch {
+      setError(true)
+    } finally {
+      setPending(false)
+    }
+  }
+
+  return (
+    <section className="public-ask-panel" aria-labelledby="public-ask-heading">
+      <div>
+        <span className="eyebrow">Open table</span>
+        <h2 id="public-ask-heading">Try one rules question without an account.</h2>
+        <p>
+          Public questions are free and are not added to account history. Sign in only when you
+          want saved conversations, feedback, and account controls.
+        </p>
+      </div>
+      <form className="public-ask-form" onSubmit={submit}>
+        <label htmlFor="public-rules-question">Your rules question</label>
+        <textarea
+          id="public-rules-question"
+          maxLength={2000}
+          rows={3}
+          placeholder="Example: How does Blood Moon interact with Urza's Saga?"
+          value={question}
+          onChange={(event) => setQuestion(event.target.value)}
+        />
+        <div className="public-ask-actions">
+          <button className="primary-button" type="submit" disabled={pending || !question.trim()}>
+            {pending ? "Checking the rules..." : "Ask for free"}
+            <ArrowRight aria-hidden="true" size={17} />
+          </button>
+          <span>One question at a time · no email required</span>
+        </div>
+      </form>
+      {error && (
+        <p className="public-ask-error" role="alert">
+          The public desk could not complete that question. Try again later or sign in to use your
+          saved desk.
+        </p>
+      )}
+      {answer && (
+        <article className="public-ask-result" aria-live="polite">
+          <span className="section-label">Desk answer</span>
+          <p>{answer.answer}</p>
+          {answer.citations.length > 0 && (
+            <ul aria-label="Answer sources">
+              {answer.citations.map((citation) => {
+                const href = publicCitationUrl(citation.url)
+                return (
+                  <li key={`${citation.passage_id}-${citation.label}`}>
+                    {href ? (
+                      <a href={href} target="_blank" rel="noreferrer">
+                        {citation.label}
+                      </a>
+                    ) : (
+                      citation.label
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+          <small>Public answers are informational and are not official tournament rulings.</small>
+        </article>
+      )}
+    </section>
   )
 }
 
@@ -131,7 +236,7 @@ function RulingLedgerPreview() {
   )
 }
 
-export function WelcomePage({ onSignIn, signingIn, signInError }: PublicAuthActions) {
+export function WelcomePage({ onSignIn, signingIn, signInError, onPublicAsk }: PublicAuthActions) {
   return (
     <PublicLayout onSignIn={onSignIn} signingIn={signingIn} signInError={signInError}>
       <main className="public-page welcome-page">
@@ -162,8 +267,8 @@ export function WelcomePage({ onSignIn, signingIn, signInError }: PublicAuthActi
               Your API key stays on the server. Answers show their sources.
             </p>
             <p className="hero-note">
-              Live questions require an account and an internet connection. The preview on this
-              page is static.
+              Public questions need an internet connection. Sign in when you want to save the
+              conversation to your account.
             </p>
           </div>
           <RulingLedgerPreview />
@@ -199,6 +304,8 @@ export function WelcomePage({ onSignIn, signingIn, signInError }: PublicAuthActi
             of the Coast support, a tournament ruling, or a substitute for a judge.
           </p>
         </section>
+
+        <PublicAskPanel onAsk={onPublicAsk} />
       </main>
     </PublicLayout>
   )
@@ -253,9 +360,20 @@ export function AboutPage({
           <h2>Reference material, clearly named.</h2>
           <p>
             The corpus combines the Wizards of the Coast Comprehensive Rules with Oracle card and
-            ruling data provided through Scryfall. MTG Rules Desk is unofficial fan content.
-            Wizards of the Coast neither approves nor endorses it, and Scryfall does not endorse
-            this app.
+            ruling data provided through Scryfall. MTG Rules Desk is unofficial Fan Content
+            permitted under the Fan Content Policy. It is not approved or endorsed by Wizards of
+            the Coast, and Scryfall does not endorse this app. Magic: The Gathering and related
+            marks are property of Wizards of the Coast LLC.
+          </p>
+          <p>
+            Read the{" "}
+            <a href="https://company.wizards.com/en/legal/fancontentpolicy">
+              Wizards Fan Content Policy
+            </a>
+            , the{" "}
+            <a href="https://magic.wizards.com/en/rules">official Comprehensive Rules</a>, and{" "}
+            <a href="https://scryfall.com/docs/api">Scryfall API documentation</a> for source
+            and usage context.
           </p>
         </section>
 
@@ -266,6 +384,18 @@ export function AboutPage({
             Answers may ask for more context or abstain when a missing zone, timing detail, or
             card identity could change the result. Strategy, deck building, card prices, and
             tournament policy are outside the v1 scope.
+          </p>
+        </section>
+
+        <section className="about-section about-support">
+          <span className="section-label">Support and corrections</span>
+          <h2>Find a source problem? Tell us.</h2>
+          <p>
+            Email{" "}
+            <a href="mailto:paoloinigo30@gmail.com">paoloinigo30@gmail.com</a> for privacy
+            requests, account deletion help, accessibility issues, source corrections, or
+            copyright and attribution concerns. Please do not include passwords, tokens, or
+            sensitive personal information in a support message.
           </p>
         </section>
       </main>
@@ -283,13 +413,83 @@ interface LegalSection {
 }
 
 const TERMS_SECTIONS: LegalSection[] = [
-  { id: "service", title: "1. Service", paragraphs: ["Describe the MTG Rules Desk service and its supported scope here."] },
-  { id: "accounts", title: "2. Accounts and eligibility", paragraphs: ["Provide operator-approved account, age, and eligibility terms here."] },
-  { id: "use", title: "3. Acceptable use", paragraphs: ["Provide operator-approved rules for using the service here."] },
-  { id: "sources", title: "4. Sources and attribution", paragraphs: ["Describe third-party sources, links, attribution, and non-endorsement language here."] },
-  { id: "answers", title: "5. AI-generated answers", paragraphs: ["Describe limitations, disclaimers, and the non-official nature of answers here."] },
-  { id: "account-controls", title: "6. Deletion and termination", paragraphs: ["Describe conversation deletion, account deletion, and termination conditions here."] },
-  { id: "changes", title: "7. Changes and contact", paragraphs: ["Provide change-notice, governing-law, dispute, and support-contact language here."] },
+  {
+    id: "service",
+    title: "1. The service",
+    paragraphs: [
+      "MTG Rules Desk is an English-language, unofficial reference that helps players research Magic: The Gathering rules questions. It retrieves public rules, Oracle card information, and dated rulings, then presents an AI-generated explanation with citations.",
+      "This is a public development preview, not a production-ready service. Availability, correctness, and continued access are not guaranteed, and no service-level commitment is offered.",
+      "The service is informational only. It is not Wizards of the Coast customer support, an official judge, a tournament ruling, a rules replacement, or a promise that a game, event, or card interaction will be decided a particular way.",
+      "You may submit one or more free public questions without creating an account. Public answers are ephemeral and are not added to account history. A Google account is optional and is used for saved conversations, feedback, quotas, and account controls.",
+    ],
+  },
+  {
+    id: "accounts",
+    title: "2. Accounts and eligibility",
+    paragraphs: [
+      "You may use the public question path without email registration. To save history or use account features, you must sign in through Google and provide information that is accurate for that sign-in provider.",
+      "You are responsible for activity under your account and for keeping access to your Google account secure. Do not use another person's account or try to bypass authentication, quotas, or safety controls. If local law requires consent or supervision for your use of an online service, you must obtain it.",
+    ],
+  },
+  {
+    id: "use",
+    title: "3. Acceptable use",
+    paragraphs: [
+      "Use MTG Rules Desk for lawful rules research and good-faith play discussions. Do not use it to overload, scrape, probe, reverse engineer, or interfere with the service; evade rate limits; submit malware or automated attack traffic; impersonate Wizards of the Coast, Scryfall, the operator, or a judge; or attempt to access another user's data.",
+      "Do not submit passwords, API keys, payment details, government identifiers, health information, or other sensitive personal information. Do not submit content that infringes another person's rights or that you are not permitted to share.",
+    ],
+  },
+  {
+    id: "sources",
+    title: "4. Sources and attribution",
+    paragraphs: [
+      "The service is unofficial Fan Content permitted under the Wizards of the Coast Fan Content Policy. It is not approved, sponsored, or endorsed by Wizards of the Coast. Magic: The Gathering and related marks belong to Wizards of the Coast LLC.",
+      "MTG Rules Desk is unofficial Fan Content permitted under the Fan Content Policy. Not approved or endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast LLC. © Wizards of the Coast LLC.",
+      <>
+        Card data and rulings are provided through{" "}
+        <a href="https://scryfall.com/">Scryfall</a>. Scryfall does not endorse MTG Rules Desk.
+        The service links to source material and adds its own explanatory answer; it is not a
+        replacement for a source site or a re-packaged source database.
+      </>,
+    ],
+  },
+  {
+    id: "answers",
+    title: "5. AI-generated answers and limitations",
+    paragraphs: [
+      "Answers are generated from the active rules corpus and may be incomplete, stale, ambiguous, or wrong. Citations and confidence labels are safeguards, not guarantees. Check the linked source material and ask a qualified judge for a binding event ruling.",
+      "The service does not provide legal, financial, medical, or professional advice. Do not rely on an answer as the sole basis for a consequential decision. The operator may correct, remove, or decline to answer a question without notice.",
+    ],
+  },
+  {
+    id: "content",
+    title: "6. Your questions and service license",
+    paragraphs: [
+      "You keep your rights in questions, feedback, and other material you submit, subject to rights that already belong to someone else. You give the operator a limited, non-exclusive license to host, process, transmit, cache, display, and use that material only as reasonably necessary to provide, secure, troubleshoot, and improve the service.",
+      "Do not submit unsolicited game designs, unpublished product ideas, or confidential material. Public questions that qualify for semantic caching may be retained without an account identifier for up to seven days, as described in the Privacy Policy.",
+    ],
+  },
+  {
+    id: "account-controls",
+    title: "7. Deletion, suspension, and availability",
+    paragraphs: [
+      "You can delete saved conversations and request account deletion from the authenticated desk. Public questions do not create account history, but eligible shared-cache records expire separately. Sign-out ends a browser session; it does not by itself delete saved data.",
+      "The operator may limit, suspend, or end access when necessary to protect users, source rights, service reliability, or security, including when these Terms are violated. The service may change or be unavailable, and no uptime or preservation guarantee is made.",
+    ],
+  },
+  {
+    id: "changes",
+    title: "8. Changes and contact",
+    paragraphs: [
+      "These Terms describe the current operational product. The operator may update them when the product, providers, source policies, or legal requirements change. The date at the top of this page identifies the current revision; material changes may also be announced in the app.",
+      <>
+        Questions, privacy requests, source corrections, accessibility issues, and copyright or
+        attribution concerns can be sent to{" "}
+        <a href="mailto:paoloinigo30@gmail.com">paoloinigo30@gmail.com</a>. No paid plan or
+        purchase flow is currently offered.
+      </>,
+    ],
+  },
 ]
 
 const PRIVACY_SECTIONS: LegalSection[] = [
@@ -298,7 +498,8 @@ const PRIVACY_SECTIONS: LegalSection[] = [
     title: "1. Scope and summary",
     paragraphs: [
       "This Privacy Policy explains how MTG Rules Desk processes information when you sign in, ask a rules question, save or delete a conversation, submit feedback, install the progressive web app, or contact support.",
-      "MTG Rules Desk is an unofficial, English-language Magic: The Gathering rules reference. Please do not include personal, confidential, or sensitive information in a rules question or feedback comment.",
+      "You can ask a free public question without an account or email registration. Public questions are not added to account history, but the question and answer may be processed in a shared semantic cache for up to seven days when they meet the cache rules described below. Please do not include personal, confidential, or sensitive information in a rules question or feedback comment.",
+      "MTG Rules Desk is an unofficial, English-language Magic: The Gathering rules reference. It is not affiliated with, approved by, or endorsed by Wizards of the Coast or Scryfall.",
     ],
   },
   {
@@ -354,14 +555,14 @@ const PRIVACY_SECTIONS: LegalSection[] = [
     title: "6. Semantic cache",
     paragraphs: [
       "Eligible high-confidence, non-ambiguous questions, their embeddings, generated answers, and citation identifiers may remain in a shared semantic cache for up to seven days. The cache is used to return a previously validated answer for a sufficiently similar question using the same active corpus and model configuration.",
-      "A cache record is not linked to a user account, but its normalized question text is retained. This means deleting an account does not immediately target that separate cache entry; it expires automatically within the cache period. Avoid placing identifying or sensitive details in questions.",
+      "A cache record is not linked to a user account. Public and authenticated questions can use the same cache, and the normalized question text is retained until the entry expires. Deleting an account does not immediately target that separate cache entry; it expires automatically within the cache period. Avoid placing identifying or sensitive details in questions.",
     ],
   },
   {
     id: "retention",
     title: "7. Retention and deletion",
     paragraphs: [
-      "Saved conversations, messages, citations, feedback, account identifiers, and usage records remain in Cloud SQL while your account is active unless you delete a conversation or your account. The current application does not apply a shorter automatic retention period to saved history.",
+      "Saved conversations, messages, citations, feedback, account identifiers, and usage records remain in Cloud SQL while your account is active unless you delete a conversation or your account. Public questions are not written to account history; eligible public question material may remain in the shared semantic cache for up to seven days.",
       "Deleting a conversation removes that conversation, its messages, citations, and associated feedback. Deleting your account removes application-owned records associated with your account and then requests deletion of the Firebase identity. Sign-out only ends the browser session and does not delete saved data.",
       "Backups, security records, provider records, and information required by law may persist for a limited period under provider or operational retention settings. Shared semantic-cache entries expire separately as described above.",
     ],
@@ -431,8 +632,8 @@ export function LegalDocumentPage({
   const title = isTerms ? "Terms of Service" : "Privacy Policy"
   const sections = isTerms ? TERMS_SECTIONS : PRIVACY_SECTIONS
   const dateLine = isTerms
-    ? "Effective date: operator review required · Last updated: operator review required"
-    : "Effective date: August 17, 2026 · Last updated: August 17, 2026"
+    ? "Operational terms · Effective date: August 24, 2026 · Last updated: August 24, 2026"
+    : "Effective date: August 24, 2026 · Last updated: August 24, 2026"
 
   return (
     <PublicLayout
@@ -452,8 +653,8 @@ export function LegalDocumentPage({
           <strong>Pending legal review</strong>
           <span>
             {isTerms
-              ? "This page is a structured content outline. Replace the marked sections with operator-approved policy text before public launch."
-              : "This implementation-aligned draft must be reviewed and approved by the operator and qualified counsel before public launch."}
+              ? "The operational terms are complete for the current product. The operator must still obtain qualified legal review and publish the approved version before public launch."
+              : "This implementation-aligned policy is complete for the current product. The operator must still obtain qualified legal review and publish the approved version before public launch."}
           </span>
         </div>
 
@@ -490,8 +691,9 @@ export function LegalDocumentPage({
         <p className="legal-source-note">
           {isTerms ? (
             <>
-              This outline is not legal advice. Contact the operator listed in the final reviewed
-              document with questions.
+              This operational version is not legal advice and does not claim approval by Wizards
+              of the Coast, Scryfall, or qualified counsel. Contact the operator listed above with
+              questions.
               <ExternalLink aria-hidden="true" size={14} />
             </>
           ) : (

@@ -1,4 +1,6 @@
 from pgvector.sqlalchemy import VECTOR
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.dialects.postgresql import JSONB
 
 from app.db import models  # noqa: F401
 from app.db.base import Base
@@ -19,11 +21,36 @@ def test_schema_contains_every_core_entity_from_the_plan() -> None:
         "application_users",
         "daily_usage",
         "ask_attempts",
+        "ask_requests",
         "conversations",
         "messages",
         "answer_citations",
         "feedback",
     }.issubset(Base.metadata.tables)
+
+
+def test_ask_request_keys_are_unique_per_user_and_cascade_with_account_deletion() -> None:
+    ask_requests = Base.metadata.tables["ask_requests"]
+    unique_columns = {
+        tuple(column.name for column in constraint.columns)
+        for constraint in ask_requests.constraints
+        if constraint.__class__.__name__ == "UniqueConstraint"
+    }
+
+    assert ("user_id", "client_request_id") in unique_columns
+    user_foreign_key = next(iter(ask_requests.c.user_id.foreign_keys))
+    assert user_foreign_key.target_fullname == "application_users.id"
+    assert user_foreign_key.ondelete == "CASCADE"
+
+
+def test_in_progress_ask_request_response_none_binds_as_sql_null() -> None:
+    response_type = Base.metadata.tables["ask_requests"].c.response.type
+    bind_processor = response_type.bind_processor(postgresql.dialect())
+
+    assert isinstance(response_type, JSONB)
+    assert response_type.none_as_null is True
+    assert bind_processor is not None
+    assert bind_processor(None) is None
 
 
 def test_passage_embeddings_are_pinned_to_1536_dimensions() -> None:

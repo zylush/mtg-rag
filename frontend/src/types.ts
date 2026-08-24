@@ -50,7 +50,8 @@ export interface ConversationDetail {
 }
 
 export interface ApiPort {
-  ask(question: string, conversationId?: string): Promise<AskResponse>
+  ask(question: string, conversationId: string | undefined, requestId: string): Promise<AskResponse>
+  publicAsk(question: string): Promise<AskResponse>
   conversations(): Promise<ConversationSummary[]>
   conversation(id: string): Promise<ConversationDetail>
   deleteConversation(id: string): Promise<void>

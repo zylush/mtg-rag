@@ -34,8 +34,9 @@ export const SEO_PAGES: Record<SeoShellRoute, SeoPageDefinition> = {
     indexable: true,
   },
   "/terms": {
-    title: "Draft Terms of Service | MTG Rules Desk",
-    description: "Draft Terms of Service for MTG Rules Desk, pending operator and legal review.",
+    title: "Terms of Service | MTG Rules Desk",
+    description:
+      "Operational Terms of Service for MTG Rules Desk, including public access, source attribution, AI-answer limits, deletion, and support.",
     indexable: false,
   },
   "/privacy": {

@@ -47,6 +47,17 @@ test("opens and permanently deletes conversation history", async ({ page }) => {
   await expect(page.getByText("Your answered questions will appear here.")).toBeVisible()
 })
 
+test("explains when another tab advances the conversation", async ({ page }) => {
+  await page.goto("/e2e.html?failure=conflict")
+  await page.getByRole("button", { name: "Sign in with Google" }).click()
+  await page.getByRole("textbox", { name: "Rules question" }).fill("What if it has hexproof?")
+  await page.getByRole("button", { name: "Ask", exact: true }).click()
+
+  await expect(page.getByRole("alert")).toContainText(
+    /conversation changed.*review.*submit again/i,
+  )
+})
+
 test("surfaces quota enforcement without producing an answer", async ({ page }) => {
   await signIn(page)
   await page.getByRole("textbox", { name: "Rules question" }).fill("quota")
@@ -178,7 +189,8 @@ test("supports keyboard entry and stable layouts at release breakpoints", async 
       await expect(page).toHaveScreenshot(`rules-desk-${width}.png`, {
         animations: "disabled",
         fullPage: true,
-        maxDiffPixels: 200,
+        // Permit at most 0.1% Linux rasterization drift while still catching layout changes.
+        maxDiffPixelRatio: 0.001,
       })
     }
   }

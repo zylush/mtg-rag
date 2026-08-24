@@ -55,12 +55,27 @@ variable "frontend_origin" {
 }
 
 variable "api_image" {
-  description = "Immutable or versioned Artifact Registry image for both API and ingestion."
+  description = "Immutable or versioned Artifact Registry image for the API and non-migration jobs."
   type        = string
 
   validation {
     condition     = can(regex("(@sha256:[0-9a-f]{64}|:[^/:]+)$", var.api_image)) && !endswith(var.api_image, ":latest")
     error_message = "api_image must use a digest or a non-latest tag."
+  }
+}
+
+variable "migration_image" {
+  description = "Optional migration-job image used for a migration-first rollout; defaults to api_image."
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition = var.migration_image == null ? true : (
+      can(regex("(@sha256:[0-9a-f]{64}|:[^/:]+)$", var.migration_image)) &&
+      !endswith(var.migration_image, ":latest")
+    )
+    error_message = "migration_image must be null or use a digest or a non-latest tag."
   }
 }
 
@@ -102,6 +117,34 @@ variable "embedding_dimensions" {
   description = "Vector dimensions stored in pgvector."
   type        = number
   default     = 1536
+}
+
+variable "conversation_context_enabled" {
+  description = "Enable bounded prior-message context for follow-up questions."
+  type        = bool
+  default     = false
+}
+
+variable "conversation_context_max_messages" {
+  description = "Maximum prior messages loaded for a contextual follow-up."
+  type        = number
+  default     = 6
+
+  validation {
+    condition     = var.conversation_context_max_messages > 0
+    error_message = "conversation_context_max_messages must be positive."
+  }
+}
+
+variable "conversation_context_max_characters" {
+  description = "Maximum serialized characters of prior conversation context."
+  type        = number
+  default     = 6000
+
+  validation {
+    condition     = var.conversation_context_max_characters > 0
+    error_message = "conversation_context_max_characters must be positive."
+  }
 }
 
 variable "cloud_run_max_instances" {

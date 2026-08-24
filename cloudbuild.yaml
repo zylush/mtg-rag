@@ -38,8 +38,8 @@ steps:
         done
         docker run --rm --network cloudbuild -v /workspace:/workspace:ro -e MTG_RAG_DATABASE_URL=postgresql+asyncpg://mtg:mtg@mtg-rag-ci-db:5432/mtg -e MTG_RAG_FRONTEND_ORIGIN=http://localhost:5173 mtg-rag-test:$BUILD_ID sh -ceu '
             alembic upgrade head
-            ruff check app tests
-            mypy app
+            ruff check app tests /workspace/scripts/qualification
+            mypy app /workspace/scripts/qualification
             pip-audit
             coverage run --branch --source=/app/app -m pytest /workspace/backend/tests --import-mode=importlib -o cache_dir=/tmp/pytest-cache
             coverage report --fail-under=80
@@ -77,7 +77,7 @@ steps:
     args:
       - build
       - --target=runtime
-      - --tag=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE_NAME}:$SHORT_SHA
+      - --tag=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE_NAME}:$BUILD_ID
       - backend
 
   - id: inspect-runtime-image
@@ -86,7 +86,7 @@ steps:
     args:
       - -ceu
       - |
-        image="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE_NAME}:$SHORT_SHA"
+        image="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE_NAME}:$BUILD_ID"
         test "$$(docker image inspect "$$image" --format '{{.Config.User}}')" = app
         if docker image inspect "$$image" --format '{{json .Config.Env}}' | grep -E 'OPENAI_API_KEY|sk-[A-Za-z0-9]'; then
           echo "credential-like content found in container environment" >&2
@@ -101,10 +101,10 @@ steps:
       - --severity=HIGH,CRITICAL
       - --ignore-unfixed
       - --no-progress
-      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE_NAME}:$SHORT_SHA
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE_NAME}:$BUILD_ID
 
 images:
-  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE_NAME}:$SHORT_SHA
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_IMAGE_NAME}:$BUILD_ID
 
 options:
   logging: CLOUD_LOGGING_ONLY

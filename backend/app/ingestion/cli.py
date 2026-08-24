@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import argparse
 import asyncio
 import json
 import logging
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass
 from html.parser import HTMLParser
 from urllib.parse import urljoin, urlparse
@@ -40,6 +42,7 @@ from app.retrieval.embeddings import OpenAIEmbeddingAdapter
 RULES_PAGE_URL = "https://magic.wizards.com/en/rules"
 SCRYFALL_BULK_CATALOG_URL = "https://api.scryfall.com/bulk-data"
 SOURCE_USER_AGENT = "MTG-RAG/0.1 (scheduled corpus refresh)"
+SOURCE_ORDER = ("rules", "cards", "rulings")
 
 
 class SourceDiscoveryError(RuntimeError):
@@ -111,7 +114,10 @@ def _scryfall_urls(payload: bytes) -> tuple[str, str]:
 
     discovered: dict[str, str] = {}
     for entry in catalog["data"]:
-        if not isinstance(entry, dict) or entry.get("type") not in {"oracle_cards", "rulings"}:
+        if not isinstance(entry, dict) or entry.get("type") not in {
+            "default_cards",
+            "rulings",
+        }:
             continue
         download_uri = entry.get("jsonl_download_uri") or entry.get("download_uri")
         if not isinstance(download_uri, str):
@@ -120,9 +126,9 @@ def _scryfall_urls(payload: bytes) -> tuple[str, str]:
             download_uri,
             hosts=frozenset({"data.scryfall.io"}),
         )
-    if set(discovered) != {"oracle_cards", "rulings"}:
+    if set(discovered) != {"default_cards", "rulings"}:
         raise SourceDiscoveryError("Scryfall catalog is missing required bulk types")
-    return discovered["oracle_cards"], discovered["rulings"]
+    return discovered["default_cards"], discovered["rulings"]
 
 
 async def _download_with_retry(
@@ -184,9 +190,9 @@ def build_source_jobs(urls: SourceURLs) -> tuple[tuple[SourceDefinition, Parser]
         (
             SourceDefinition(
                 name="cards",
-                source_type="scryfall_oracle_cards",
+                source_type="scryfall_default_cards",
                 url=urls.cards,
-                parser_version="scryfall-cards-v1",
+                parser_version="scryfall-cards-v2",
                 schema_version="corpus-v1",
                 minimum_record_count=25_000,
             ),
@@ -209,11 +215,29 @@ def build_source_jobs(urls: SourceURLs) -> tuple[tuple[SourceDefinition, Parser]
 async def refresh_all(
     pipeline: IngestionPipeline,
     urls: SourceURLs,
+    *,
+    source_names: tuple[str, ...] = SOURCE_ORDER,
 ) -> tuple[IngestionResult, ...]:
+    if len(source_names) != len(set(source_names)):
+        raise ValueError("ingestion sources must not contain duplicates")
+    unknown = set(source_names).difference(SOURCE_ORDER)
+    if unknown:
+        raise ValueError("unknown ingestion source")
+    jobs = {source.name: (source, parser) for source, parser in build_source_jobs(urls)}
     results: list[IngestionResult] = []
-    for source, parser in build_source_jobs(urls):
+    for source_name in source_names:
+        source, parser = jobs[source_name]
         results.append(await pipeline.refresh(source, parse=parser))
     return tuple(results)
+
+
+def _parse_sources(argv: Sequence[str] | None = None) -> tuple[str, ...]:
+    parser = argparse.ArgumentParser(description="Refresh versioned MTG source corpora")
+    parser.add_argument("sources", nargs="*", choices=SOURCE_ORDER)
+    sources = tuple(parser.parse_args(argv).sources) or SOURCE_ORDER
+    if len(sources) != len(set(sources)):
+        raise ValueError("ingestion sources must not contain duplicates")
+    return sources
 
 
 def _source_policy(source_name: str) -> DownloadPolicy:
@@ -253,7 +277,11 @@ def _configure_logging(level: str) -> None:
     root.setLevel(level.upper())
 
 
-async def run_ingestion_job(settings: Settings | None = None) -> tuple[IngestionResult, ...]:
+async def run_ingestion_job(
+    settings: Settings | None = None,
+    *,
+    source_names: tuple[str, ...] = SOURCE_ORDER,
+) -> tuple[IngestionResult, ...]:
     resolved_settings = settings or get_settings()
     if resolved_settings.openai_api_key is None:
         raise RuntimeError("MTG_RAG_OPENAI_API_KEY is required for ingestion")
@@ -297,8 +325,8 @@ async def run_ingestion_job(settings: Settings | None = None) -> tuple[Ingestion
                 ),
                 download=download,
             )
-            results = await refresh_all(pipeline, urls)
-            for source, result in zip(("rules", "cards", "rulings"), results, strict=True):
+            results = await refresh_all(pipeline, urls, source_names=source_names)
+            for source, result in zip(source_names, results, strict=True):
                 logger.info(
                     "source refresh completed",
                     extra={
@@ -317,7 +345,7 @@ async def run_ingestion_job(settings: Settings | None = None) -> tuple[Ingestion
 
 def main() -> None:
     try:
-        asyncio.run(run_ingestion_job())
+        asyncio.run(run_ingestion_job(source_names=_parse_sources(sys.argv[1:])))
     except Exception:
         logging.getLogger("mtg_rag.ingestion").exception("ingestion job failed")
         raise SystemExit(1) from None

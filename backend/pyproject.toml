@@ -39,6 +39,8 @@ dev = [
 [project.scripts]
 mtg-rag-ingest = "app.ingestion.cli:main"
 mtg-rag-eval = "app.evals.harness:main"
+mtg-rag-capture = "app.evals.runner:main"
+mtg-rag-review = "app.evals.review:main"
 mtg-rag-rollback-corpus = "app.ingestion.rollback:main"
 
 [tool.hatch.build.targets.wheel]

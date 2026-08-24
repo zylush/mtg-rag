@@ -1,13 +1,16 @@
 locals {
   runtime_environment = {
-    MTG_RAG_ENVIRONMENT             = var.environment
-    MTG_RAG_FRONTEND_ORIGIN         = var.frontend_origin
-    MTG_RAG_OPENAI_GENERATION_MODEL = var.generation_model
-    MTG_RAG_OPENAI_EMBEDDING_MODEL  = var.embedding_model
-    MTG_RAG_EMBEDDING_DIMENSIONS    = tostring(var.embedding_dimensions)
-    MTG_RAG_GCP_PROJECT_ID          = var.project_id
-    MTG_RAG_GCS_SNAPSHOT_BUCKET     = google_storage_bucket.snapshots.name
-    MTG_RAG_LOG_LEVEL               = "INFO"
+    MTG_RAG_ENVIRONMENT                         = var.environment
+    MTG_RAG_FRONTEND_ORIGIN                     = var.frontend_origin
+    MTG_RAG_OPENAI_GENERATION_MODEL             = var.generation_model
+    MTG_RAG_OPENAI_EMBEDDING_MODEL              = var.embedding_model
+    MTG_RAG_EMBEDDING_DIMENSIONS                = tostring(var.embedding_dimensions)
+    MTG_RAG_CONVERSATION_CONTEXT_ENABLED        = tostring(var.conversation_context_enabled)
+    MTG_RAG_CONVERSATION_CONTEXT_MAX_MESSAGES   = tostring(var.conversation_context_max_messages)
+    MTG_RAG_CONVERSATION_CONTEXT_MAX_CHARACTERS = tostring(var.conversation_context_max_characters)
+    MTG_RAG_GCP_PROJECT_ID                      = var.project_id
+    MTG_RAG_GCS_SNAPSHOT_BUCKET                 = google_storage_bucket.snapshots.name
+    MTG_RAG_LOG_LEVEL                           = "INFO"
   }
 }
 

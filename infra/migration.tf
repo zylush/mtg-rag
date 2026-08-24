@@ -12,7 +12,7 @@ resource "google_cloud_run_v2_job" "migration" {
       max_retries     = 0
 
       containers {
-        image   = var.api_image
+        image   = coalesce(var.migration_image, var.api_image)
         command = ["alembic"]
         args    = ["upgrade", "head"]
 

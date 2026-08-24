@@ -26,12 +26,17 @@ class FakeAuth:
 
 class FakeAsk:
     def __init__(self) -> None:
-        self.calls: list[tuple[str, str, UUID | None]] = []
+        self.calls: list[tuple[str, str, UUID | None, UUID]] = []
 
     async def ask(
-        self, *, user: AuthenticatedUser, question: str, conversation_id: UUID | None
+        self,
+        *,
+        user: AuthenticatedUser,
+        question: str,
+        conversation_id: UUID | None,
+        request_id: UUID,
     ) -> AskResponse:
-        self.calls.append((user.firebase_uid, question, conversation_id))
+        self.calls.append((user.firebase_uid, question, conversation_id, request_id))
         return AskResponse(
             conversation_id=UUID("00000000-0000-0000-0000-000000000010"),
             message_id=UUID("00000000-0000-0000-0000-000000000011"),
@@ -48,6 +53,20 @@ class FakeAsk:
             confidence="high",
             needs_clarification=False,
             quota_remaining=19,
+            cache_status="miss",
+        )
+
+    async def ask_public(self, *, question: str, client_key: str) -> AskResponse:
+        self.calls.append((f"public:{client_key}", question, None))
+        return AskResponse(
+            conversation_id=UUID("00000000-0000-0000-0000-000000000010"),
+            message_id=UUID("00000000-0000-0000-0000-000000000011"),
+            answer="Flying changes how a creature can be blocked.",
+            citations=[],
+            assumptions=[],
+            confidence="high",
+            needs_clarification=False,
+            quota_remaining=0,
             cache_status="miss",
         )
 
@@ -150,6 +169,27 @@ async def test_health_is_minimal_and_unauthenticated(client: httpx.AsyncClient) 
 
 
 @pytest.mark.asyncio
+async def test_public_ask_does_not_require_bearer_auth(client: httpx.AsyncClient) -> None:
+    response = await client.post("/v1/public/ask", json={"question": "What is flying?"})
+
+    assert response.status_code == 200
+    assert response.json()["quota_remaining"] == 0
+
+
+@pytest.mark.asyncio
+async def test_public_ask_rate_limit_is_bounded_per_client(
+    client: httpx.AsyncClient, services: AppServices
+) -> None:
+    for _ in range(5):
+        response = await client.post("/v1/public/ask", json={"question": "What is flying?"})
+        assert response.status_code == 200
+
+    response = await client.post("/v1/public/ask", json={"question": "What is flying?"})
+    assert response.status_code == 429
+    assert response.json() == {"detail": "public question rate limit reached"}
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("method", "path"),
     [
@@ -174,7 +214,12 @@ async def test_ask_validates_question_length_before_calling_service(
     client: httpx.AsyncClient, services: AppServices
 ) -> None:
     response = await client.post(
-        "/v1/ask", headers=auth_headers(), json={"question": "x" * 2001}
+        "/v1/ask",
+        headers=auth_headers(),
+        json={
+            "request_id": "00000000-0000-0000-0000-000000000030",
+            "question": "x" * 2001,
+        },
     )
 
     assert response.status_code == 422
@@ -186,13 +231,37 @@ async def test_authenticated_user_can_ask_and_receives_resolved_citations_and_qu
     client: httpx.AsyncClient, services: AppServices
 ) -> None:
     response = await client.post(
-        "/v1/ask", headers=auth_headers(), json={"question": "What is flying?"}
+        "/v1/ask",
+        headers=auth_headers(),
+        json={
+            "request_id": "00000000-0000-0000-0000-000000000030",
+            "question": "What is flying?",
+        },
     )
 
     assert response.status_code == 200
     assert response.json()["quota_remaining"] == 19
     assert response.json()["citations"][0]["url"].endswith("#702.9")
-    assert services.ask.calls == [("firebase-user-1", "What is flying?", None)]  # type: ignore[attr-defined]
+    assert services.ask.calls == [  # type: ignore[attr-defined]
+        (
+            "firebase-user-1",
+            "What is flying?",
+            None,
+            UUID("00000000-0000-0000-0000-000000000030"),
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_authenticated_ask_requires_a_client_request_id(
+    client: httpx.AsyncClient, services: AppServices
+) -> None:
+    response = await client.post(
+        "/v1/ask", headers=auth_headers(), json={"question": "What is flying?"}
+    )
+
+    assert response.status_code == 422
+    assert services.ask.calls == []  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio

@@ -10,7 +10,12 @@ import pytest
 from app.api.app import create_app
 from app.api.auth import AuthenticatedUser
 from app.api.schemas import AskResponse
-from app.api.services import AppServices
+from app.api.services import (
+    AppServices,
+    ConversationChangedError,
+    IdempotencyConflictError,
+    RequestInProgressError,
+)
 from app.cache.context import CorpusUnavailableError
 from app.config import Settings
 from app.generation.openai_adapter import ModelOutputError
@@ -42,6 +47,20 @@ class Ask:
             confidence="high",
             needs_clarification=False,
             quota_remaining=19,
+            cache_status="miss",
+        )
+
+    async def ask_public(self, **kwargs: object) -> AskResponse:
+        self.calls += 1
+        return AskResponse(
+            conversation_id=UUID("00000000-0000-0000-0000-000000000001"),
+            message_id=UUID("00000000-0000-0000-0000-000000000002"),
+            answer="A public grounded answer.",
+            citations=[],
+            assumptions=[],
+            confidence="high",
+            needs_clarification=False,
+            quota_remaining=0,
             cache_status="miss",
         )
 
@@ -110,7 +129,10 @@ async def test_request_metrics_use_bounded_correlation_id_without_logging_conten
                 "Authorization": "Bearer token",
                 "X-Request-ID": "web-123",
             },
-            json={"question": private_content},
+            json={
+                "request_id": "00000000-0000-0000-0000-000000000030",
+                "question": private_content,
+            },
         )
 
     assert response.status_code == 200
@@ -149,7 +171,10 @@ async def test_request_body_limit_rejects_before_endpoint_execution() -> None:
         response = await client.post(
             "/v1/ask",
             headers={"Authorization": "Bearer token"},
-            json={"question": "x" * 100},
+            json={
+                "request_id": "00000000-0000-0000-0000-000000000030",
+                "question": "x" * 100,
+            },
         )
 
     assert response.status_code == 413
@@ -167,7 +192,10 @@ async def test_response_body_limit_replaces_oversized_payload() -> None:
         response = await client.post(
             "/v1/ask",
             headers={"Authorization": "Bearer token"},
-            json={"question": "What is flying?"},
+            json={
+                "request_id": "00000000-0000-0000-0000-000000000030",
+                "question": "What is flying?",
+            },
         )
 
     assert response.status_code == 500
@@ -184,11 +212,77 @@ async def test_request_timeout_returns_bounded_gateway_error() -> None:
         response = await client.post(
             "/v1/ask",
             headers={"Authorization": "Bearer token"},
-            json={"question": "What is flying?"},
+            json={
+                "request_id": "00000000-0000-0000-0000-000000000030",
+                "question": "What is flying?",
+            },
         )
 
     assert response.status_code == 504
     assert response.json() == {"detail": "request timed out"}
+
+
+@pytest.mark.asyncio
+async def test_conversation_change_returns_a_non_sensitive_conflict() -> None:
+    app = _app(Ask(error=ConversationChangedError()))
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app, raise_app_exceptions=False),
+        base_url='https://api.example.com',
+    ) as client:
+        response = await client.post(
+            '/v1/ask',
+            headers={'Authorization': 'Bearer token'},
+            json={
+                'request_id': '00000000-0000-0000-0000-000000000030',
+                'question': 'What if it has hexproof?',
+            },
+        )
+
+    assert response.status_code == 409
+    assert response.json() == {'detail': 'conversation changed'}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("error", "expected_code", "expected_detail", "retry_after"),
+    [
+        (
+            IdempotencyConflictError(),
+            "IDEMPOTENCY_CONFLICT",
+            "request ID was already used for a different request",
+            None,
+        ),
+        (
+            RequestInProgressError(),
+            "REQUEST_IN_PROGRESS",
+            "the matching request is still in progress",
+            "1",
+        ),
+    ],
+)
+async def test_idempotency_conflicts_are_distinct_and_content_free(
+    error: Exception,
+    expected_code: str,
+    expected_detail: str,
+    retry_after: str | None,
+) -> None:
+    app = _app(Ask(error=error))
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app, raise_app_exceptions=False),
+        base_url="https://api.example.com",
+    ) as client:
+        response = await client.post(
+            "/v1/ask",
+            headers={"Authorization": "Bearer token"},
+            json={
+                "request_id": "00000000-0000-0000-0000-000000000030",
+                "question": "What is flying?",
+            },
+        )
+
+    assert response.status_code == 409
+    assert response.json() == {"detail": expected_detail, "code": expected_code}
+    assert response.headers.get("retry-after") == retry_after
 
 
 @pytest.mark.asyncio
@@ -213,7 +307,10 @@ async def test_known_upstream_failures_return_content_free_error_categories(
         response = await client.post(
             "/v1/ask",
             headers={"Authorization": "Bearer token"},
-            json={"question": "private question"},
+            json={
+                "request_id": "00000000-0000-0000-0000-000000000030",
+                "question": "private question",
+            },
         )
 
     assert response.status_code == expected_status

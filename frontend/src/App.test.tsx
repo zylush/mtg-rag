@@ -69,6 +69,7 @@ class FakeAuth implements AuthPort {
 function fakeApi(): ApiPort {
   return {
     ask: vi.fn().mockResolvedValue(ANSWER),
+    publicAsk: vi.fn().mockResolvedValue(ANSWER),
     conversations: vi.fn().mockResolvedValue([
       {
         id: "conversation-1",
@@ -164,10 +165,10 @@ describe("MTG Rules Desk", () => {
     window.history.replaceState({}, "", "/privacy")
     window.dispatchEvent(new PopStateEvent("popstate"))
     expect(await screen.findByRole("heading", { name: /privacy policy/i })).toBeVisible()
-    expect(screen.getByText(/effective date: august 17, 2026/i)).toBeVisible()
+    expect(screen.getByText(/effective date: august 24, 2026/i)).toBeVisible()
     expect(screen.getByText(/firebase user id and email address/i)).toBeVisible()
     expect(screen.getByText(/openai receives your question/i)).toBeVisible()
-    expect(screen.getByText(/semantic cache for up to seven days/i)).toBeVisible()
+    expect(screen.getAllByText(/semantic cache for up to seven days/i).length).toBeGreaterThan(0)
     expect(screen.getByText(/do not use advertising cookies or analytics/i)).toBeVisible()
     expect(screen.getByRole("link", { name: /email the privacy contact/i })).toHaveAttribute(
       "href",
@@ -239,13 +240,15 @@ describe("MTG Rules Desk", () => {
     await user.click(screen.getByRole("button", { name: /sign in with google/i }))
 
     expect(await screen.findByRole("textbox", { name: /rules question/i })).toBeVisible()
+    expect(screen.getByText("Development preview")).toBeVisible()
   })
 
   it("displays source attribution and the unofficial-product notice", async () => {
     renderApp(new FakeAuth(null))
 
+    expect(screen.getByText("Public development preview")).toBeVisible()
     expect(screen.getByText(/unofficial fan content/i)).toBeVisible()
-    expect(screen.getByText(/card data and rulings are provided by scryfall/i)).toBeVisible()
+    expect(screen.getByText(/card data and rulings are provided through scryfall/i)).toBeVisible()
   })
 
   it("asks a question, displays quota and renders only server citations as links", async () => {
@@ -265,7 +268,61 @@ describe("MTG Rules Desk", () => {
       "href",
       ANSWER.citations[0].url,
     )
-    expect(api.ask).toHaveBeenCalledWith("What can block a creature with flying?", undefined)
+    expect(api.ask).toHaveBeenCalledWith(
+      "What can block a creature with flying?",
+      undefined,
+      expect.any(String),
+    )
+  })
+
+  it("reuses the same request ID when a failed submission is tried again unchanged", async () => {
+    const user = userEvent.setup()
+    const api = fakeApi()
+    api.ask = vi
+      .fn()
+      .mockRejectedValueOnce(new ApiClientError("NETWORK"))
+      .mockResolvedValueOnce(ANSWER)
+    renderApp(undefined, api)
+    const input = await screen.findByRole("textbox", { name: /rules question/i })
+
+    await user.type(input, "What is flying?")
+    await user.click(screen.getByRole("button", { name: /^ask$/i }))
+    await screen.findByRole("alert")
+    await user.click(screen.getByRole("button", { name: /^ask$/i }))
+    await screen.findByText(/only be blocked by creatures with flying/i)
+
+    const firstRequestId = vi.mocked(api.ask).mock.calls[0][2]
+    const secondRequestId = vi.mocked(api.ask).mock.calls[1][2]
+    expect(firstRequestId).toMatch(/^[0-9a-f-]{36}$/i)
+    expect(secondRequestId).toBe(firstRequestId)
+  })
+
+  it("shows a conflict without automatically retrying a stale follow-up", async () => {
+    const user = userEvent.setup()
+    const api = fakeApi()
+    api.ask = vi
+      .fn()
+      .mockResolvedValueOnce(ANSWER)
+      .mockRejectedValueOnce(new ApiClientError("CONVERSATION_CHANGED"))
+    renderApp(undefined, api)
+    const input = await screen.findByRole("textbox", { name: /rules question/i })
+
+    await user.type(input, "My opponent targets Slippery Bogle with Murder.")
+    await user.click(screen.getByRole("button", { name: /^ask$/i }))
+    await screen.findByText(/only be blocked by creatures with flying/i)
+    await user.type(input, "What if it loses hexproof?")
+    await user.click(screen.getByRole("button", { name: /^ask$/i }))
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /conversation changed.*review.*submit again/i,
+    )
+    expect(api.ask).toHaveBeenNthCalledWith(
+      2,
+      "What if it loses hexproof?",
+      "conversation-1",
+      expect.any(String),
+    )
+    expect(api.ask).toHaveBeenCalledTimes(2)
   })
 
   it("does not send an answer request while offline", async () => {

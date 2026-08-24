@@ -77,6 +77,10 @@ class FakeRepository:
         self.events.append(f"load-active-embeddings:{len(canonical_keys)}")
         return {key: self.cached[key] for key in canonical_keys if key in self.cached}
 
+    async def active_document_hashes(self, source_name: str) -> dict[str, str]:
+        self.events.append("load-active-hashes")
+        return {key: value.content_hash for key, value in self.cached.items()}
+
     async def active_card_oracle_ids(self, oracle_ids: tuple[str, ...]) -> frozenset[str]:
         self.events.append(f"filter-card-ids:{len(oracle_ids)}")
         return self.active_card_ids if self.active_card_ids is not None else frozenset(oracle_ids)
@@ -188,7 +192,8 @@ async def test_pipeline_snapshots_stages_validates_then_activates_and_embeds_onl
         "dedupe",
         "create-staged",
         "stage-metadata",
-        "load-active-embeddings:2",
+        "load-active-hashes",
+        "load-active-embeddings:1",
         "stage-passages:2",
         "validate",
         "activate",
@@ -311,15 +316,62 @@ async def test_pipeline_batches_new_embeddings_in_stable_request_order() -> None
         "dedupe",
         "create-staged",
         "stage-metadata",
-        "load-active-embeddings:128",
+        "load-active-hashes",
         "stage-passages:128",
-        "load-active-embeddings:1",
         "stage-passages:1",
         "validate",
         "activate",
     ]
     assert [len(batch) for batch in repository.staged_batches] == [128, 1]
     assert repository.staged_embeddings["100.128"] == [0.1, 0.2]
+
+
+@pytest.mark.asyncio
+async def test_pipeline_compacts_sparse_changes_across_staging_batches() -> None:
+    documents = tuple(
+        CorpusDocument(
+            canonical_key=f"100.{index}",
+            document_type="rule",
+            text=f"Rule {index}",
+            metadata={},
+            content_hash=f"hash-{index}",
+        )
+        for index in range(257)
+    )
+
+    def parser(payload: bytes, version_id: str) -> ParsedCorpus:
+        return ParsedCorpus(
+            source_version_id=version_id,
+            documents=documents,
+            rules=(),
+            glossary=(),
+            cards=(),
+            rulings=(),
+        )
+
+    changed_indices = {0, 128, 256}
+    repository = FakeRepository()
+    repository.cached = {
+        document.canonical_key: CachedDocumentEmbedding(
+            content_hash=document.content_hash,
+            embedding=[0.9, 0.8],
+        )
+        for index, document in enumerate(documents)
+        if index not in changed_indices
+    }
+    embedding = FakeEmbedding()
+    pipeline = IngestionPipeline(
+        repository=repository,
+        snapshot_store=FakeSnapshotStore(),
+        embedding=embedding,
+        download=fake_download,
+    )
+
+    result = await pipeline.refresh(source(), parse=parser)
+
+    assert result.new_embedding_count == 3
+    assert embedding.batch_calls == [["Rule 0", "Rule 128", "Rule 256"]]
+    assert [len(batch) for batch in repository.staged_batches] == [128, 128, 1]
 
 
 @pytest.mark.asyncio

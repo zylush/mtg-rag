@@ -440,6 +440,7 @@ function AppContent({ auth, api, install }: AppProps) {
   const historyTriggerRef = useRef<HTMLButtonElement>(null)
   const settingsTriggerRef = useRef<HTMLButtonElement>(null)
   const intentionalSignOut = useRef(false)
+  const retryRequestRef = useRef<{ signature: string; requestId: string } | null>(null)
   const panel: Panel =
     route === "/desk/history" ? "history" : route === "/desk/settings" ? "settings" : "chat"
 
@@ -512,8 +513,10 @@ function AppContent({ auth, api, install }: AppProps) {
   })
 
   const ask = useMutation({
-    mutationFn: ({ text, id }: { text: string; id?: string }) => api.ask(text, id),
+    mutationFn: ({ text, id, requestId }: { text: string; id?: string; requestId: string }) =>
+      api.ask(text, id, requestId),
     onSuccess: (result) => {
+      retryRequestRef.current = null
       setAnswer(result)
       setConversationId(result.conversation_id)
       setQuestion("")
@@ -532,7 +535,13 @@ function AppContent({ auth, api, install }: AppProps) {
       return
     }
     setOfflineMessage("")
-    ask.mutate({ text, id: conversationId })
+    const signature = `${conversationId ?? ""}\u001e${text}`
+    const requestId =
+      retryRequestRef.current?.signature === signature
+        ? retryRequestRef.current.requestId
+        : crypto.randomUUID()
+    retryRequestRef.current = { signature, requestId }
+    ask.mutate({ text, id: conversationId, requestId })
   }
 
   const handleSignOut = async () => {
@@ -588,6 +597,7 @@ function AppContent({ auth, api, install }: AppProps) {
         onSignIn: () => void handleSignIn(),
         signingIn: signInStatus === "pending",
         signInError: signInStatus === "error",
+        onPublicAsk: (question: string) => api.publicAsk(question),
       }
 
   if (user === undefined) {
@@ -615,7 +625,7 @@ function AppContent({ auth, api, install }: AppProps) {
           <BrandMark className="wordmark-mark" />
           <div className="wordmark-copy">
             <strong>MTG Rules Desk</strong>
-            <span className="engine-version">v1.0 <b>RAG Engine</b></span>
+            <span className="engine-version">Development preview</span>
           </div>
         </div>
 

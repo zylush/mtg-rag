@@ -76,7 +76,10 @@ def parse_oracle_cards(cards: Iterable[Mapping[str, Any]]) -> tuple[ParsedOracle
     for card in cards:
         if card.get("lang") != "en" or card.get("digital") is True:
             continue
-        oracle_id = _required_string(card, "oracle_id")
+        raw_oracle_id = card.get("oracle_id")
+        if not isinstance(raw_oracle_id, str) or not raw_oracle_id.strip():
+            continue
+        oracle_id = raw_oracle_id.strip()
         existing = by_oracle_id.get(oracle_id)
         if existing is None or _release_date(card) > _release_date(existing):
             by_oracle_id[oracle_id] = card

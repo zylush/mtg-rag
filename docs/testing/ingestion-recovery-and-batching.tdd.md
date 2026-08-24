@@ -2,7 +2,7 @@
 
 ## Source and user journeys
 
-Derived from [Architecture.md](../Architecture.md#6-ingestion-architecture) during the Google Cloud deployment.
+Derived from [Architecture.md](../architecture/Architecture.md#6-ingestion-architecture) during the Google Cloud deployment.
 
 As an operator, I can retry a failed authoritative corpus snapshot, so that a
 transient parser or validation failure does not block the next scheduled refresh.
@@ -162,3 +162,112 @@ cd backend
 
 Checkpoints: `d7bc64f test: require bounded ingestion staging` and
 `5005e52 fix: bound ingestion staging memory`.
+
+## WotC CRLF compatibility follow-up
+
+The scheduled development ingestion fetched the August 8, 2026 WotC rules file but
+failed with `RulesParseError: missing glossary section`. The document still contains
+the final `Glossary` heading; its line endings are now CRLF, while the parser's exact
+delimiter accepted LF only.
+
+RED:
+
+```text
+.\.venv\Scripts\pytest.exe backend\tests\unit\test_rules_parser.py::test_rules_parser_accepts_wotc_crlf_line_endings -q
+# 1 failed: RulesParseError: missing glossary section
+```
+
+GREEN:
+
+```text
+.\.venv\Scripts\pytest.exe backend\tests\unit\test_rules_parser.py -q
+# 5 passed
+
+.\.venv\Scripts\ruff.exe check backend\app\ingestion\rules.py backend\tests\unit\test_rules_parser.py
+# All checks passed
+```
+
+The exact downloaded payload was then parsed locally without retaining or printing
+its substantive contents: effective date `2026-08-07`, 3,161 numbered rules, and 740
+glossary entries. The parser normalizes CRLF and lone-CR endings to LF before locating
+the final glossary boundary. No checkpoint commit was created because the worktree
+already contains operator-owned changes that must remain uncommitted and intact.
+
+| Guarantee | Evidence | Type | Result |
+| --- | --- | --- | --- |
+| The live WotC CRLF payload reaches the final glossary boundary. | `test_rules_parser_accepts_wotc_crlf_line_endings` | Unit + live-shape check | PASS |
+| Existing LF fixtures and final-heading selection remain unchanged. | Full `test_rules_parser.py` | Unit | PASS |
+| Retrying the failed matching SHA reuses and clears the inactive staged version. | `test_repository_retries_a_failed_snapshot_without_duplicate_staged_records` | PostgreSQL integration | PASS |
+
+## Authorized card-only cap follow-up (2026-08-20)
+
+User journey: as the development operator, I need the authorized card refresh to stay within
+1,062 embedding inputs and nine requests, while any unrelated source remains frozen and cannot be
+picked up later by the daily scheduler.
+
+The all-source read-only preflight correctly aborted external work. Rules needed zero embeddings,
+cards needed 1,062 inputs in nine requests, and rulings independently needed 1,633 inputs in 13
+requests. No Cloud Build, Terraform apply, GCS write, database write, or OpenAI call occurred, and
+the exact temporary proxy was stopped.
+
+RED:
+
+```text
+pytest tests/unit/test_ingestion_cli.py tests/unit/test_runtime_manifests.py -q
+# collection error: app.ingestion.cli had no _parse_sources selector
+```
+
+GREEN:
+
+```text
+pytest tests/unit/test_ingestion_cli.py tests/unit/test_runtime_manifests.py -q
+# 28 passed
+
+pytest --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=80 -q
+# 215 passed; 85.22% total branch coverage
+
+ruff check app tests
+mypy app
+terraform fmt -check -recursive
+terraform validate
+# All passed; Terraform configuration is valid
+```
+
+| Guarantee | Evidence | Type | Result |
+| --- | --- | --- | --- |
+| No source argument preserves the dependency-ordered rules/cards/rulings behavior. | `test_ingestion_source_arguments_default_to_all_and_accept_cards` | Unit | PASS |
+| A card-only execution invokes no rules or rulings pipeline work. | `test_refresh_can_select_only_the_authorized_card_source` | Unit | PASS |
+| Duplicate source arguments fail before ingestion. | `test_ingestion_source_arguments_reject_duplicates` | Unit | PASS |
+| Development scheduler executions remain card-only while production retains the all-source default. | `test_development_ingestion_scheduler_is_card_only_but_production_is_not` | Manifest | PASS |
+
+No checkpoint commit was created because the worktree contains broad operator-owned changes that
+must remain intact. Applying the development-only scheduler argument remains an explicit external
+approval boundary; production is unchanged.
+
+## Authorized development activation result (2026-08-20 UTC)
+
+The operator authorized the saved one-change guard plan. Apply completed with `0 added, 1 changed,
+0 destroyed`; live ingestion generation 12 was `Ready` with `args=[cards]` and
+`maxRetries=0`. Cloud Build `cf4fc5ab-88e8-40d2-96cc-e0687f1caae3` then passed all gates and
+published digest
+`sha256:5142c179060c6058433461c91ee36a353d3fb83c95a2239a96d1b4986b70d865`. A fresh plan
+applied four development image updates in place, zero additions, and zero deletions; the ingestion
+guard remained unchanged. No production plan or apply was run.
+
+The final read-only preflight repeated the authorized selected-source cap exactly: 1,062 new card
+embedding inputs in nine requests, zero changed cards, and zero removed cards. Rules needed zero
+inputs but rulings independently needed 1,633 inputs, so the deployed card selector kept both
+unselected.
+
+Execution `mtg-rag-dev-ingestion-s7tff` ran once on attempt zero and completed successfully.
+Logs show exactly nine successful embedding requests and
+`new_embedding_count=1062, source=cards, status=activated`. Active cards moved from version
+`e13d27f7-6ef2-4045-b49f-5c2cdbc6ee1e` with 36,494 passages to version
+`77b19b9f-bbae-4d93-a050-ed21243d6d65` with 37,556 passages. Exactly one active
+`Black Lotus` passage is present.
+
+Rules stayed at version `bd0b2abc-c4d9-4efa-80bd-34a7c5aee3ca`, SHA-256
+`68dab840bfb200a4fca4a061793269c40d57f83364cb1091ea9094b5b8f04769`, and 3,901 passages.
+Rulings stayed at version `6a0662bc-d599-4497-b857-4c1630601dd2`, SHA-256
+`350c3dd1a62d0a19683620006c2f0e610680ecc2f93ae973d4d1771666901617`, and 77,314 passages.
+Each temporary proxy was stopped by verified PID/path and port 5433 was closed.

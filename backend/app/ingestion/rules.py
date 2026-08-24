@@ -94,6 +94,7 @@ def parse_comprehensive_rules(
     if not text.strip():
         raise RulesParseError("empty rules payload")
 
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
     effective = _effective_date(text)
     body, separator, glossary_text = text.rpartition("\nGlossary\n")
     if not separator:

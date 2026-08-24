@@ -330,7 +330,8 @@ body shape. The development site deliberately returns `Disallow: /` until launch
 ## What remains before public launch
 
 Development integration is complete, but public launch still needs the separately documented
-external gates: qualified WotC policy/legal review, final Terms/Privacy/support copy,
+external gates: qualified WotC policy/source-use review and publication of the reviewed
+Terms/Privacy/support copy (implementation-aligned local copy is complete),
 independent MTG rules-expert approval and execution of the gold evaluation suite, and
 production-specific budget, alert-delivery, backup/restore, rollback, and account-deletion
 drills.

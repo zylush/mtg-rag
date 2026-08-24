@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import hashlib
+import time
+from collections import defaultdict, deque
 from typing import Annotated, cast
 from uuid import UUID
 
@@ -16,11 +19,15 @@ from app.api.schemas import (
     ConversationDetail,
     ConversationSummary,
     FeedbackRequest,
+    PublicAskRequest,
 )
 from app.api.services import (
     AppServices,
     BurstLimitExceededError,
+    ConversationChangedError,
+    IdempotencyConflictError,
     QuotaExceededError,
+    RequestInProgressError,
     ResourceNotFoundError,
 )
 from app.cache.context import CorpusUnavailableError
@@ -63,6 +70,41 @@ CurrentUser = Annotated[AuthenticatedUser, Depends(_current_user)]
 Services = Annotated[AppServices, Depends(_services)]
 
 
+class _PublicAskRateLimiter:
+    """Small per-process guard for the free public endpoint.
+
+    Production infrastructure must still provide a distributed edge limit. This guard
+    keeps a single instance from being consumed by an unbounded burst and provides a
+    safe default for development and staging.
+    """
+
+    def __init__(self, limit: int, window_seconds: float = 60.0) -> None:
+        self._limit = limit
+        self._window_seconds = window_seconds
+        self._events: dict[str, deque[float]] = defaultdict(deque)
+
+    def allow(self, key: str, *, now: float | None = None) -> bool:
+        current = time.monotonic() if now is None else now
+        events = self._events[key]
+        cutoff = current - self._window_seconds
+        while events and events[0] <= cutoff:
+            events.popleft()
+        if len(events) >= self._limit:
+            return False
+        events.append(current)
+        return True
+
+
+def _public_client_key(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for", "")
+    candidate = forwarded.split(",", 1)[0].strip() if forwarded else ""
+    if not candidate and request.client is not None:
+        candidate = request.client.host
+    if not candidate:
+        candidate = "unknown"
+    return hashlib.sha256(f"mtg-public:{candidate}".encode()).hexdigest()
+
+
 def create_app(*, settings: Settings, services: AppServices) -> FastAPI:
     app = FastAPI(
         title="MTG Rules Expert API",
@@ -72,6 +114,7 @@ def create_app(*, settings: Settings, services: AppServices) -> FastAPI:
         openapi_url=None if settings.is_production else "/openapi.json",
     )
     app.state.services = services
+    public_ask_limiter = _PublicAskRateLimiter(settings.burst_limit_per_minute)
     app.add_middleware(
         RequestBoundaryMiddleware,
         timeout_seconds=settings.request_timeout_seconds,
@@ -102,6 +145,37 @@ def create_app(*, settings: Settings, services: AppServices) -> FastAPI:
             status_code=429,
             content={"detail": "ask rate limit reached"},
             headers={"Retry-After": "60"},
+        )
+
+    @app.exception_handler(ConversationChangedError)
+    async def conversation_changed_handler(
+        request: Request, exc: ConversationChangedError
+    ) -> JSONResponse:
+        return JSONResponse(status_code=409, content={"detail": "conversation changed"})
+
+    @app.exception_handler(IdempotencyConflictError)
+    async def idempotency_conflict_handler(
+        request: Request, exc: IdempotencyConflictError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=409,
+            content={
+                "detail": "request ID was already used for a different request",
+                "code": "IDEMPOTENCY_CONFLICT",
+            },
+        )
+
+    @app.exception_handler(RequestInProgressError)
+    async def request_in_progress_handler(
+        request: Request, exc: RequestInProgressError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=409,
+            content={
+                "detail": "the matching request is still in progress",
+                "code": "REQUEST_IN_PROGRESS",
+            },
+            headers={"Retry-After": "1"},
         )
 
     @app.exception_handler(CorpusUnavailableError)
@@ -137,7 +211,21 @@ def create_app(*, settings: Settings, services: AppServices) -> FastAPI:
             user=user,
             question=payload.question,
             conversation_id=payload.conversation_id,
+            request_id=payload.request_id,
         )
+
+    @app.post("/v1/public/ask", response_model=AskResponse)
+    async def public_ask(
+        payload: PublicAskRequest, request: Request, service: Services
+    ) -> AskResponse:
+        client_key = _public_client_key(request)
+        if not public_ask_limiter.allow(client_key):
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="public question rate limit reached",
+                headers={"Retry-After": "60"},
+            )
+        return await service.ask.ask_public(question=payload.question, client_key=client_key)
 
     @app.get("/v1/conversations", response_model=list[ConversationSummary])
     async def list_conversations(user: CurrentUser, service: Services) -> list[ConversationSummary]:

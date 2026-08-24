@@ -56,7 +56,7 @@ class FakeClient:
 
 
 @pytest.mark.asyncio
-async def test_embedding_adapter_pins_model_dimensions_and_float_encoding() -> None:
+async def test_embedding_adapter_uses_sdk_compact_encoding_with_pinned_dimensions() -> None:
     client = FakeClient()
     adapter = OpenAIEmbeddingAdapter(
         client=client,  # type: ignore[arg-type]
@@ -73,7 +73,6 @@ async def test_embedding_adapter_pins_model_dimensions_and_float_encoding() -> N
             "model": "text-embedding-3-small",
             "input": ["What is flying?"],
             "dimensions": 1536,
-            "encoding_format": "float",
         }
     ]
 
@@ -108,7 +107,6 @@ async def test_embedding_adapter_batches_inputs_and_restores_response_index_orde
             "model": "text-embedding-3-small",
             "input": ["First document", "Second document"],
             "dimensions": 2,
-            "encoding_format": "float",
         }
     ]
 
