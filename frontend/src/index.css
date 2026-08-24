@@ -1628,9 +1628,6 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
 }
 
 .has-conversation .question-form {
-  position: sticky;
-  z-index: 10;
-  bottom: 18px;
   order: 4;
   width: min(100%, 820px);
   margin: 28px auto 0;
@@ -2240,9 +2237,7 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
 }
 
 .app-shell .desk.has-conversation .question-form {
-  position: sticky;
-  z-index: 10;
-  bottom: 18px;
+  position: relative;
   order: 4;
   width: min(100%, 820px);
   margin: 28px auto 0;
@@ -2524,9 +2519,6 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
     width: 92%;
   }
 
-  .has-conversation .question-form {
-    bottom: calc(10px + env(safe-area-inset-bottom));
-  }
 }
 
 @media (max-width: 380px) {
