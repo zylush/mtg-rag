@@ -57,7 +57,8 @@ still exposes the evidence used for the answer.
 - Prefer deterministic card, rule-number, alias, and glossary lookup when possible.
 - Support conceptual questions through hybrid lexical and vector retrieval.
 - Provide an installable desktop and mobile browser experience.
-- Require Google sign-in for live questions and protect every user's history.
+- Keep public rules questions free without account/email registration; require Google sign-in only
+  for saved history, feedback, quotas, and account controls.
 - Keep source refreshes versioned, idempotent, validated, and reversible.
 - Control model cost through quotas, bounded context, autoscaling limits, and safe caching.
 - Make failure visible through clarification, abstention, user-facing errors, and operational logs.
@@ -68,7 +69,6 @@ still exposes the evidence used for the answer.
 - Card prices, market data, or metagame analysis.
 - Tournament policy or judge certification guidance.
 - Broad format-legality analysis.
-- Anonymous live questions.
 - Offline answer generation.
 - Multilingual answers.
 - Native desktop binaries.
@@ -79,9 +79,9 @@ still exposes the evidence used for the answer.
 
 | Capability | Requirement | Current status |
 | --- | --- | --- |
-| Public experience | Welcome, About, draft Terms, and draft Privacy pages | Development verified |
+| Public experience | Welcome, About, operational Terms/Privacy, attribution, support, and a free no-account question path | Development verified |
 | Authentication | Direct Google sign-in through Firebase Authentication | Development verified |
-| Rules chat | Authenticated question and citation-first answer flow | Development verified |
+| Rules chat | Free public question path plus authenticated citation-first history flow | Development verified |
 | Knowledge | Versioned rules, cards, and rulings corpora | Development verified |
 | Retrieval | Exact, lexical, vector, and fused ranking | Development verified |
 | Generation | Structured answer, citation validation, repair, and abstention | Development verified |
@@ -96,10 +96,10 @@ still exposes the evidence used for the answer.
 
 | Route | Behavior |
 | --- | --- |
-| `/` | Welcome page with product purpose, static cited-answer preview, limitations, and sign-in |
+| `/` | Welcome page with product purpose, cited-answer preview, free public question form, limitations, and optional sign-in |
 | `/about` | Methodology, scope, attribution, limitations, and account controls |
-| `/terms` | Draft Terms outline marked as pending legal review |
-| `/privacy` | Draft Privacy outline marked as pending legal review |
+| `/terms` | Operational Terms with public access, attribution, AI limits, deletion, and support; pending qualified legal review |
+| `/privacy` | Implementation-aligned Privacy Policy covering public questions, accounts, providers, cache, deletion, and support |
 
 ### Authenticated routes
 
@@ -140,15 +140,21 @@ leave the previous active version available.
 
 ### FR-003: Authenticated question submission
 
-`POST /v1/ask` shall require a valid Firebase ID token and accept a question of at most 2,000
-characters with an optional owned conversation ID. The browser must never receive or use the
-OpenAI API key.
+`POST /v1/ask` shall require a valid Firebase ID token, a caller-generated UUID request ID, and a
+question of at most 2,000 characters with an optional owned conversation ID. Reusing the UUID for
+the same request shall replay the one committed response without consuming quota or creating
+messages again. Reusing it for different request content shall return a non-disclosing conflict,
+and a concurrent duplicate shall not execute downstream work. The browser must never receive or
+use the OpenAI API key. When bounded conversation context is enabled, an owned conversation ID shall load
+at most the six latest prior messages and 6,000 serialized characters before cache, retrieval, or
+model work. Missing and unowned IDs return the same non-disclosing `404`.
 
 ### FR-004: Retrieval
 
-For every uncached question, the service shall:
+For every uncached standalone question or cache-ineligible contextual follow-up, the service shall:
 
-1. Normalize the question and detect explicit rule references and card or glossary phrases.
+1. Normalize and analyze the current question, or a deterministic query containing that question
+   followed by bounded role-labeled history for a contextual follow-up.
 2. Run deterministic exact lookup first.
 3. Run PostgreSQL full-text and pgvector similarity search.
 4. Fuse bounded candidate lists with reciprocal-rank fusion.
@@ -160,13 +166,20 @@ For every uncached question, the service shall:
 The generated result shall contain:
 
 - Answer text.
-- Material-claim citations.
+- Material-claim citations whose `claim` value is a normalized exact source excerpt of no more
+  than 320 characters.
 - Assumptions.
 - A `high`, `medium`, or `low` confidence label.
 - A `needs_clarification` flag.
 
-The backend shall resolve model-supplied passage IDs to canonical labels and URLs. Unknown IDs
-receive one repair attempt. A second failure returns a low-confidence grounded abstention.
+Every `behavior=answer` result shall contain at least one citation. The backend shall resolve
+model-supplied passage IDs to canonical labels and URLs, normalize Unicode with NFKC, collapse
+whitespace, and require each normalized excerpt to occur contiguously in the cited passage while
+preserving case and punctuation. Unknown IDs, omitted citations, omitted required passages, or
+unsupported excerpts receive one repair attempt. A second failure returns a low-confidence
+grounded abstention.
+Prior conversation messages are untrusted reference-resolution context, not rules evidence, and
+cannot supply valid citation IDs.
 
 ### FR-006: Clarification and scope
 
@@ -182,7 +195,8 @@ reuse shall require at least `0.98` cosine similarity, active citations, an unex
 matching corpus, embedding, generation, prompt, retrieval, language, and filter versions.
 
 Semantic reuse is limited to high-confidence, simple, non-ambiguous questions. Cache hits count
-toward the daily answer allowance.
+toward the daily answer allowance. Context-bearing turns bypass exact and semantic cache reads and
+writes in the initial release and report `cache_status=ineligible`.
 
 ### FR-008: Account and history
 
@@ -316,7 +330,8 @@ calling a protected `/v1` route without a token and expecting backend JSON `401`
   migration, ingestion, and account-deletion drills have retained evidence and a named go/no-go
   decision.
 - **Must not:** Treat the development Firebase URL as public production approval.
-- **Verification:** `ATTRIBUTION-AND-LAUNCH.md`, `PRODUCTION-AUDIT.md`, and `OPERATIONS.md` sign-off.
+- **Verification:** `operations/ATTRIBUTION-AND-LAUNCH.md`,
+  `operations/PRODUCTION-AUDIT.md`, and `operations/OPERATIONS.md` sign-off.
 - **Priority:** Required for public launch.
 
 ## 13. Dependencies and constraints
@@ -334,7 +349,7 @@ calling a protected `/v1` route without a token and expecting backend JSON `401`
 Public production remains blocked until:
 
 1. WotC/Scryfall policy, attribution, and legal text are reviewed and approved.
-2. The 110-case evaluation suite receives independent MTG rules-expert review and passes every
+2. The 121-case evaluation suite receives independent MTG rules-expert review and passes every
    required threshold.
 3. The production delivery mode, domain, DNS, secrets, budget, alerts, and regional controls are
    configured without reusing development credentials or state.
@@ -344,10 +359,10 @@ Public production remains blocked until:
 
 ## 15. Related documents
 
-- [Architecture.md](Architecture.md): complete system design and runtime flows.
-- [architecture-essentials.md](architecture-essentials.md): concise learning and onboarding guide.
-- [agent.md](agent.md): RAG agent behavior and grounding contract.
-- [OPERATIONS.md](OPERATIONS.md): deployment, recovery, and rollback runbook.
-- [SECURITY.md](SECURITY.md): trust boundaries and security controls.
-- [ATTRIBUTION-AND-LAUNCH.md](ATTRIBUTION-AND-LAUNCH.md): policy and launch decision record.
-- [PRODUCTION-AUDIT.md](PRODUCTION-AUDIT.md): current ship/block assessment.
+- [Architecture.md](architecture/Architecture.md): complete system design and runtime flows.
+- [architecture-essentials.md](architecture/architecture-essentials.md): concise learning and onboarding guide.
+- [agent.md](architecture/agent.md): RAG agent behavior and grounding contract.
+- [OPERATIONS.md](operations/OPERATIONS.md): deployment, recovery, and rollback runbook.
+- [SECURITY.md](operations/SECURITY.md): trust boundaries and security controls.
+- [ATTRIBUTION-AND-LAUNCH.md](operations/ATTRIBUTION-AND-LAUNCH.md): policy and launch decision record.
+- [PRODUCTION-AUDIT.md](operations/PRODUCTION-AUDIT.md): current ship/block assessment.

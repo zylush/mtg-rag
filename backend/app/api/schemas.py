@@ -12,7 +12,12 @@ class StrictModel(BaseModel):
 
 
 class AskRequest(StrictModel):
+    request_id: UUID
     conversation_id: UUID | None = None
+    question: str = Field(min_length=1, max_length=2000)
+
+
+class PublicAskRequest(StrictModel):
     question: str = Field(min_length=1, max_length=2000)
 
 
@@ -59,4 +64,3 @@ class FeedbackRequest(StrictModel):
     answer_message_id: UUID
     rating: Literal[-1, 1]
     comment: str | None = Field(default=None, max_length=2000)
-

@@ -27,7 +27,7 @@ const descriptions: Record<AppRoute, string> = {
   "/desk/history": "Review saved MTG Rules Desk conversations.",
   "/desk/settings": "Manage MTG Rules Desk product links, installation, and account controls.",
   "/about": SEO_PAGES["/about"].description,
-  "/terms": "Draft Terms of Service outline for MTG Rules Desk, pending legal review.",
+  "/terms": "Operational Terms of Service for MTG Rules Desk, with source attribution and support contact.",
   "/privacy": SEO_PAGES["/privacy"].description,
 }
 
@@ -37,7 +37,7 @@ const titles: Record<AppRoute, string> = {
   "/desk/history": "History | MTG Rules Desk",
   "/desk/settings": "Settings | MTG Rules Desk",
   "/about": SEO_PAGES["/about"].title,
-  "/terms": "Draft Terms of Service | MTG Rules Desk",
+  "/terms": "Terms of Service | MTG Rules Desk",
   "/privacy": SEO_PAGES["/privacy"].title,
 }
 

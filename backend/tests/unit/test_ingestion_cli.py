@@ -7,6 +7,7 @@ import pytest
 
 from app.ingestion.cli import (
     SourceDiscoveryError,
+    _parse_sources,
     build_source_jobs,
     discover_source_urls,
     refresh_all,
@@ -16,7 +17,8 @@ from app.ingestion.cli import (
 @pytest.mark.asyncio
 async def test_discovers_current_allowlisted_wotc_and_scryfall_sources() -> None:
     rules_url = "https://media.wizards.com/2026/downloads/MagicCompRules%2020260807.txt"
-    cards_url = "https://data.scryfall.io/oracle-cards/oracle.jsonl.gz"
+    cards_url = "https://data.scryfall.io/default-cards/default.jsonl.gz"
+    oracle_cards_url = "https://data.scryfall.io/oracle-cards/oracle.jsonl.gz"
     rulings_url = "https://data.scryfall.io/rulings/rulings.jsonl.gz"
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -28,7 +30,11 @@ async def test_discovers_current_allowlisted_wotc_and_scryfall_sources() -> None
         body = json.dumps(
             {
                 "data": [
-                    {"type": "oracle_cards", "jsonl_download_uri": cards_url},
+                    {
+                        "type": "oracle_cards",
+                        "jsonl_download_uri": oracle_cards_url,
+                    },
+                    {"type": "default_cards", "jsonl_download_uri": cards_url},
                     {"type": "rulings", "jsonl_download_uri": rulings_url},
                 ]
             }
@@ -61,7 +67,7 @@ async def test_discovery_rejects_non_allowlisted_bulk_download_url() -> None:
             {
                 "data": [
                     {
-                        "type": "oracle_cards",
+                        "type": "default_cards",
                         "jsonl_download_uri": "https://evil.example/cards.jsonl.gz",
                     },
                     {
@@ -93,6 +99,8 @@ def test_builds_source_jobs_in_dependency_order() -> None:
 
     assert [source.name for source, _parse in jobs] == ["rules", "cards", "rulings"]
     assert [source.minimum_record_count for source, _parse in jobs] == [1000, 25000, 50000]
+    assert jobs[1][0].source_type == "scryfall_default_cards"
+    assert jobs[1][0].parser_version == "scryfall-cards-v2"
 
 
 @pytest.mark.asyncio
@@ -119,3 +127,40 @@ async def test_refreshes_sources_sequentially_in_dependency_order() -> None:
 
     assert pipeline.names == ["rules", "cards", "rulings"]
     assert results == ("rules", "cards", "rulings")
+
+
+@pytest.mark.asyncio
+async def test_refresh_can_select_only_the_authorized_card_source() -> None:
+    class RecordingPipeline:
+        def __init__(self) -> None:
+            self.names: list[str] = []
+
+        async def refresh(self, source: object, *, parse: object) -> str:
+            self.names.append(source.name)  # type: ignore[attr-defined]
+            return source.name  # type: ignore[no-any-return, attr-defined]
+
+    from app.ingestion.cli import SourceURLs
+
+    pipeline = RecordingPipeline()
+    results = await refresh_all(
+        pipeline,  # type: ignore[arg-type]
+        SourceURLs(
+            rules="https://media.wizards.com/rules.txt",
+            cards="https://data.scryfall.io/cards.jsonl.gz",
+            rulings="https://data.scryfall.io/rulings.jsonl.gz",
+        ),
+        source_names=("cards",),
+    )
+
+    assert pipeline.names == ["cards"]
+    assert results == ("cards",)
+
+
+def test_ingestion_source_arguments_default_to_all_and_accept_cards() -> None:
+    assert _parse_sources([]) == ("rules", "cards", "rulings")
+    assert _parse_sources(["cards"]) == ("cards",)
+
+
+def test_ingestion_source_arguments_reject_duplicates() -> None:
+    with pytest.raises(ValueError, match="must not contain duplicates"):
+        _parse_sources(["cards", "cards"])

@@ -246,6 +246,24 @@ class PostgresIngestionRepository:
             for passage in passages
         }
 
+    async def active_document_hashes(self, source_name: str) -> dict[str, str]:
+        async with self._session_factory() as session:
+            rows = (
+                await session.execute(
+                    select(Passage.canonical_key, Passage.passage_metadata)
+                    .join(SourceVersion, SourceVersion.id == Passage.source_version_id)
+                    .where(
+                        SourceVersion.source_name == source_name,
+                        SourceVersion.is_active.is_(True),
+                        Passage.is_active.is_(True),
+                    )
+                )
+            ).all()
+        return {
+            str(canonical_key): str(metadata.get("content_hash", ""))
+            for canonical_key, metadata in rows
+        }
+
     async def active_card_oracle_ids(
         self, oracle_ids: tuple[str, ...]
     ) -> frozenset[str]:

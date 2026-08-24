@@ -41,6 +41,7 @@ class SignedInAuth implements AuthPort {
 function fakeApi(answer: Promise<AskResponse> = Promise.resolve(ANSWER)): ApiPort {
   return {
     ask: vi.fn(() => answer),
+    publicAsk: vi.fn(() => answer),
     conversations: vi.fn().mockResolvedValue([]),
     conversation: vi.fn().mockRejectedValue(new Error("not used")),
     deleteConversation: vi.fn().mockResolvedValue(undefined),

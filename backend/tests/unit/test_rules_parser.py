@@ -63,6 +63,23 @@ def test_rules_parser_uses_the_final_glossary_heading_after_the_contents_listing
     ]
 
 
+def test_rules_parser_accepts_wotc_crlf_line_endings() -> None:
+    current_wotc_shape = RULES_FIXTURE.replace("\n", "\r\n")
+
+    parsed = parse_comprehensive_rules(current_wotc_shape, source_version_id="rules-v1")
+
+    assert [rule.rule_number for rule in parsed.rules] == [
+        "100.1",
+        "100.1a",
+        "100.2",
+        "101.1",
+    ]
+    assert [entry.term for entry in parsed.glossary] == [
+        "Active Player, Nonactive Player Order",
+        "Owner",
+    ]
+
+
 def test_duplicate_rule_numbers_reject_the_source() -> None:
     duplicated = RULES_FIXTURE.replace(
         "100.2. To play, each player needs a deck of traditional Magic cards.",

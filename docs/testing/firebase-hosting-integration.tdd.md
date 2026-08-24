@@ -1,6 +1,6 @@
 # Firebase Hosting Integration - TDD Evidence
 
-**Source architecture:** [Architecture.md](../Architecture.md#2-system-context)
+**Source architecture:** [Architecture.md](../architecture/Architecture.md#2-system-context)
 **Environment:** `mtg-rules-desk-dev` / `asia-east1`
 **Status:** Deployed; real authenticated answer/citations/history flow verified
 **Date:** 2026-08-14
@@ -59,8 +59,8 @@
 Automated Firebase-provider configuration, local authenticated E2E coverage, live signed-out
 edge behavior, caching behavior, secret boundaries, and the real signed-in
 question/citation/history flow are verified. The detailed issue analysis and lessons are in
-`docs/INTEGRATION-LESSONS.md`.
+`docs/operations/INTEGRATION-LESSONS.md`.
 
 Public production launch remains separately blocked by the legal/policy, final-copy,
 independent rules-review, and production-drill requirements documented in
-`docs/PRODUCTION-AUDIT.md`.
+`docs/operations/PRODUCTION-AUDIT.md`.

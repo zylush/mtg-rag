@@ -4,10 +4,13 @@ region          = "asia-east1"
 public_delivery_mode = "firebase_hosting_proxy"
 frontend_origin      = "https://replace-with-dev-project.web.app"
 api_image       = "asia-east1-docker.pkg.dev/replace-with-dev-project/mtg-rag-dev/api:replace-with-commit-sha"
+# For a schema-changing rollout, pin the new digest here first while api_image stays old.
+migration_image = null
 
 database_tier         = "db-custom-1-3840"
 database_disk_size_gb = 10
 cloud_run_max_instances = 3
+conversation_context_enabled = true
 
 labels = {
   owner = "replace-with-owner"

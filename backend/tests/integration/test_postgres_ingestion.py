@@ -100,7 +100,9 @@ async def test_repository_stages_validates_and_atomically_activates_rules_corpus
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-async def test_active_embedding_lookup_supports_copy_forward(session_factory) -> None:  # type: ignore[no-untyped-def]
+async def test_active_embedding_and_hash_lookups_support_copy_forward(
+    session_factory,  # type: ignore[no-untyped-def]
+) -> None:
     repository = PostgresIngestionRepository(session_factory)
     suffix = uuid.uuid4().hex
     source = SourceDefinition(
@@ -127,9 +129,13 @@ async def test_active_embedding_lookup_supports_copy_forward(session_factory) ->
     await repository.activate(source.name, version_id)
 
     cached = await repository.active_document_embeddings(source.name)
+    hashes = await repository.active_document_hashes(source.name)
 
     assert cached["100.1"].content_hash == corpus.documents[0].content_hash
     assert cached["100.1"].embedding[0] == pytest.approx(0.2)
+    assert hashes == {
+        document.canonical_key: document.content_hash for document in corpus.documents
+    }
 
 
 @pytest.mark.asyncio

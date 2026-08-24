@@ -61,6 +61,66 @@ def test_oracle_parser_deduplicates_printings_by_oracle_identity() -> None:
     assert parsed[0].representative_printing_id == "new"
 
 
+def test_oracle_parser_keeps_a_paper_printing_when_a_digital_one_is_newer() -> None:
+    cards = [
+        {
+            "id": "paper",
+            "oracle_id": "oracle-1",
+            "lang": "en",
+            "digital": False,
+            "name": "Black Lotus",
+            "oracle_text": "Add three mana of any one color.",
+            "released_at": "1993-08-05",
+        },
+        {
+            "id": "digital",
+            "oracle_id": "oracle-1",
+            "lang": "en",
+            "digital": True,
+            "name": "Black Lotus",
+            "oracle_text": "Add three mana of any one color.",
+            "released_at": "2014-06-16",
+        },
+    ]
+
+    parsed = parse_oracle_cards(cards)
+
+    assert len(parsed) == 1
+    assert parsed[0].representative_printing_id == "paper"
+
+
+def test_oracle_parser_skips_default_card_records_without_oracle_identity() -> None:
+    cards = [
+        {
+            "id": "token",
+            "lang": "en",
+            "digital": False,
+            "name": "Non-Oracle Game Object",
+            "layout": "token",
+        },
+        {
+            "id": "blank-oracle-id",
+            "oracle_id": "   ",
+            "lang": "en",
+            "digital": False,
+            "name": "Non-Oracle Game Object",
+            "layout": "token",
+        },
+        {
+            "id": "paper",
+            "oracle_id": "oracle-1",
+            "lang": "en",
+            "digital": False,
+            "name": "Black Lotus",
+            "oracle_text": "Add three mana of any one color.",
+        },
+    ]
+
+    parsed = parse_oracle_cards(cards)
+
+    assert [card.oracle_id for card in parsed] == ["oracle-1"]
+
+
 def test_rulings_keep_attribution_and_rank_wotc_first() -> None:
     rulings = [
         {

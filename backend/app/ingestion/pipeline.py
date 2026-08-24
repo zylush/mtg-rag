@@ -90,6 +90,8 @@ class IngestionRepository(Protocol):
         self, source_name: str, canonical_keys: tuple[str, ...] | None = None
     ) -> dict[str, CachedDocumentEmbedding]: ...
 
+    async def active_document_hashes(self, source_name: str) -> dict[str, str]: ...
+
     async def active_card_oracle_ids(
         self, oracle_ids: tuple[str, ...]
     ) -> frozenset[str]: ...
@@ -188,33 +190,52 @@ class IngestionPipeline:
 
         try:
             await self._repository.stage_metadata(version_id=version_id, corpus=corpus)
-            new_embedding_count = 0
+            active_hashes = await self._repository.active_document_hashes(source.name)
+            changed_documents = tuple(
+                document
+                for document in corpus.documents
+                if active_hashes.get(document.canonical_key) != document.content_hash
+            )
+            changed_embeddings: dict[str, list[float]] = {}
+            for start in range(0, len(changed_documents), EMBEDDING_BATCH_SIZE):
+                batch = changed_documents[start : start + EMBEDDING_BATCH_SIZE]
+                batch_embeddings = await self._embedding.embed_many(
+                    [document.text for document in batch]
+                )
+                if len(batch_embeddings) != len(batch):
+                    raise ValueError("embedding batch response count does not match request")
+                changed_embeddings.update(
+                    {
+                        document.canonical_key: embedding
+                        for document, embedding in zip(batch, batch_embeddings, strict=True)
+                    }
+                )
+
             for start in range(0, len(corpus.documents), EMBEDDING_BATCH_SIZE):
                 batch = corpus.documents[start : start + EMBEDDING_BATCH_SIZE]
-                cached = await self._repository.active_document_embeddings(
-                    source.name,
-                    tuple(document.canonical_key for document in batch),
+                reusable_keys = tuple(
+                    document.canonical_key
+                    for document in batch
+                    if document.canonical_key not in changed_embeddings
+                )
+                cached = (
+                    await self._repository.active_document_embeddings(
+                        source.name,
+                        reusable_keys,
+                    )
+                    if reusable_keys
+                    else {}
                 )
                 embeddings: dict[str, list[float]] = {}
-                changed_documents: list[CorpusDocument] = []
                 for document in batch:
+                    changed_embedding = changed_embeddings.get(document.canonical_key)
+                    if changed_embedding is not None:
+                        embeddings[document.canonical_key] = changed_embedding
+                        continue
                     previous = cached.get(document.canonical_key)
-                    if previous is not None and previous.content_hash == document.content_hash:
-                        embeddings[document.canonical_key] = previous.embedding
-                    else:
-                        changed_documents.append(document)
-                batch_embeddings = (
-                    await self._embedding.embed_many(
-                        [document.text for document in changed_documents]
-                    )
-                    if changed_documents
-                    else []
-                )
-                if len(batch_embeddings) != len(changed_documents):
-                    raise ValueError("embedding batch response count does not match request")
-                for document, embedding in zip(changed_documents, batch_embeddings, strict=True):
-                    embeddings[document.canonical_key] = embedding
-                new_embedding_count += len(changed_documents)
+                    if previous is None or previous.content_hash != document.content_hash:
+                        raise RuntimeError("active document changed while staging corpus")
+                    embeddings[document.canonical_key] = previous.embedding
                 await self._repository.stage_passages(
                     version_id=version_id,
                     documents=batch,
@@ -236,5 +257,5 @@ class IngestionPipeline:
         return IngestionResult(
             status="activated",
             version_id=version_id,
-            new_embedding_count=new_embedding_count,
+            new_embedding_count=len(changed_documents),
         )

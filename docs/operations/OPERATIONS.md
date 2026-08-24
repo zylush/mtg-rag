@@ -47,17 +47,53 @@ workflow.
    rejects `latest`. The Firebase project ID is configured by Terraform and is not a
    secret. Do not create Terraform-managed secret versions because that stores plaintext
    in state.
-6. Submit `cloudbuild.yaml` with a commit SHA, confirm every quality and scan step
-   passes, and record the immutable Artifact Registry digest. Put that digest in
-   `api_image`.
-7. Run and approve the complete plan, then apply it. Point the API DNS A record at the
+6. Submit `cloudbuild.yaml` with a frozen source manifest, confirm every quality and scan step
+   passes, and record the immutable Artifact Registry digest.
+7. For a release with no schema migration, put that digest in `api_image`, run and approve the
+   complete plan, and apply it. For a schema-changing release, use the migration-first sequence
+   below; never update the API before its required migration succeeds. Point the API DNS A record at the
    `api_ip_address` output and wait for the managed certificate to become active.
 
 Terraform has separate service accounts for the API, ingestion job, and scheduler. The
 API has load-balancer-only ingress; Cloud Armor allows Taiwan, Japan, South Korea, and
 Singapore and denies other regions.
 
+## Bounded conversation-context rollout
+
+The `conversation_context_enabled` Terraform variable and
+`MTG_RAG_CONVERSATION_CONTEXT_ENABLED` container setting default to `false`. The two bounds
+default to six prior messages and 6,000 serialized characters. This change has no database
+migration.
+
+Enable the flag in development first, then staging. Before production, run the versioned
+multi-turn evaluation and PostgreSQL concurrency tests with synthetic users. Compare model input
+tokens and latency with the standalone baseline, inspect `context_message_count` and
+`context_truncated` logs, and confirm contextual responses report `cache_status=ineligible`.
+Conversation content and content-derived hashes must not appear in logs.
+
+If latency, token growth, clarification accuracy, ownership behavior, or stale-tail conflicts
+regress, set the flag back to `false` and deploy the configuration change. This rollback restores
+the prior standalone behavior and requires neither a schema rollback nor data cleanup. Keep the P0
+risk open until the expert-reviewed staging gate passes.
+
 ## Database and corpus activation
+
+### Migration-first image rollout
+
+`migration_image` defaults to `api_image`, but a schema-changing release must be split into two
+complete, non-targeted plans:
+
+1. Keep `api_image` on the currently deployed digest and set `migration_image` to the new digest.
+   Review the saved plan with `terraform_plan_review.py --phase migration`; exactly the migration
+   job image may change. Apply it, execute the migration job once with zero retries, and stop if it
+   fails.
+2. After the migration succeeds, set both `api_image` and `migration_image` to the new digest.
+   Review with `--phase application`; exactly the API, ingestion job, and evaluation job image
+   leaves may change. Apply it, then run the release evaluation.
+
+Both reviews require a complete plan, immutable old/new digests, the exact development project and
+region, passing Terraform checks, unchanged outputs, and only allowlisted provider drift. Do not use
+`-target`. A failed migration leaves the old API serving traffic; do not proceed to phase two.
 
 After infrastructure is healthy, execute and wait for the one-shot migration job:
 
@@ -144,13 +180,17 @@ repeat unrelated Hosting deploys or secret rotations.
 `/healthz` is reserved for Cloud Run startup and liveness probes and is not exposed by
 Firebase Hosting. For an edge-to-service smoke check, request `/v1/conversations`
 without credentials and expect the API's JSON `401` response rather than the SPA shell.
+The free public question path is `/v1/public/ask`; it deliberately accepts no bearer token,
+does not create account history, and must be covered by the production distributed rate limit.
 
 ## Rollback
 
-Application images are immutable. To roll back the API, change `api_image` to a known
-good digest, review the Terraform plan, and apply. Do not retag or overwrite the failed
-image. Validate health, authentication, one cached and one uncached query, citations,
-and error rate after traffic reaches the restored revision.
+Application images are immutable. To roll back after a forward-compatible migration, keep
+`migration_image` on the newest migration-capable digest, change `api_image` to a known-good digest,
+review the application-phase Terraform plan, and apply. Do not downgrade the schema merely to roll
+back application code, and do not retag or overwrite the failed image. Validate health,
+authentication, one cached and one uncached query, citations, and error rate after traffic reaches
+the restored revision.
 
 Corpus activation is independent from application rollback. From a protected operator
 environment with Cloud SQL connectivity and the production configuration loaded:
@@ -205,9 +245,10 @@ A production release is blocked unless all of the following are recorded:
 
 - backend, frontend, browser, Terraform, audit, secret, and image-scan gates pass;
 - the migration and ingestion jobs succeed against production-like staging;
-- the 110-case evaluation passes and its independent expert review is approved;
-- the WotC and Scryfall launch decisions in
-  `docs/ATTRIBUTION-AND-LAUNCH.md` are resolved;
+- the 121-case evaluation passes and its independent expert review is approved;
+- the public-access product decision and source attribution in
+  `docs/operations/ATTRIBUTION-AND-LAUNCH.md` are implemented, and qualified WotC/Scryfall
+  policy/source-use review is recorded;
 - privacy copy, terms, support contact, deletion flow, billing budget, and alert channel
   have named owners;
 - DNS, certificate, Firebase authorized domains, CORS, Cloud Armor geography, and

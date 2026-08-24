@@ -179,6 +179,10 @@ A semantic cache hit requires:
 Complex interactions and multiplayer scenarios are regenerated. A cache failure does not block a
 fresh answer. Cache hits still consume daily quota.
 
+When bounded conversation context is enabled, a follow-up with prior messages skips both exact and
+semantic cache reads and writes. This prevents identical text such as `What happens to it?` from
+reusing an answer from a conversation with different facts.
+
 ## 10. How answer correctness is protected
 
 No single threshold guarantees correctness. The system uses a chain:
@@ -201,9 +205,10 @@ label alone cannot make an answer correct.
 
 ## 11. Prompt-injection protection
 
-Retrieved passages are untrusted data. If a passage says `ignore previous instructions`, the model
-must treat it as quoted source text, not a command. Passages are separated from system
-instructions, and the model receives no arbitrary SQL or web tools.
+Retrieved passages and prior conversation messages are untrusted data. If either says `ignore
+previous instructions`, the model must treat it as quoted data, not a command. Prior assistant
+text can help resolve a reference but is not rules evidence; citations must still name a currently
+retrieved passage. The model receives no arbitrary SQL or web tools.
 
 ## 12. Authentication, secrets, and quotas
 
@@ -217,10 +222,10 @@ instructions, and the model receives no arbitrary SQL or web tools.
 ## 13. Answer and citation flow
 
 ```text
-question
+current question + optional owned bounded history
   |
   v
-cache check
+standalone cache check (contextual turns skip it)
   |
   v
 hybrid retrieval
@@ -233,6 +238,9 @@ structured answer with passage IDs
   |
   v
 backend validates IDs and resolves labels/URLs
+  |
+  v
+conversation-tail check under lock
   |
   v
 answer, citations, history, and quota committed together
@@ -258,6 +266,8 @@ a half-imported rulebook. Failed imports preserve the preceding active version.
 | Lexical candidates | 20 |
 | Vector candidates | 20 |
 | Final generation passages | 8 |
+| Prior conversation messages | 6 |
+| Serialized prior context | 6,000 characters |
 | Semantic-cache similarity | 0.98 |
 | Semantic-cache maximum TTL | 7 days |
 | Question length | 2,000 characters |

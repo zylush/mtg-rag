@@ -18,14 +18,11 @@ Cloud Build quality gates, and a versioned 110-case RAG evaluation suite.
 - `frontend` - React PWA and browser acceptance tests.
 - `infra` - Google Cloud dev/prod Terraform.
 - `cloudbuild.yaml` - CI and versioned container delivery.
+- `docs/README.md` - documentation map and suggested reading order.
 - `docs/PRD.md` - product requirements, scope, acceptance criteria, and launch gates.
-- `docs/Architecture.md` - complete runtime, data, retrieval, and cloud architecture.
-- `docs/architecture-essentials.md` - concise learning and onboarding guide.
-- `docs/agent.md` - RAG assistant behavior, grounding, citation, and cache contract.
-- `docs/OPERATIONS.md` - bootstrap, deploy, rollback, and recovery runbook.
-- `docs/SECURITY.md` - trust boundaries and security verification.
-- `docs/ATTRIBUTION-AND-LAUNCH.md` - policy evidence and launch blockers.
-- `docs/PRODUCTION-AUDIT.md` - evidence-backed ship/block recommendation.
+- `docs/architecture/` - system design, agent contract, and visual architecture.
+- `docs/operations/` - deployment, security, launch, audit, and integration records.
+- `docs/testing/` - feature-level TDD and verification evidence.
 
 ## Local development
 
@@ -100,8 +97,10 @@ The credential is not included in frontend configuration, source maps, Docker bu
 arguments, or image layers.
 
 This is a development deployment, not approval for a public production launch. Production
-still requires the legal/policy decision, final Terms and Privacy copy, an independent MTG
-rules-expert evaluation, operator DNS/budget decisions, and the documented production
-recovery drills. In particular, the current WotC Fan Content Policy creates a potential
-conflict with mandatory sign-in and requires a human go/no-go decision before public access.
-See `docs/ATTRIBUTION-AND-LAUNCH.md` and `docs/PRODUCTION-AUDIT.md`.
+still requires qualified policy/source-use review and publication of the reviewed Terms and
+Privacy copy, an independent MTG rules-expert evaluation, operator DNS/budget decisions, and
+the documented production recovery drills. The public question path is now free and does not
+require account or email registration; sign-in is optional for saved history and account
+controls. A human go/no-go decision is still required before public access.
+See `docs/operations/ATTRIBUTION-AND-LAUNCH.md` and
+`docs/operations/PRODUCTION-AUDIT.md`.

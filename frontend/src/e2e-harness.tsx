@@ -98,7 +98,13 @@ const conversation: ConversationDetail = {
 const api: ApiPort = {
   async ask(question) {
     if (requestedFailure === "auth") throw new ApiClientError("AUTH_SESSION")
+    if (requestedFailure === "conflict") {
+      throw new ApiClientError("CONVERSATION_CHANGED")
+    }
     if (question.toLowerCase() === "quota") throw new Error("daily answer limit reached")
+    return answer
+  },
+  async publicAsk() {
     return answer
   },
   async conversations() {

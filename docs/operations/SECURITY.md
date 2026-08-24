@@ -79,10 +79,11 @@ Geographic filtering is an access policy, not proof of residency or nationality.
 VPNs, provider routing, upstream service locations, logs, backups, and support access
 must be covered by the operator's privacy and legal review.
 
-The repository does not create privacy notices, contractual terms, a data-processing
-agreement, or support policy on the operator's behalf. Public launch is blocked until
-those documents, the WotC policy question, the Scryfall usage review, and independent
-rules-expert approval are resolved.
+The repository now contains implementation-aligned privacy, Terms, attribution, and support
+copy for local review, but that copy is not legal approval or a data-processing agreement.
+Public launch is blocked until the operator publishes reviewed documents, records the WotC
+policy/source-use decision, completes the Scryfall usage review, and obtains independent
+rules-expert approval.
 
 ## Vulnerability handling
 

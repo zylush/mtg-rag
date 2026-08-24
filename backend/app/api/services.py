@@ -20,14 +20,33 @@ class BurstLimitExceededError(RuntimeError):
     pass
 
 
+class ConversationChangedError(RuntimeError):
+    pass
+
+
+class IdempotencyConflictError(RuntimeError):
+    pass
+
+
+class RequestInProgressError(RuntimeError):
+    pass
+
+
 class TokenVerifier(Protocol):
     async def verify(self, token: str) -> AuthenticatedUser: ...
 
 
 class AskUseCase(Protocol):
     async def ask(
-        self, *, user: AuthenticatedUser, question: str, conversation_id: UUID | None
+        self,
+        *,
+        user: AuthenticatedUser,
+        question: str,
+        conversation_id: UUID | None,
+        request_id: UUID,
     ) -> AskResponse: ...
+
+    async def ask_public(self, *, question: str, client_key: str) -> AskResponse: ...
 
 
 class ConversationUseCase(Protocol):
@@ -62,4 +81,3 @@ class AppServices:
     conversations: ConversationUseCase
     feedback: FeedbackUseCase
     accounts: AccountUseCase
-

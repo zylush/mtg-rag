@@ -1,8 +1,12 @@
-FROM python:3.12-slim@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36 AS base
+FROM python:3.12-slim@sha256:2c941e860699f878900b0edc2403613c234d4b32eda3cc9fa7036991a2a63c4a AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
+
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -38,6 +42,7 @@ FROM base AS runtime
 COPY --from=wheel-builder /wheels /wheels
 COPY alembic.ini ./
 COPY migrations ./migrations
+COPY evals ./evals
 
 RUN python -m pip install --no-index --find-links=/wheels mtg-rag-api && python -m pip uninstall -y setuptools wheel && python -m pip uninstall -y pip && rm -rf /wheels
 

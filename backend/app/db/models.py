@@ -294,6 +294,40 @@ class AskAttempt(Base):
     )
 
 
+class AskRequestRecord(Base):
+    __tablename__ = "ask_requests"
+    __table_args__ = (
+        UniqueConstraint("user_id", "client_request_id"),
+        CheckConstraint(
+            "status IN ('in_progress', 'completed')",
+            name="valid_status",
+        ),
+        CheckConstraint(
+            "(status = 'in_progress' AND response IS NULL) OR "
+            "(status = 'completed' AND response IS NOT NULL)",
+            name="valid_response_state",
+        ),
+        Index("ix_ask_request_lease", "status", "lease_expires_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("application_users.id", ondelete="CASCADE"), nullable=False
+    )
+    client_request_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    claim_token: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="in_progress")
+    response: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
+    lease_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
 class Conversation(Base, TimestampMixin):
     __tablename__ = "conversations"
 

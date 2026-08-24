@@ -39,11 +39,68 @@
 
 ## Intentional gaps
 
-- Terms of Service and Privacy Policy remain structured outlines pending operator/legal review; final jurisdiction, retention, contact, effective dates, and contractual wording are not invented by this change.
+- At the time of this checkpoint, Terms of Service and Privacy Policy were structured outlines
+  pending operator/legal review. The 2026-08-24 follow-up supplies implementation-aligned public
+  access, attribution, retention, deletion, and support copy; qualified legal review remains
+  required.
 - Firebase popup failure is represented in the Login component, but the browser harness does not simulate a popup-blocked provider response.
 - No backend consent-recording schema was added. If legal review requires recorded consent, that is a separate authentication/data change.
-- The repository’s existing WotC access-policy question remains a public-launch blocker.
+- The WotC source-use review remains a public-launch blocker even after the product removed
+  mandatory account/email registration from public questions.
 
 ## Visual evidence
 
 The authenticated visual baselines at 768px and 1440px were intentionally regenerated after adding the About/Legal header links. The 375px baseline was unchanged.
+
+## Development-preview labeling follow-up - 2026-08-24
+
+The release target remains a public development preview rather than a production-ready service.
+The signed-out header now says `Public development preview`, the authenticated desk says
+`Development preview`, and the Terms state that availability, correctness, continued access, and
+an SLA are not guaranteed. The exact Wizards Fan Content Policy notice remains present because the
+current official policy expressly requests that wording; the preview label supplements rather than
+replaces it.
+
+| Stage | Command | Result |
+|---|---|---|
+| RED - public surfaces | `npm test -- PublicPages.warm.test.tsx App.test.tsx` | 3 intended failures because neither public nor authenticated preview labels existed |
+| RED - authenticated desk | `npm test -- App.test.tsx` after correcting route scope | 1 intended failure on the authenticated `Development preview` label |
+| GREEN - focused | `npm test -- PublicPages.warm.test.tsx App.test.tsx` | 31 passed |
+| GREEN - complete unit suite | `npm test` | 66 passed |
+| Coverage | `npm run test:coverage` | 66 passed; 91.35% statements, 89.65% branches, 89.23% functions, 93.80% lines |
+| Static quality | `npm run lint` | Passed |
+| Production/PWA build | `npm run build` | Passed; 21 precache entries; existing 500 kB chunk advisory only |
+| Browser and visual QA | `npm run e2e` | 110 passed across five desktop/mobile browser projects with no snapshot mismatch |
+
+No TDD checkpoint commit was created because this release packet is already a large user-owned
+dirty worktree; committing only this slice would mix or omit dependent uncommitted changes. The
+RED/GREEN commands above preserve the checkpoint evidence without altering repository history.
+
+## Live publication reconciliation - 2026-08-24
+
+Read-only browser QA against `https://mtg-rules-desk-dev.web.app` produced no page console errors
+on the inspected routes and established a split publication state:
+
+- `/about` is live with source attribution and non-endorsement copy;
+- `/privacy` is live with the implementation-aligned policy, support contact, and pending-review
+  warning; and
+- `/terms` still serves the historical placeholder with `operator review required` dates and
+  marked sections to replace.
+
+The current local candidate was rebuilt after that finding. `npm test` passed all 66 tests,
+`npm run lint` passed, and `npm run build` produced 19 hosting files with the existing bundle-size
+advisory only. The create-only artifact manifest is `.tmp/v12-hosting-manifest-r1.json`, aggregate
+SHA-256 `2c23d3d48194327cec675e2b9cf70fc7dc9afda3777b20384c92453f94e80fae`, and a second pass matched
+all files.
+
+The operator authorized exactly one Hosting-only deployment of that artifact to development project
+`mtg-rules-desk-dev`, with backend and configuration changes excluded. Firebase selected exactly 19
+files, finalized and released one version, and reported `Deploy complete`; no retry ran. Read-only
+post-deploy browser QA confirmed:
+
+- `/terms` now shows `Operational terms · Effective date: August 24, 2026`, the complete service,
+  attribution, AI-limit, user-content, deletion, and support sections, and the pending-review banner;
+- the old `operator review required` placeholder is absent;
+- `/privacy`, `/about`, and `/` show their expected headings, preview labels, attribution, and
+  support surfaces; and
+- no console error was observed on the inspected public routes.

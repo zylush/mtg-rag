@@ -18,7 +18,7 @@ Checkpoint: `b025225 test: add privacy policy content expectations`
 
 ## GREEN
 
-The placeholder privacy outline was replaced by structured React paragraphs and lists. The content now reflects the implemented Firebase Authentication, Google Cloud, Cloud SQL, OpenAI, RAG, semantic-cache, PWA, logging, retention, and deletion behavior. The Terms of Service placeholder remains unchanged.
+The placeholder privacy outline was replaced by structured React paragraphs and lists. The content now reflects the implemented Firebase Authentication, Google Cloud, Cloud SQL, OpenAI, RAG, semantic-cache, PWA, logging, retention, and deletion behavior. At this historical checkpoint, the Terms of Service placeholder remained unchanged; the 2026-08-24 follow-up replaced it with operational copy pending qualified legal review.
 
 Focused command:
 
@@ -51,4 +51,12 @@ Checkpoint: `c92a40d feat: publish implementation-aligned privacy policy`
 - The page remains marked **Pending legal review** because implementation accuracy is not a substitute for qualified legal review.
 - The policy states that account deletion requests Firebase identity deletion after removing application rows. The two-system deletion path can still fail partially and is documented as an operational risk elsewhere in the repository.
 - Semantic-cache entries are not linked to account IDs and expire separately within seven days, so account deletion cannot immediately target an existing cache entry.
-- Terms of Service content remains a placeholder and was outside this task.
+- At the time of this checkpoint, Terms of Service content remained a placeholder and was outside
+  that task. The 2026-08-24 public-launch follow-up replaced it with implementation-aligned
+  operational terms; qualified legal review is still required.
+
+## Follow-up — 2026-08-24
+
+The public question path now accepts one free question without an account or email registration.
+Privacy copy discloses that public questions are not written to account history but may enter the
+shared semantic cache for up to seven days. Focused frontend and backend tests cover the new path.

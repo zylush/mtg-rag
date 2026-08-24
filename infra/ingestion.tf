@@ -14,6 +14,7 @@ resource "google_cloud_run_v2_job" "ingestion" {
       containers {
         image   = var.api_image
         command = ["mtg-rag-ingest"]
+        args    = var.environment == "prod" ? [] : ["cards"]
 
         resources {
           limits = {

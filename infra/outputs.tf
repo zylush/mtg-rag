@@ -42,3 +42,8 @@ output "migration_job_name" {
 output "ingestion_job_name" {
   value = google_cloud_run_v2_job.ingestion.name
 }
+
+output "evaluation_job_name" {
+  description = "Development-only same-region evaluation capture job."
+  value       = try(google_cloud_run_v2_job.evaluation[0].name, null)
+}

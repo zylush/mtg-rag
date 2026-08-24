@@ -19,6 +19,16 @@ test("shows a public welcome preview and legal navigation", async ({ page }) => 
   await expect(page.getByRole("button", { name: "Sign in with Google" })).toBeVisible()
 })
 
+test("answers one public question without an account", async ({ page }) => {
+  await visit(page, "/")
+
+  await page.getByRole("textbox", { name: "Your rules question" }).fill("What is flying?")
+  await page.getByRole("button", { name: "Ask for free" }).click()
+
+  await expect(page.getByText("Flying creatures can only be blocked by creatures with flying or reach.")).toBeVisible()
+  await expect(page.getByText("Public answers are informational")).toBeVisible()
+})
+
 test("welcome screen keeps its warm identity and hierarchy at release widths", async ({ page }, testInfo) => {
   for (const width of [320, 375, 430, 768, 1024, 1366, 1440]) {
     const height = width < 700 ? 812 : width === 768 ? 1024 : 900

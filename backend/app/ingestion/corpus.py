@@ -4,6 +4,7 @@ import gzip
 import hashlib
 import io
 import json
+from collections.abc import Iterable, Iterator
 from typing import Any
 from urllib.parse import quote
 
@@ -16,11 +17,10 @@ def _hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-MAX_SCRYFALL_UNCOMPRESSED_BYTES = 512 * 1024 * 1024
+MAX_SCRYFALL_UNCOMPRESSED_BYTES = 1024 * 1024 * 1024
 
 
-def _gzip_json_lines(payload: bytes) -> list[dict[str, Any]]:
-    records: list[dict[str, Any]] = []
+def _gzip_json_lines(payload: bytes) -> Iterator[dict[str, Any]]:
     total_bytes = 0
     try:
         with gzip.GzipFile(fileobj=io.BytesIO(payload)) as stream:
@@ -35,13 +35,12 @@ def _gzip_json_lines(payload: bytes) -> list[dict[str, Any]]:
                     raise ScryfallParseError(
                         f"bulk JSON Lines record {line_number} is not an object"
                     )
-                records.append(item)
+                yield item
     except (gzip.BadGzipFile, EOFError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ScryfallParseError("bulk payload is not valid gzip JSON Lines") from exc
-    return records
 
 
-def _json_records(payload: bytes) -> list[dict[str, Any]]:
+def _json_records(payload: bytes) -> Iterable[dict[str, Any]]:
     if payload.startswith(b"\x1f\x8b"):
         return _gzip_json_lines(payload)
 

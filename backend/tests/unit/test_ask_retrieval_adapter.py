@@ -20,7 +20,11 @@ class FakeHybrid:
     calls: list[tuple[str, list[float]]] = field(default_factory=list)
 
     async def retrieve_with_embedding(
-        self, question: str, embedding: list[float]
+        self,
+        question: str,
+        embedding: list[float],
+        *,
+        prepared: object | None = None,
     ) -> list[RetrievedPassage]:
         self.calls.append((question, embedding))
         return [
@@ -47,4 +51,3 @@ async def test_ask_retrieval_adapter_reuses_one_normalized_question_embedding() 
     assert hybrid.calls == [("  What IS Flying? ", [0.1, 0.2])]
     assert bundle.embedding == vector
     assert bundle.passages[0].passage_id == "p1"
-

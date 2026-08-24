@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.accounts.service import AccountDeletionService
 from app.api.auth import FirebaseTokenVerifier
 from app.api.services import AppServices, TokenVerifier
+from app.ask.context import PostgresConversationContextLoader
 from app.ask.repository import PostgresAnswerCommitter
 from app.ask.retrieval import AskRetrievalAdapter
 from app.ask.service import AskApplicationService
@@ -60,10 +61,20 @@ def build_services(
         prompt_version=settings.prompt_version,
         retrieval_version=settings.retrieval_version,
     )
+    conversation_contexts = (
+        PostgresConversationContextLoader(
+            session_factory,
+            max_messages=settings.conversation_context_max_messages,
+            max_characters=settings.conversation_context_max_characters,
+        )
+        if settings.conversation_context_enabled
+        else None
+    )
     ask = AskApplicationService(
         users=PostgresUserRepository(session_factory),
         usage=PostgresUsageRepository(session_factory),
         contexts=contexts,
+        conversation_contexts=conversation_contexts,
         cache=PostgresCacheRepository(session_factory),
         retrieval=ask_retrieval,
         generation=generation,

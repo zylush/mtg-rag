@@ -3,6 +3,7 @@ import json
 
 import pytest
 
+from app.ingestion import corpus as corpus_module
 from app.ingestion.corpus import parse_cards_corpus, parse_rules_corpus, parse_rulings_corpus
 
 RULES = """Magic: The Gathering Comprehensive Rules
@@ -96,3 +97,26 @@ def test_scryfall_corpora_reject_invalid_json_lines() -> None:
 
     with pytest.raises(ValueError, match="JSON Lines"):
         parse_rulings_corpus(payload, "rulings-version")
+
+
+def test_scryfall_gzip_json_lines_are_parsed_lazily() -> None:
+    payload = gzip.compress(b'{"oracle_id":"one"}\n{"oracle_id":"two"}\n')
+
+    records = corpus_module._json_records(payload)
+
+    assert not isinstance(records, list)
+    assert [record["oracle_id"] for record in records] == ["one", "two"]
+
+
+def test_scryfall_uncompressed_budget_supports_default_cards() -> None:
+    assert corpus_module.MAX_SCRYFALL_UNCOMPRESSED_BYTES == 1024 * 1024 * 1024
+
+
+def test_scryfall_lazy_parser_still_enforces_uncompressed_budget(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payload = gzip.compress(b'{"oracle_id":"one"}\n{"oracle_id":"two"}\n')
+    monkeypatch.setattr(corpus_module, "MAX_SCRYFALL_UNCOMPRESSED_BYTES", 20)
+
+    with pytest.raises(ValueError, match="uncompressed size limit"):
+        list(corpus_module._json_records(payload))
