@@ -8,7 +8,7 @@ This is the repository’s complete chronological patch ledger. It records every
 **Remote:** https://github.com/zylush/mtg-rag.git
 
 The website’s [Patch history](https://mtg-rules-desk-dev.web.app/patch-history) view presents
-versioned releases as concise bullet notes with independent section and per-release pagination.
+versioned releases as grouped, concise bullet notes with independent section and per-release pagination.
 
 ## Release overview
 

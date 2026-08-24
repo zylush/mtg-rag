@@ -336,6 +336,143 @@ function concisePatchMessage(subject: string): string {
   return rawMessage.charAt(0).toUpperCase() + rawMessage.slice(1)
 }
 
+interface PatchNote {
+  readonly id: string
+  readonly entries: readonly PatchHistoryEntry[]
+}
+
+const PATCH_NOTE_STOP_WORDS = new Set([
+  "add",
+  "added",
+  "and",
+  "build",
+  "built",
+  "capture",
+  "captured",
+  "complete",
+  "completed",
+  "contract",
+  "contracts",
+  "define",
+  "defined",
+  "document",
+  "documented",
+  "docs",
+  "ensure",
+  "establish",
+  "established",
+  "feature",
+  "fix",
+  "for",
+  "from",
+  "implement",
+  "implemented",
+  "into",
+  "local",
+  "pass",
+  "passed",
+  "preserve",
+  "preserved",
+  "publish",
+  "published",
+  "record",
+  "recorded",
+  "refine",
+  "refined",
+  "refactor",
+  "release",
+  "require",
+  "requires",
+  "safe",
+  "safety",
+  "support",
+  "test",
+  "tested",
+  "tests",
+  "the",
+  "that",
+  "this",
+  "use",
+  "used",
+  "version",
+  "versions",
+  "with",
+])
+
+function patchEntryKeywords(entry: PatchHistoryEntry): ReadonlySet<string> {
+  return new Set(
+    concisePatchMessage(entry.subject)
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .map((token) => {
+        if (token.endsWith("ies")) return `${token.slice(0, -3)}y`
+        if (token.endsWith("s") && token.length > 4) return token.slice(0, -1)
+        return token
+      })
+      .filter((token) => token.length >= 4 && !PATCH_NOTE_STOP_WORDS.has(token)),
+  )
+}
+
+function patchEntriesAreRelated(left: PatchHistoryEntry, right: PatchHistoryEntry): boolean {
+  const rightKeywords = patchEntryKeywords(right)
+  return [...patchEntryKeywords(left)].some((keyword) => rightKeywords.has(keyword))
+}
+
+function mergeSimilarPatchEntries(entries: readonly PatchHistoryEntry[]): readonly PatchNote[] {
+  const groups: PatchHistoryEntry[][] = []
+  let index = 0
+
+  while (index < entries.length) {
+    const current = entries[index]
+    const next = entries[index + 1]
+    if (next && patchEntriesAreRelated(current, next)) {
+      groups.push([current, next])
+      index += 2
+      continue
+    }
+    groups.push([current])
+    index += 1
+  }
+
+  return groups
+    .map((group) => ({
+      id: group.map((entry) => entry.hash).join("-"),
+      entries: group,
+    }))
+}
+
+function patchEntryKind(subject: string): string {
+  return subject.match(/^([a-z]+)(?:\([^)]*\))?:/i)?.[1].toLowerCase() ?? "change"
+}
+
+function patchNoteContext(entry: PatchHistoryEntry): string {
+  switch (patchEntryKind(entry.subject)) {
+    case "docs":
+      return "The release records the evidence behind this checkpoint."
+    case "fix":
+      return "The release carries this correction into the checkpoint."
+    case "feat":
+      return "The release carries this capability into the checkpoint."
+    case "refactor":
+      return "The release keeps the implementation aligned with the checkpoint."
+    case "test":
+      return "The release keeps this behavior covered by an explicit check."
+    case "chore":
+      return "The release keeps the supporting maintenance work in place."
+    default:
+      return "The release records this change at the checkpoint."
+  }
+}
+
+function patchNoteMessage(note: PatchNote): string {
+  const sentences = note.entries.map((entry) => {
+    const message = concisePatchMessage(entry.subject)
+    return /[.!?]$/.test(message) ? message : `${message}.`
+  })
+  if (sentences.length > 1) return sentences.join(" ")
+  return `${sentences[0]} ${patchNoteContext(note.entries[0])}`
+}
+
 const PATCH_NOTES_PAGE_SIZE = 8
 const PATCH_RELEASE_PAGE_SIZE = 2
 
@@ -350,12 +487,11 @@ function entriesForPatchRelease(release: PatchRelease): readonly PatchHistoryEnt
   return PATCH_HISTORY.slice(startIndex + 1, endIndex + 1)
 }
 
-function PatchNoteItem({ entry }: { entry: PatchHistoryEntry }) {
-  const message = concisePatchMessage(entry.subject)
+function PatchNoteItem({ note }: { note: PatchNote }) {
   return (
     <li className="patch-note-item">
       <span aria-hidden="true">-</span>
-      <span>{message}</span>
+      <span>{patchNoteMessage(note)}</span>
     </li>
   )
 }
@@ -374,12 +510,15 @@ export function PatchHistoryPage({
   const releaseGroups = useMemo(() => {
     const grouped = PATCH_RELEASES.map((release) => ({
       release,
-      entries: entriesForPatchRelease(release),
+      notes: mergeSimilarPatchEntries(entriesForPatchRelease(release)),
     }))
     if (order === "newest") {
-      return grouped.reverse().map(({ release, entries }) => ({
+      return grouped.reverse().map(({ release, notes }) => ({
         release,
-        entries: [...entries].reverse(),
+        notes: [...notes].reverse().map((note) => ({
+          ...note,
+          entries: [...note.entries].reverse(),
+        })),
       }))
     }
     return grouped
@@ -441,11 +580,11 @@ export function PatchHistoryPage({
           </div>
 
           <div className="patch-release-list">
-            {visibleReleaseGroups.map(({ release, entries }) => {
-              const pageCount = Math.max(1, Math.ceil(entries.length / PATCH_NOTES_PAGE_SIZE))
+            {visibleReleaseGroups.map(({ release, notes }) => {
+              const pageCount = Math.max(1, Math.ceil(notes.length / PATCH_NOTES_PAGE_SIZE))
               const page = Math.min(patchNotePages[release.id] ?? 1, pageCount)
               const pageStart = (page - 1) * PATCH_NOTES_PAGE_SIZE
-              const pageEntries = entries.slice(pageStart, pageStart + PATCH_NOTES_PAGE_SIZE)
+              const pageNotes = notes.slice(pageStart, pageStart + PATCH_NOTES_PAGE_SIZE)
               const releaseHeadingId = `patch-release-heading-${release.id}`
               const notesListId = `patch-notes-${release.id}`
 
@@ -485,7 +624,9 @@ export function PatchHistoryPage({
                     <div className="patch-notes-heading">
                       <div>
                         <span className="section-label">Patch notes</span>
-                        <span>{entries.length} changes</span>
+                        <span>
+                          {notes.length} grouped {notes.length === 1 ? "note" : "notes"}
+                        </span>
                       </div>
                       <span>
                         Page {page} of {pageCount}
@@ -496,8 +637,8 @@ export function PatchHistoryPage({
                       id={notesListId}
                       aria-label={`${release.version} patch notes`}
                     >
-                      {pageEntries.map((entry) => (
-                        <PatchNoteItem entry={entry} key={entry.hash} />
+                      {pageNotes.map((note) => (
+                        <PatchNoteItem note={note} key={note.id} />
                       ))}
                     </ol>
                     <nav

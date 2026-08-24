@@ -111,12 +111,14 @@ test("shows versioned patch releases without authentication", async ({ page }) =
 
   const notes = page.getByRole("list", { name: "v0.1.0 patch notes" })
   await expect(notes.getByRole("listitem")).toHaveCount(8)
-  await expect(page.getByText("Page 1 of 12")).toBeVisible()
+  const notesPanel = notes.locator("..")
+  await expect(notesPanel.getByText(/Page 1 of \d+/)).toBeVisible()
+  const firstPageText = await notes.textContent()
   const pageTwo = page.getByRole("button", { name: "Go to v0.1.0 patch notes page 2" })
   await pageTwo.click()
   await expect(pageTwo).toHaveAttribute("aria-current", "page")
-  await expect(page.getByText("Page 2 of 12")).toBeVisible()
-  await expect(notes.getByText("Add reproducible Python and Postgres runtime")).toBeVisible()
+  await expect(notesPanel.getByText(/Page 2 of \d+/)).toBeVisible()
+  await expect(notes).not.toHaveText(firstPageText ?? "")
   await expect(notes.getByText("e4b2462")).toHaveCount(0)
 
   await expect(order).toHaveValue("oldest")

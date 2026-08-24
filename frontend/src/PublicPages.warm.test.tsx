@@ -107,6 +107,27 @@ describe("patch history page", () => {
     expect(screen.queryByText("49873ff")).not.toBeInTheDocument()
   })
 
+  it("merges related changes into concise multi-sentence notes", async () => {
+    const user = userEvent.setup()
+    window.history.replaceState({}, "", "/patch-history")
+    render(
+      <RouterProvider>
+        <PatchHistoryPage />
+      </RouterProvider>,
+    )
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Patch history order" }), "oldest")
+    const notes = screen.getByRole("list", { name: "v0.1.0 patch notes" })
+    const noteItems = within(notes).getAllByRole("listitem")
+
+    expect(noteItems[1]).toHaveTextContent(
+      /Define persistence and ingestion safety contracts.*Add immutable corpus persistence contracts/,
+    )
+    for (const note of noteItems) {
+      expect(note.textContent?.match(/[^.!?]+[.!?]+/g)?.length ?? 0).toBeGreaterThanOrEqual(2)
+    }
+  })
+
   it("reorders deployment releases", async () => {
     const user = userEvent.setup()
     window.history.replaceState({}, "", "/patch-history")
@@ -156,16 +177,23 @@ describe("patch history page", () => {
     await user.click(screen.getByRole("button", { name: "Go to deployment releases page 1" }))
 
     const notes = screen.getByRole("list", { name: "v0.1.0 patch notes" })
-    expect(within(notes).getAllByRole("listitem")).toHaveLength(8)
-    expect(screen.getByText("Page 1 of 12")).toBeVisible()
+    const noteItems = within(notes).getAllByRole("listitem")
+    expect(noteItems).toHaveLength(8)
+    for (const note of noteItems) {
+      expect(note.textContent?.match(/[^.!?]+[.!?]+/g)?.length ?? 0).toBeGreaterThanOrEqual(2)
+    }
+    const notesPanel = notes.closest(".patch-notes-panel")
+    expect(notesPanel).not.toBeNull()
+    expect(within(notesPanel as HTMLElement).getByText(/Page 1 of \d+/)).toBeVisible()
+    const firstPageText = notes.textContent
 
     const pageTwo = screen.getByRole("button", {
       name: "Go to v0.1.0 patch notes page 2",
     })
     await user.click(pageTwo)
     expect(pageTwo).toHaveAttribute("aria-current", "page")
-    expect(screen.getByText("Page 2 of 12")).toBeVisible()
-    expect(within(notes).getByText("Add reproducible Python and Postgres runtime")).toBeVisible()
+    expect(within(notesPanel as HTMLElement).getByText(/Page 2 of \d+/)).toBeVisible()
+    expect(notes).not.toHaveTextContent(firstPageText ?? "")
     expect(within(notes).queryByText("e4b2462")).not.toBeInTheDocument()
   })
 })

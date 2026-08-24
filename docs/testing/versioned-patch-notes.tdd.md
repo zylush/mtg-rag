@@ -9,6 +9,8 @@
   the current local preview.
 - As a reviewer, I can scan concise hyphen-prefixed notes for each release without Git-specific
   proof links in the public UI.
+- As a reviewer, I see related changes merged into grouped notes, with every visible note using at
+  least two sentences.
 - As a reviewer, I can page through concise patch notes within one version without paginating the
   whole patch-history page.
 - As a reviewer, I can page through deployment releases, keep the oldest/newest filter, and see
@@ -19,8 +21,8 @@
 | Stage | Command | Result |
 | --- | --- | --- |
 | RED | `npm test -- --run src/PublicPages.warm.test.tsx` | 1 of 8 failed because the versioned patch-notes heading did not exist. |
-| GREEN | `npm test -- --run src/PublicPages.warm.test.tsx` | 8 of 8 passed, including deployment-release pagination, per-release note pagination, and concise rendering. |
-| Full unit suite | `npm test` | 12 files and 71 tests passed. |
+| GREEN | `npm test -- --run src/PublicPages.warm.test.tsx` | 9 of 9 passed, including grouped multi-sentence notes, deployment-release pagination, and per-release note pagination. |
+| Full unit suite | `npm test` | 12 files and 72 tests passed. |
 | Static quality | `npm run lint` | Passed with no warnings. |
 | Production build | `npm run build` | TypeScript and Vite build passed. |
 | Browser QA | `npx playwright test tests/e2e/public-pages.spec.ts --project=chromium` | 8 of 8 passed, including axe checks. |
@@ -36,7 +38,8 @@ explicit evidence checkpoints rather than a live Git API feed:
 - `v0.2.0` — warm Firebase development preview, recorded on 2026-08-19 (`604dfb2`).
 - `v0.3.0` — current local chat-history preview, not deployed (`49873ff`).
 
-The public release cards intentionally keep their notes concise and omit Git proof links. The
+The public release cards intentionally keep their notes grouped and concise, merging related
+changes into multi-sentence bullets while omitting Git proof links. The
 repository-only chronological ledger is not rendered on the public page. New deployments should
 add an explicit release record when the owner requests the next versioned patch post.
 
