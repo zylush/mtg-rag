@@ -772,36 +772,6 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
 .legal-copy a:hover { color: var(--copper-dark); }
 .legal-source-note { display: inline-flex; align-items: center; gap: 7px; margin-top: 32px; color: var(--faint); font-size: .74rem; line-height: 1.5; }
 .patch-history-intro { padding-bottom: 38px; }
-.patch-history-summary {
-  display: grid;
-  grid-template-columns: 1.3fr repeat(2, 1fr);
-  border-top: 1px solid var(--line-dark);
-  border-bottom: 1px solid var(--line-dark);
-}
-.patch-history-summary > div {
-  display: grid;
-  gap: 7px;
-  min-height: 116px;
-  align-content: center;
-  padding: 20px 24px;
-  border-right: 1px solid var(--line);
-}
-.patch-history-summary > div:last-child { border-right: 0; }
-.patch-history-summary strong {
-  color: var(--blue);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: clamp(1.1rem, 2vw, 1.45rem);
-  font-weight: 700;
-  letter-spacing: -.03em;
-}
-.patch-history-summary > div:first-child strong { color: var(--ink); }
-.patch-history-summary span {
-  color: var(--faint);
-  font-size: .68rem;
-  font-weight: 700;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
 .patch-release-notes { margin-top: 58px; }
 .patch-release-notes-intro {
   display: flex;
@@ -951,42 +921,7 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
 .patch-notes-nav:hover:not(:disabled) { border-color: var(--blue); color: var(--ink); }
 .patch-notes-page[aria-current="page"] { border-color: var(--blue); background: var(--blue); color: var(--paper); }
 .patch-notes-nav:disabled { cursor: default; opacity: .4; }
-.patch-history-layout {
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  gap: clamp(34px, 7vw, 76px);
-  margin-top: 58px;
-}
-.patch-history-index {
-  align-self: start;
-  position: sticky;
-  top: 24px;
-  border-left: 3px solid var(--copper);
-  padding-left: 19px;
-}
-.patch-history-index dl { display: grid; gap: 17px; margin: 19px 0 22px; }
-.patch-history-index dl div { display: grid; gap: 5px; }
-.patch-history-index dt {
-  color: var(--faint);
-  font-size: .65rem;
-  font-weight: 700;
-  letter-spacing: .09em;
-  text-transform: uppercase;
-}
-.patch-history-index dd { margin: 0; }
-.patch-history-index code {
-  color: var(--ink);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: .68rem;
-  overflow-wrap: anywhere;
-}
-.patch-history-index p {
-  margin: 0;
-  color: var(--muted);
-  font-size: .78rem;
-  line-height: 1.65;
-}
-.patch-history-ledger { border-top: 1px solid var(--line-dark); }
+.patch-history-ledger { margin-top: 58px; border-top: 1px solid var(--line-dark); }
 .patch-history-ledger-heading {
   display: flex;
   align-items: baseline;
@@ -1134,14 +1069,9 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
 
 @media (max-width: 800px) {
   .patch-release-card-header { grid-template-columns: 1fr; gap: 22px; }
-  .patch-history-layout { grid-template-columns: 1fr; gap: 34px; }
-  .patch-history-index { position: static; }
 }
 
 @media (max-width: 560px) {
-  .patch-history-summary { grid-template-columns: 1fr; }
-  .patch-history-summary > div { min-height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
-  .patch-history-summary > div:last-child { border-bottom: 0; }
   .patch-release-notes-intro { align-items: flex-start; flex-direction: column; gap: 13px; }
   .patch-release-card-header, .patch-notes-panel { padding-left: 18px; padding-right: 18px; }
   .patch-release-meta { gap: 14px 12px; }

@@ -89,7 +89,7 @@ test("opens About, Terms, and Privacy without authentication", async ({ page }) 
 test("shows the complete patch ledger without authentication", async ({ page }) => {
   await visit(page, "/patch-history")
 
-  await expect(page.getByText("162 commits recorded")).toBeVisible()
+  await expect(page.getByText("Snapshot details")).toHaveCount(0)
   await expect(page.getByText("49873ff").last()).toBeVisible()
   await expect(page.getByText("Record chat history verification checkpoints").first()).toBeVisible()
 

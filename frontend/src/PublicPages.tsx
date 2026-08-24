@@ -13,7 +13,6 @@ import { useMemo, useState, type FormEvent, type ReactNode } from "react"
 import { BrandMark } from "./BrandMark"
 import {
   PATCH_HISTORY,
-  PATCH_HISTORY_CAPTURE,
   PATCH_RELEASES,
   type PatchHistoryEntry,
   type PatchRelease,
@@ -476,21 +475,6 @@ export function PatchHistoryPage({
           </p>
         </div>
 
-        <section className="patch-history-summary" aria-label="Patch history summary">
-          <div>
-            <strong>{PATCH_HISTORY_CAPTURE.commitCount} commits recorded</strong>
-            <span>Complete snapshot</span>
-          </div>
-          <div>
-            <strong>{PATCH_HISTORY_CAPTURE.firstDate}</strong>
-            <span>First patch</span>
-          </div>
-          <div>
-            <strong>{PATCH_HISTORY_CAPTURE.lastDate}</strong>
-            <span>Latest release checkpoint</span>
-          </div>
-        </section>
-
         <section className="patch-release-notes" aria-labelledby="patch-notes-heading">
           <div className="patch-release-notes-intro">
             <div>
@@ -612,102 +596,78 @@ export function PatchHistoryPage({
           </div>
         </section>
 
-        <div className="patch-history-layout">
-          <aside className="patch-history-index" aria-label="Patch history capture details">
-            <span className="section-label">Snapshot details</span>
-            <dl>
-              <div>
-                <dt>Branch</dt>
-                <dd>
-                  <code>{PATCH_HISTORY_CAPTURE.branch}</code>
-                </dd>
-              </div>
-              <div>
-                <dt>Captured at</dt>
-                <dd>
-                  <code>{PATCH_HISTORY_CAPTURE.head}</code>
-                </dd>
-              </div>
-            </dl>
-            <p>
-              The ledger is intentionally inclusive: test and documentation patches stay beside
-              feature work so each release decision has context.
-            </p>
-          </aside>
-
-          <div className="patch-history-ledger">
-            <div className="patch-history-ledger-heading">
-              <div className="patch-history-ledger-title">
-                <span className="section-label">Chronological ledger</span>
-                <span>{order === "oldest" ? "Oldest first" : "Newest first"}</span>
-              </div>
-              <label className="patch-order-filter">
-                <span>Order</span>
-                <select
-                  aria-label="Patch history order"
-                  value={order}
-                  onChange={(event) => setOrder(event.target.value as PatchHistoryOrder)}
-                >
-                  <option value="oldest">Oldest first</option>
-                  <option value="newest">Newest first</option>
-                </select>
-              </label>
+        <div className="patch-history-ledger">
+          <div className="patch-history-ledger-heading">
+            <div className="patch-history-ledger-title">
+              <span className="section-label">Chronological ledger</span>
+              <span>{order === "oldest" ? "Oldest first" : "Newest first"}</span>
             </div>
-            {groups.map(({ date, entries }) => {
-              const label = patchDateLabel(date)
-              const longLabel = patchDateLongLabel(date)
-              const collapsed = collapsedDates.has(date)
-              const listId = `patch-list-${date}`
-              return (
-                <section
-                  className={`patch-day${collapsed ? " is-collapsed" : ""}`}
-                  key={date}
-                  aria-labelledby={`patch-day-${date}`}
-                >
-                  <div className="patch-day-rail">
-                    <div className="patch-day-heading">
-                      <h2 id={`patch-day-${date}`}>{label}</h2>
-                      <span>
-                        {entries.length} {entries.length === 1 ? "patch" : "patches"}
-                      </span>
-                    </div>
-                    <p className="patch-day-info">{patchKindSummary(entries)}</p>
-                    <button
-                      className="patch-day-toggle"
-                      type="button"
-                      aria-controls={listId}
-                      aria-expanded={!collapsed}
-                      aria-label={`${collapsed ? "Expand" : "Collapse"} ${longLabel} patches`}
-                      onClick={() => toggleDate(date)}
-                    >
-                      <ChevronDown aria-hidden="true" size={15} />
-                      {collapsed ? "Expand" : "Collapse"}
-                    </button>
-                  </div>
-                  <ol
-                    className="patch-list"
-                    id={listId}
-                    aria-label={`${longLabel} patches`}
-                    hidden={collapsed}
-                  >
-                    {entries.map((entry) => {
-                      const patch = concisePatchMessage(entry.subject)
-                      return (
-                        <li className="patch-entry" key={entry.hash}>
-                          <code>{entry.hash}</code>
-                          <div>
-                            <span className="patch-entry-kind">{patch.kind}</span>
-                            <p className="patch-entry-subject">{patch.message}</p>
-                            <span className="patch-entry-author">{entry.author}</span>
-                          </div>
-                        </li>
-                      )
-                    })}
-                  </ol>
-                </section>
-              )
-            })}
+            <label className="patch-order-filter">
+              <span>Order</span>
+              <select
+                aria-label="Patch history order"
+                value={order}
+                onChange={(event) => setOrder(event.target.value as PatchHistoryOrder)}
+              >
+                <option value="oldest">Oldest first</option>
+                <option value="newest">Newest first</option>
+              </select>
+            </label>
           </div>
+          {groups.map(({ date, entries }) => {
+            const label = patchDateLabel(date)
+            const longLabel = patchDateLongLabel(date)
+            const collapsed = collapsedDates.has(date)
+            const listId = `patch-list-${date}`
+            return (
+              <section
+                className={`patch-day${collapsed ? " is-collapsed" : ""}`}
+                key={date}
+                aria-labelledby={`patch-day-${date}`}
+              >
+                <div className="patch-day-rail">
+                  <div className="patch-day-heading">
+                    <h2 id={`patch-day-${date}`}>{label}</h2>
+                    <span>
+                      {entries.length} {entries.length === 1 ? "patch" : "patches"}
+                    </span>
+                  </div>
+                  <p className="patch-day-info">{patchKindSummary(entries)}</p>
+                  <button
+                    className="patch-day-toggle"
+                    type="button"
+                    aria-controls={listId}
+                    aria-expanded={!collapsed}
+                    aria-label={`${collapsed ? "Expand" : "Collapse"} ${longLabel} patches`}
+                    onClick={() => toggleDate(date)}
+                  >
+                    <ChevronDown aria-hidden="true" size={15} />
+                    {collapsed ? "Expand" : "Collapse"}
+                  </button>
+                </div>
+                <ol
+                  className="patch-list"
+                  id={listId}
+                  aria-label={`${longLabel} patches`}
+                  hidden={collapsed}
+                >
+                  {entries.map((entry) => {
+                    const patch = concisePatchMessage(entry.subject)
+                    return (
+                      <li className="patch-entry" key={entry.hash}>
+                        <code>{entry.hash}</code>
+                        <div>
+                          <span className="patch-entry-kind">{patch.kind}</span>
+                          <p className="patch-entry-subject">{patch.message}</p>
+                          <span className="patch-entry-author">{entry.author}</span>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ol>
+              </section>
+            )
+          })}
         </div>
       </main>
     </PublicLayout>

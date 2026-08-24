@@ -102,8 +102,9 @@ describe("patch history page", () => {
     expect(
       screen.getByRole("heading", { name: "Every patch, with a paper trail." }),
     ).toBeVisible()
-    expect(screen.getByText("162 commits recorded")).toBeVisible()
-    expect(screen.getAllByText("49873ff")).toHaveLength(2)
+    expect(screen.queryByText("Snapshot details")).not.toBeInTheDocument()
+    expect(screen.queryByText(/commits recorded/i)).not.toBeInTheDocument()
+    expect(screen.getAllByText("49873ff")).toHaveLength(1)
     expect(screen.getAllByText("Record chat history verification checkpoints")).toHaveLength(2)
     expect(screen.queryByText(/docs: record chat history verification checkpoints/i)).not.toBeInTheDocument()
     expect(document.querySelectorAll(".patch-day .patch-entry")).toHaveLength(162)

@@ -18,14 +18,6 @@ export interface PatchRelease {
   readonly endAt: string
 }
 
-export const PATCH_HISTORY_CAPTURE = {
-  commitCount: 162,
-  firstDate: "2026-08-12",
-  lastDate: "2026-08-25",
-  branch: "preview/single-screen-rag-desk",
-  head: "49873ff",
-} as const
-
 /**
  * Deployment checkpoints are kept separate from the chronological commit ledger so a release
  * note can explain what shipped in each hosted build without pretending the ledger is live Git.

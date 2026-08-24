@@ -179,7 +179,7 @@ describe("MTG Rules Desk", () => {
     window.history.replaceState({}, "", "/patch-history")
     window.dispatchEvent(new PopStateEvent("popstate"))
     expect(await screen.findByRole("heading", { name: /every patch, with a paper trail/i })).toBeVisible()
-    expect(screen.getByText("162 commits recorded")).toBeVisible()
+    expect(screen.queryByText("Snapshot details")).not.toBeInTheDocument()
     expect(api.conversations).not.toHaveBeenCalled()
   })
 
