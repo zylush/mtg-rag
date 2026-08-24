@@ -2,6 +2,7 @@ import { ArrowRight, BookOpenCheck, ExternalLink, FileText, ShieldCheck } from "
 import { useState, type FormEvent, type ReactNode } from "react"
 
 import { BrandMark } from "./BrandMark"
+import { PATCH_HISTORY, PATCH_HISTORY_CAPTURE, type PatchHistoryEntry } from "./patch-history"
 import { AppLink } from "./routing"
 import type { AskResponse } from "./types"
 
@@ -29,6 +30,7 @@ function PublicHeader({ authenticated = false, onSignIn, signingIn }: PublicAuth
       </AppLink>
       <nav aria-label="Public">
         <AppLink to="/about">About</AppLink>
+        <AppLink to="/patch-history">Patch history</AppLink>
         {authenticated ? (
           <AppLink className="public-nav-cta" to="/desk">
             Back to desk
@@ -57,6 +59,7 @@ function PublicFooter() {
       </div>
       <nav aria-label="Footer">
         <AppLink to="/about">About</AppLink>
+        <AppLink to="/patch-history">Patch history</AppLink>
         <AppLink to="/terms">Terms of Service</AppLink>
         <AppLink to="/privacy">Privacy Policy</AppLink>
         <a href="mailto:paoloinigo30@gmail.com">Support</a>
@@ -306,6 +309,153 @@ export function WelcomePage({ onSignIn, signingIn, signInError, onPublicAsk }: P
         </section>
 
         <PublicAskPanel onAsk={onPublicAsk} />
+      </main>
+    </PublicLayout>
+  )
+}
+
+function patchDateLabel(date: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+    year: "numeric",
+  }).format(new Date(`${date}T00:00:00Z`))
+}
+
+function groupPatchHistory(entries: readonly PatchHistoryEntry[]) {
+  const groups = new Map<string, PatchHistoryEntry[]>()
+  for (const entry of entries) {
+    const group = groups.get(entry.date) ?? []
+    group.push(entry)
+    groups.set(entry.date, group)
+  }
+  return groups
+}
+
+const PATCH_KIND_LABELS: Record<string, string> = {
+  chore: "Maintenance",
+  ci: "Build",
+  docs: "Documentation",
+  feat: "Feature",
+  fix: "Fix",
+  perf: "Performance",
+  refactor: "Refactor",
+  revert: "Revert",
+  test: "Test",
+}
+
+function concisePatchMessage(subject: string): { kind: string; message: string } {
+  const conventional = subject.match(/^([a-z]+)(?:\([^)]*\))?:\s*(.+)$/i)
+  if (!conventional) {
+    return { kind: "Merge", message: subject.replace(/\.$/, "") }
+  }
+  const kind = PATCH_KIND_LABELS[conventional[1].toLowerCase()] ?? conventional[1]
+  const rawMessage = conventional[2].trim().replace(/\.$/, "")
+  return {
+    kind,
+    message: rawMessage.charAt(0).toUpperCase() + rawMessage.slice(1),
+  }
+}
+
+export function PatchHistoryPage({
+  authenticated = false,
+  onSignIn,
+  signingIn,
+  signInError,
+}: PublicAuthActions) {
+  const groups = groupPatchHistory(PATCH_HISTORY)
+
+  return (
+    <PublicLayout
+      authenticated={authenticated}
+      onSignIn={onSignIn}
+      signingIn={signingIn}
+      signInError={signInError}
+    >
+      <main className="public-page document-page patch-history-page">
+        <div className="document-intro patch-history-intro">
+          <span className="eyebrow">Change ledger</span>
+          <h1>Every patch, with a paper trail.</h1>
+          <p>
+            A chronological record of the Rules Desk preview: product work, tests, refactors,
+            documentation, and release checkpoints in the order they landed.
+          </p>
+        </div>
+
+        <section className="patch-history-summary" aria-label="Patch history summary">
+          <div>
+            <strong>{PATCH_HISTORY_CAPTURE.commitCount} commits recorded</strong>
+            <span>Complete snapshot</span>
+          </div>
+          <div>
+            <strong>{PATCH_HISTORY_CAPTURE.firstDate}</strong>
+            <span>First patch</span>
+          </div>
+          <div>
+            <strong>{PATCH_HISTORY_CAPTURE.lastDate}</strong>
+            <span>Latest release checkpoint</span>
+          </div>
+        </section>
+
+        <div className="patch-history-layout">
+          <aside className="patch-history-index" aria-label="Patch history capture details">
+            <span className="section-label">Snapshot details</span>
+            <dl>
+              <div>
+                <dt>Branch</dt>
+                <dd>
+                  <code>{PATCH_HISTORY_CAPTURE.branch}</code>
+                </dd>
+              </div>
+              <div>
+                <dt>Captured at</dt>
+                <dd>
+                  <code>{PATCH_HISTORY_CAPTURE.head}</code>
+                </dd>
+              </div>
+            </dl>
+            <p>
+              The ledger is intentionally inclusive: test and documentation patches stay beside
+              feature work so each release decision has context.
+            </p>
+          </aside>
+
+          <div className="patch-history-ledger">
+            <div className="patch-history-ledger-heading">
+              <span className="section-label">Chronological ledger</span>
+              <span>Oldest first</span>
+            </div>
+            {Array.from(groups, ([date, entries]) => {
+              const label = patchDateLabel(date)
+              return (
+                <section className="patch-day" key={date} aria-labelledby={`patch-day-${date}`}>
+                  <div className="patch-day-heading">
+                    <h2 id={`patch-day-${date}`}>{label}</h2>
+                    <span>
+                      {entries.length} {entries.length === 1 ? "patch" : "patches"}
+                    </span>
+                  </div>
+                  <ol className="patch-list" aria-label={`${label} patches`}>
+                    {entries.map((entry) => {
+                      const patch = concisePatchMessage(entry.subject)
+                      return (
+                        <li className="patch-entry" key={entry.hash}>
+                          <code>{entry.hash}</code>
+                          <div>
+                            <span className="patch-entry-kind">{patch.kind}</span>
+                            <p className="patch-entry-subject">{patch.message}</p>
+                            <span className="patch-entry-author">{entry.author}</span>
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </ol>
+                </section>
+              )
+            })}
+          </div>
+        </div>
       </main>
     </PublicLayout>
   )

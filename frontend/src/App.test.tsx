@@ -175,6 +175,12 @@ describe("MTG Rules Desk", () => {
       "mailto:paoloinigo30@gmail.com",
     )
     expect(screen.queryByText(/describe firebase identity/i)).not.toBeInTheDocument()
+
+    window.history.replaceState({}, "", "/patch-history")
+    window.dispatchEvent(new PopStateEvent("popstate"))
+    expect(await screen.findByRole("heading", { name: /every patch, with a paper trail/i })).toBeVisible()
+    expect(screen.getByText("155 commits recorded")).toBeVisible()
+    expect(api.conversations).not.toHaveBeenCalled()
   })
 
   it("gives authenticated public pages a direct route back to the desk", async () => {

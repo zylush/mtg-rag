@@ -90,8 +90,8 @@ test("shows the complete patch ledger without authentication", async ({ page }) 
   await visit(page, "/patch-history")
 
   await expect(page.getByText("155 commits recorded")).toBeVisible()
-  await expect(page.getByText("3e50395")).toBeVisible()
-  await expect(page.getByText(/docs: record chat history verification checkpoints/i)).toBeVisible()
+  await expect(page.getByText("3e50395").last()).toBeVisible()
+  await expect(page.getByText("Record chat history verification checkpoints")).toBeVisible()
 })
 
 test("redirects signed-out desk access home and starts auth from the first screen", async ({ page }) => {

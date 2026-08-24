@@ -23,7 +23,7 @@ import rehypeSanitize from "rehype-sanitize"
 
 import { BrandMark } from "./BrandMark"
 import { InstallPromptBanner } from "./InstallPrompt"
-import { AboutPage, LegalDocumentPage, WelcomePage } from "./PublicPages"
+import { AboutPage, LegalDocumentPage, PatchHistoryPage, WelcomePage } from "./PublicPages"
 import { userMessageFor } from "./api-client"
 import { applyRouteMetadata, getRouteMetadata } from "./route-meta"
 import { AppLink, RouterProvider, useRouter } from "./routing"
@@ -314,6 +314,7 @@ function SettingsPanel({
         <h3>Product and legal</h3>
         <nav className="settings-links" aria-label="Product and legal">
           <AppLink to="/about">About</AppLink>
+          <AppLink to="/patch-history">Patch history</AppLink>
           <AppLink to="/terms">Terms of Service</AppLink>
           <AppLink to="/privacy">Privacy Policy</AppLink>
         </nav>
@@ -641,6 +642,9 @@ function AppContent({ auth, api, install }: AppProps) {
   }
   if (route === "/about") {
     return <AboutPage authenticated={Boolean(user)} {...publicAuthActions} />
+  }
+  if (route === "/patch-history") {
+    return <PatchHistoryPage authenticated={Boolean(user)} {...publicAuthActions} />
   }
   if (route === "/terms") {
     return (
