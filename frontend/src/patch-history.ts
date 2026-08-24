@@ -6,11 +6,11 @@ export interface PatchHistoryEntry {
 }
 
 export const PATCH_HISTORY_CAPTURE = {
-  commitCount: 158,
+  commitCount: 160,
   firstDate: "2026-08-12",
   lastDate: "2026-08-25",
   branch: "preview/single-screen-rag-desk",
-  head: "76ae629",
+  head: "8251f6e",
 } as const
 
 export const PATCH_HISTORY: readonly PatchHistoryEntry[] = [
@@ -172,4 +172,6 @@ export const PATCH_HISTORY: readonly PatchHistoryEntry[] = [
   { hash: "131f036", date: "2026-08-25", author: "Fare Estimator", subject: "docs: add complete patch history" },
   { hash: "4b1479c", date: "2026-08-25", author: "Fare Estimator", subject: "test: define website patch history journey" },
   { hash: "76ae629", date: "2026-08-25", author: "Fare Estimator", subject: "feat: publish concise website patch history" },
+  { hash: "f3f28b7", date: "2026-08-25", author: "Fare Estimator", subject: "test: define patch history compaction controls" },
+  { hash: "8251f6e", date: "2026-08-25", author: "Fare Estimator", subject: "feat: compact and sort patch history dates" },
 ]
