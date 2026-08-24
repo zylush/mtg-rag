@@ -5,13 +5,82 @@ export interface PatchHistoryEntry {
   readonly subject: string
 }
 
+export interface PatchRelease {
+  readonly id: string
+  readonly version: string
+  readonly name: string
+  readonly summary: string
+  readonly environment: string
+  readonly deployedAt: string | null
+  readonly status: "deployed" | "preview"
+  readonly checkpoint: string
+  readonly startAfter: string | null
+  readonly endAt: string
+}
+
 export const PATCH_HISTORY_CAPTURE = {
   commitCount: 160,
   firstDate: "2026-08-12",
   lastDate: "2026-08-25",
   branch: "preview/single-screen-rag-desk",
   head: "8251f6e",
+  repository: "https://github.com/zylush/mtg-rag",
 } as const
+
+/**
+ * Deployment checkpoints are kept separate from the chronological commit ledger so a release
+ * note can explain what shipped in each hosted build without pretending the ledger is live Git.
+ */
+export const PATCH_RELEASES: readonly PatchRelease[] = [
+  {
+    id: "v0.1.0",
+    version: "v0.1.0",
+    name: "First hosted preview",
+    summary: "Core RAG foundation, Firebase delivery, and the first verified public shell.",
+    environment: "Firebase development",
+    deployedAt: "2026-08-13",
+    status: "deployed",
+    checkpoint: "bd44b3a",
+    startAfter: null,
+    endAt: "bd44b3a",
+  },
+  {
+    id: "v0.1.1",
+    version: "v0.1.1",
+    name: "Navigation and auth",
+    summary: "Responsive desk navigation, direct sign-in, and hosted route recovery.",
+    environment: "Firebase development",
+    deployedAt: "2026-08-14",
+    status: "deployed",
+    checkpoint: "247157d",
+    startAfter: "bd44b3a",
+    endAt: "247157d",
+  },
+  {
+    id: "v0.2.0",
+    version: "v0.2.0",
+    name: "Warm preview",
+    summary: "Ember Archive branding, install behavior, PWA assets, and live preview checks.",
+    environment: "Firebase development",
+    deployedAt: "2026-08-19",
+    status: "deployed",
+    checkpoint: "604dfb2",
+    startAfter: "247157d",
+    endAt: "604dfb2",
+  },
+  {
+    id: "v0.3.0",
+    version: "v0.3.0",
+    name: "Chat history desk",
+    summary: "Resumable conversations and a version-aware patch ledger, currently in local preview.",
+    environment: "Local preview",
+    deployedAt: null,
+    status: "preview",
+    checkpoint: "8251f6e",
+    startAfter: "604dfb2",
+    endAt: "8251f6e",
+  },
+]
 
 export const PATCH_HISTORY: readonly PatchHistoryEntry[] = [
   { hash: "a582be5", date: "2026-08-12", author: "Fare Estimator", subject: "feat: establish tested RAG domain foundation" },

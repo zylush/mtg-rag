@@ -91,7 +91,7 @@ test("shows the complete patch ledger without authentication", async ({ page }) 
 
   await expect(page.getByText("160 commits recorded")).toBeVisible()
   await expect(page.getByText("8251f6e").last()).toBeVisible()
-  await expect(page.getByText("Record chat history verification checkpoints")).toBeVisible()
+  await expect(page.getByText("Record chat history verification checkpoints").first()).toBeVisible()
 
   await expect(page.getByRole("heading", { name: "Patch notes by version" })).toBeVisible()
   const notes = page.getByRole("list", { name: "v0.1.0 patch notes" })

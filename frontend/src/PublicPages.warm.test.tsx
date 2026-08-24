@@ -103,10 +103,10 @@ describe("patch history page", () => {
       screen.getByRole("heading", { name: "Every patch, with a paper trail." }),
     ).toBeVisible()
     expect(screen.getByText("160 commits recorded")).toBeVisible()
-    expect(screen.getAllByText("8251f6e")).toHaveLength(2)
-    expect(screen.getByText("Record chat history verification checkpoints")).toBeVisible()
+    expect(screen.getAllByText("8251f6e")).toHaveLength(3)
+    expect(screen.getAllByText("Record chat history verification checkpoints")).toHaveLength(2)
     expect(screen.queryByText(/docs: record chat history verification checkpoints/i)).not.toBeInTheDocument()
-    expect(screen.getAllByRole("listitem")).toHaveLength(160)
+    expect(document.querySelectorAll(".patch-day .patch-entry")).toHaveLength(160)
   })
 
   it("compacts date sections and reorders the ledger", async () => {
@@ -120,10 +120,10 @@ describe("patch history page", () => {
 
     const order = screen.getByRole("combobox", { name: "Patch history order" })
     expect(order).toHaveValue("oldest")
-    expect(screen.getAllByRole("heading", { level: 2 })[0]).toHaveTextContent("Aug 12, 2026")
+    expect(screen.getByRole("heading", { name: "Aug 12, 2026" })).toBeVisible()
 
     await user.selectOptions(order, "newest")
-    expect(screen.getAllByRole("heading", { level: 2 })[0]).toHaveTextContent("Aug 25, 2026")
+    expect(screen.getByRole("heading", { name: "Aug 25, 2026" })).toBeVisible()
     expect(screen.getByText(/^\d+ Feature/)).toBeVisible()
 
     const collapse = screen.getByRole("button", {
@@ -148,6 +148,9 @@ describe("patch history page", () => {
     expect(screen.getByRole("heading", { name: "Patch notes by version" })).toBeVisible()
     expect(screen.getByRole("heading", { name: "First hosted preview" })).toBeVisible()
     expect(screen.getByText("Deployed 2026-08-13")).toBeVisible()
+    expect(
+      screen.getByRole("link", { name: "v0.1.0 checkpoint bd44b3a" }),
+    ).toHaveAttribute("href", "https://github.com/zylush/mtg-rag/commit/bd44b3a")
 
     const notes = screen.getByRole("list", { name: "v0.1.0 patch notes" })
     expect(within(notes).getAllByRole("listitem")).toHaveLength(8)
