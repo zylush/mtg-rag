@@ -17,6 +17,7 @@ export type AppRoute =
   | "/desk/history"
   | "/desk/settings"
   | "/about"
+  | "/patch-history"
   | "/terms"
   | "/privacy"
 
@@ -27,6 +28,7 @@ export function normalizeRoute(pathname: string): AppRoute {
     pathname === "/desk/history" ||
     pathname === "/desk/settings" ||
     pathname === "/about" ||
+    pathname === "/patch-history" ||
     pathname === "/terms" ||
     pathname === "/privacy"
   ) {

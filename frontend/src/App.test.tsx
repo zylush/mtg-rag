@@ -175,6 +175,14 @@ describe("MTG Rules Desk", () => {
       "mailto:paoloinigo30@gmail.com",
     )
     expect(screen.queryByText(/describe firebase identity/i)).not.toBeInTheDocument()
+
+    window.history.replaceState({}, "", "/patch-history")
+    window.dispatchEvent(new PopStateEvent("popstate"))
+    expect(
+      await screen.findByRole("heading", { name: "Patch notes by version.", level: 1 }),
+    ).toBeVisible()
+    expect(screen.queryByText("Chronological ledger")).not.toBeInTheDocument()
+    expect(api.conversations).not.toHaveBeenCalled()
   })
 
   it("gives authenticated public pages a direct route back to the desk", async () => {
@@ -386,6 +394,58 @@ describe("MTG Rules Desk", () => {
 
     await user.click(screen.getByRole("button", { name: /delete conversation/i }))
     await waitFor(() => expect(api.deleteConversation).toHaveBeenCalledWith("conversation-1"))
+  })
+
+  it("loads a saved chat into the desk and continues the same conversation", async () => {
+    const user = userEvent.setup()
+    const api = fakeApi()
+    renderApp(undefined, api)
+
+    await user.click(await screen.findByRole("button", { name: /flying blockers/i }))
+
+    expect(await screen.findByText("What blocks flying?")).toBeVisible()
+    expect(api.conversation).toHaveBeenCalledWith("conversation-1")
+    expect(window.location.pathname).toBe("/desk")
+
+    await user.type(
+      screen.getByRole("textbox", { name: /rules question/i }),
+      "What if the blocker has reach?",
+    )
+    await user.click(screen.getByRole("button", { name: /^ask$/i }))
+
+    await waitFor(() =>
+      expect(api.ask).toHaveBeenCalledWith(
+        "What if the blocker has reach?",
+        "conversation-1",
+        expect.any(String),
+      ),
+    )
+  })
+
+  it("starts a new chat without attaching the next question to loaded history", async () => {
+    const user = userEvent.setup()
+    const api = fakeApi()
+    renderApp(undefined, api)
+
+    await user.click(await screen.findByRole("button", { name: /flying blockers/i }))
+    expect(await screen.findByText("What blocks flying?")).toBeVisible()
+
+    await user.click(screen.getByRole("button", { name: /new chat/i }))
+
+    expect(screen.queryByText("What blocks flying?")).not.toBeInTheDocument()
+    await user.type(
+      screen.getByRole("textbox", { name: /rules question/i }),
+      "How does deathtouch change combat?",
+    )
+    await user.click(screen.getByRole("button", { name: /^ask$/i }))
+
+    await waitFor(() =>
+      expect(api.ask).toHaveBeenCalledWith(
+        "How does deathtouch change combat?",
+        undefined,
+        expect.any(String),
+      ),
+    )
   })
 
   it("uses route-backed modal drawers and restores trigger focus on Escape", async () => {

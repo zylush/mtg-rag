@@ -1,8 +1,8 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import { WelcomePage } from "./PublicPages"
+import { PatchHistoryPage, WelcomePage } from "./PublicPages"
 import { RouterProvider } from "./routing"
 
 function renderWelcome(props: Parameters<typeof WelcomePage>[0] = {}) {
@@ -87,5 +87,113 @@ describe("Ember Archive welcome screen", () => {
 
     expect(await screen.findByText("Flying restricts which creatures can block.")).toBeVisible()
     expect(onPublicAsk).toHaveBeenCalledWith("What is flying?")
+  })
+})
+
+describe("patch history page", () => {
+  it("shows versioned releases without a chronological ledger", () => {
+    window.history.replaceState({}, "", "/patch-history")
+    render(
+      <RouterProvider>
+        <PatchHistoryPage />
+      </RouterProvider>,
+    )
+
+    expect(
+      screen.getByRole("heading", { name: "Patch notes by version." }),
+    ).toBeVisible()
+    expect(screen.queryByText("Chronological ledger")).not.toBeInTheDocument()
+    expect(document.querySelectorAll(".patch-day, .patch-entry")).toHaveLength(0)
+    expect(screen.queryByText("49873ff")).not.toBeInTheDocument()
+  })
+
+  it("merges related changes into concise multi-sentence notes", async () => {
+    const user = userEvent.setup()
+    window.history.replaceState({}, "", "/patch-history")
+    render(
+      <RouterProvider>
+        <PatchHistoryPage />
+      </RouterProvider>,
+    )
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Patch history order" }), "oldest")
+    const notes = screen.getByRole("list", { name: "v0.1.0 patch notes" })
+    const noteItems = within(notes).getAllByRole("listitem")
+
+    expect(noteItems[1]).toHaveTextContent(
+      /Define persistence and ingestion safety contracts.*Add immutable corpus persistence contracts/,
+    )
+    for (const note of noteItems) {
+      expect(note.textContent?.match(/[^.!?]+[.!?]+/g)?.length ?? 0).toBeGreaterThanOrEqual(2)
+    }
+  })
+
+  it("reorders deployment releases", async () => {
+    const user = userEvent.setup()
+    window.history.replaceState({}, "", "/patch-history")
+    render(
+      <RouterProvider>
+        <PatchHistoryPage />
+      </RouterProvider>,
+    )
+
+    const order = screen.getByRole("combobox", { name: "Patch history order" })
+    expect(order).toHaveValue("newest")
+    expect(screen.getAllByRole("heading", { level: 3 })[0]).toHaveTextContent("Chat history desk")
+
+    await user.selectOptions(order, "oldest")
+    expect(screen.getAllByRole("heading", { level: 3 })[0]).toHaveTextContent("First hosted preview")
+  })
+
+  it("groups patch notes by deployment and paginates each release", async () => {
+    const user = userEvent.setup()
+    window.history.replaceState({}, "", "/patch-history")
+    render(
+      <RouterProvider>
+        <PatchHistoryPage />
+      </RouterProvider>,
+    )
+
+    expect(screen.getByRole("heading", { name: "Patch notes by version" })).toBeVisible()
+    const order = screen.getByRole("combobox", { name: "Patch history order" })
+    expect(order).toHaveValue("newest")
+    expect(screen.getByRole("heading", { name: "Chat history desk" })).toBeVisible()
+    await user.selectOptions(order, "oldest")
+    expect(screen.getByRole("heading", { name: "First hosted preview" })).toBeVisible()
+    expect(screen.getByText("Deployed 2026-08-13")).toBeVisible()
+    expect(document.querySelectorAll(".patch-release-card")).toHaveLength(2)
+    expect(screen.queryByText("Git proof")).not.toBeInTheDocument()
+    expect(screen.queryByRole("link", { name: "v0.1.0 checkpoint bd44b3a" })).not.toBeInTheDocument()
+    expect(screen.getByText("Page 1 of 2")).toBeVisible()
+
+    const releasePageTwo = screen.getByRole("button", {
+      name: "Go to deployment releases page 2",
+    })
+    await user.click(releasePageTwo)
+    expect(releasePageTwo).toHaveAttribute("aria-current", "page")
+    expect(screen.getByRole("heading", { name: "Warm preview" })).toBeVisible()
+    expect(screen.getByText("Page 2 of 2")).toBeVisible()
+
+    await user.click(screen.getByRole("button", { name: "Go to deployment releases page 1" }))
+
+    const notes = screen.getByRole("list", { name: "v0.1.0 patch notes" })
+    const noteItems = within(notes).getAllByRole("listitem")
+    expect(noteItems).toHaveLength(8)
+    for (const note of noteItems) {
+      expect(note.textContent?.match(/[^.!?]+[.!?]+/g)?.length ?? 0).toBeGreaterThanOrEqual(2)
+    }
+    const notesPanel = notes.closest(".patch-notes-panel")
+    expect(notesPanel).not.toBeNull()
+    expect(within(notesPanel as HTMLElement).getByText(/Page 1 of \d+/)).toBeVisible()
+    const firstPageText = notes.textContent
+
+    const pageTwo = screen.getByRole("button", {
+      name: "Go to v0.1.0 patch notes page 2",
+    })
+    await user.click(pageTwo)
+    expect(pageTwo).toHaveAttribute("aria-current", "page")
+    expect(within(notesPanel as HTMLElement).getByText(/Page 2 of \d+/)).toBeVisible()
+    expect(notes).not.toHaveTextContent(firstPageText ?? "")
+    expect(within(notes).queryByText("e4b2462")).not.toBeInTheDocument()
   })
 })

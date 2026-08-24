@@ -1,7 +1,21 @@
-import { ArrowRight, BookOpenCheck, ExternalLink, FileText, ShieldCheck } from "lucide-react"
-import { useState, type FormEvent, type ReactNode } from "react"
+import {
+  ArrowRight,
+  BookOpenCheck,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  FileText,
+  ShieldCheck,
+} from "lucide-react"
+import { useMemo, useState, type FormEvent, type ReactNode } from "react"
 
 import { BrandMark } from "./BrandMark"
+import {
+  PATCH_HISTORY,
+  PATCH_RELEASES,
+  type PatchHistoryEntry,
+  type PatchRelease,
+} from "./patch-history"
 import { AppLink } from "./routing"
 import type { AskResponse } from "./types"
 
@@ -29,6 +43,7 @@ function PublicHeader({ authenticated = false, onSignIn, signingIn }: PublicAuth
       </AppLink>
       <nav aria-label="Public">
         <AppLink to="/about">About</AppLink>
+        <AppLink to="/patch-history">Patch history</AppLink>
         {authenticated ? (
           <AppLink className="public-nav-cta" to="/desk">
             Back to desk
@@ -57,6 +72,7 @@ function PublicFooter() {
       </div>
       <nav aria-label="Footer">
         <AppLink to="/about">About</AppLink>
+        <AppLink to="/patch-history">Patch history</AppLink>
         <AppLink to="/terms">Terms of Service</AppLink>
         <AppLink to="/privacy">Privacy Policy</AppLink>
         <a href="mailto:paoloinigo30@gmail.com">Support</a>
@@ -306,6 +322,410 @@ export function WelcomePage({ onSignIn, signingIn, signInError, onPublicAsk }: P
         </section>
 
         <PublicAskPanel onAsk={onPublicAsk} />
+      </main>
+    </PublicLayout>
+  )
+}
+
+function concisePatchMessage(subject: string): string {
+  const conventional = subject.match(/^([a-z]+)(?:\([^)]*\))?:\s*(.+)$/i)
+  if (!conventional) {
+    return subject.replace(/\.$/, "")
+  }
+  const rawMessage = conventional[2].trim().replace(/\.$/, "")
+  return rawMessage.charAt(0).toUpperCase() + rawMessage.slice(1)
+}
+
+interface PatchNote {
+  readonly id: string
+  readonly entries: readonly PatchHistoryEntry[]
+}
+
+const PATCH_NOTE_STOP_WORDS = new Set([
+  "add",
+  "added",
+  "and",
+  "build",
+  "built",
+  "capture",
+  "captured",
+  "complete",
+  "completed",
+  "contract",
+  "contracts",
+  "define",
+  "defined",
+  "document",
+  "documented",
+  "docs",
+  "ensure",
+  "establish",
+  "established",
+  "feature",
+  "fix",
+  "for",
+  "from",
+  "implement",
+  "implemented",
+  "into",
+  "local",
+  "pass",
+  "passed",
+  "preserve",
+  "preserved",
+  "publish",
+  "published",
+  "record",
+  "recorded",
+  "refine",
+  "refined",
+  "refactor",
+  "release",
+  "require",
+  "requires",
+  "safe",
+  "safety",
+  "support",
+  "test",
+  "tested",
+  "tests",
+  "the",
+  "that",
+  "this",
+  "use",
+  "used",
+  "version",
+  "versions",
+  "with",
+])
+
+function patchEntryKeywords(entry: PatchHistoryEntry): ReadonlySet<string> {
+  return new Set(
+    concisePatchMessage(entry.subject)
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .map((token) => {
+        if (token.endsWith("ies")) return `${token.slice(0, -3)}y`
+        if (token.endsWith("s") && token.length > 4) return token.slice(0, -1)
+        return token
+      })
+      .filter((token) => token.length >= 4 && !PATCH_NOTE_STOP_WORDS.has(token)),
+  )
+}
+
+function patchEntriesAreRelated(left: PatchHistoryEntry, right: PatchHistoryEntry): boolean {
+  const rightKeywords = patchEntryKeywords(right)
+  return [...patchEntryKeywords(left)].some((keyword) => rightKeywords.has(keyword))
+}
+
+function mergeSimilarPatchEntries(entries: readonly PatchHistoryEntry[]): readonly PatchNote[] {
+  const groups: PatchHistoryEntry[][] = []
+  let index = 0
+
+  while (index < entries.length) {
+    const current = entries[index]
+    const next = entries[index + 1]
+    if (next && patchEntriesAreRelated(current, next)) {
+      groups.push([current, next])
+      index += 2
+      continue
+    }
+    groups.push([current])
+    index += 1
+  }
+
+  return groups
+    .map((group) => ({
+      id: group.map((entry) => entry.hash).join("-"),
+      entries: group,
+    }))
+}
+
+function patchEntryKind(subject: string): string {
+  return subject.match(/^([a-z]+)(?:\([^)]*\))?:/i)?.[1].toLowerCase() ?? "change"
+}
+
+function patchNoteContext(entry: PatchHistoryEntry): string {
+  switch (patchEntryKind(entry.subject)) {
+    case "docs":
+      return "The release records the evidence behind this checkpoint."
+    case "fix":
+      return "The release carries this correction into the checkpoint."
+    case "feat":
+      return "The release carries this capability into the checkpoint."
+    case "refactor":
+      return "The release keeps the implementation aligned with the checkpoint."
+    case "test":
+      return "The release keeps this behavior covered by an explicit check."
+    case "chore":
+      return "The release keeps the supporting maintenance work in place."
+    default:
+      return "The release records this change at the checkpoint."
+  }
+}
+
+function patchNoteMessage(note: PatchNote): string {
+  const sentences = note.entries.map((entry) => {
+    const message = concisePatchMessage(entry.subject)
+    return /[.!?]$/.test(message) ? message : `${message}.`
+  })
+  if (sentences.length > 1) return sentences.join(" ")
+  return `${sentences[0]} ${patchNoteContext(note.entries[0])}`
+}
+
+const PATCH_NOTES_PAGE_SIZE = 8
+const PATCH_RELEASE_PAGE_SIZE = 2
+
+function entriesForPatchRelease(release: PatchRelease): readonly PatchHistoryEntry[] {
+  const endIndex = PATCH_HISTORY.findIndex((entry) => entry.hash === release.endAt)
+  if (endIndex < 0) return []
+
+  const startIndex = release.startAfter
+    ? PATCH_HISTORY.findIndex((entry) => entry.hash === release.startAfter)
+    : -1
+  if (release.startAfter && startIndex < 0) return []
+  return PATCH_HISTORY.slice(startIndex + 1, endIndex + 1)
+}
+
+function PatchNoteItem({ note }: { note: PatchNote }) {
+  return (
+    <li className="patch-note-item">
+      <span aria-hidden="true">-</span>
+      <span>{patchNoteMessage(note)}</span>
+    </li>
+  )
+}
+
+type PatchHistoryOrder = "oldest" | "newest"
+
+export function PatchHistoryPage({
+  authenticated = false,
+  onSignIn,
+  signingIn,
+  signInError,
+}: PublicAuthActions) {
+  const [order, setOrder] = useState<PatchHistoryOrder>("newest")
+  const [releasePage, setReleasePage] = useState(1)
+  const [patchNotePages, setPatchNotePages] = useState<Record<string, number>>({})
+  const releaseGroups = useMemo(() => {
+    const grouped = PATCH_RELEASES.map((release) => ({
+      release,
+      notes: mergeSimilarPatchEntries(entriesForPatchRelease(release)),
+    }))
+    if (order === "newest") {
+      return grouped.reverse().map(({ release, notes }) => ({
+        release,
+        notes: [...notes].reverse().map((note) => ({
+          ...note,
+          entries: [...note.entries].reverse(),
+        })),
+      }))
+    }
+    return grouped
+  }, [order])
+  const releasePageCount = Math.max(1, Math.ceil(releaseGroups.length / PATCH_RELEASE_PAGE_SIZE))
+  const visibleReleasePage = Math.min(releasePage, releasePageCount)
+  const visibleReleaseGroups = releaseGroups.slice(
+    (visibleReleasePage - 1) * PATCH_RELEASE_PAGE_SIZE,
+    visibleReleasePage * PATCH_RELEASE_PAGE_SIZE,
+  )
+
+  const setPatchNotePage = (releaseId: string, page: number) => {
+    setPatchNotePages((current) => ({ ...current, [releaseId]: page }))
+  }
+
+  const setPatchHistoryOrder = (nextOrder: PatchHistoryOrder) => {
+    setOrder(nextOrder)
+    setReleasePage(1)
+  }
+
+  return (
+    <PublicLayout
+      authenticated={authenticated}
+      onSignIn={onSignIn}
+      signingIn={signingIn}
+      signInError={signInError}
+    >
+      <main className="public-page document-page patch-history-page">
+        <div className="document-intro patch-history-intro">
+          <span className="eyebrow">Release notes</span>
+          <h1>Patch notes by version.</h1>
+          <p>
+            A concise history of hosted Rules Desk releases, with the current local preview clearly
+            marked.
+          </p>
+        </div>
+
+        <section className="patch-release-notes" aria-labelledby="patch-notes-heading">
+          <div className="patch-release-notes-intro">
+            <div>
+              <span className="section-label">Deployment releases</span>
+              <h2 id="patch-notes-heading">Patch notes by version</h2>
+              <p>
+                Each hosted checkpoint gets its own concise notes, while the current local preview
+                is marked separately.
+              </p>
+            </div>
+            <label className="patch-order-filter">
+              <span>Order</span>
+              <select
+                aria-label="Patch history order"
+                value={order}
+                onChange={(event) => setPatchHistoryOrder(event.target.value as PatchHistoryOrder)}
+              >
+                <option value="oldest">Oldest first</option>
+                <option value="newest">Newest first</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="patch-release-list">
+            {visibleReleaseGroups.map(({ release, notes }) => {
+              const pageCount = Math.max(1, Math.ceil(notes.length / PATCH_NOTES_PAGE_SIZE))
+              const page = Math.min(patchNotePages[release.id] ?? 1, pageCount)
+              const pageStart = (page - 1) * PATCH_NOTES_PAGE_SIZE
+              const pageNotes = notes.slice(pageStart, pageStart + PATCH_NOTES_PAGE_SIZE)
+              const releaseHeadingId = `patch-release-heading-${release.id}`
+              const notesListId = `patch-notes-${release.id}`
+
+              return (
+                <article
+                  className="patch-release-card"
+                  data-release-version={release.version}
+                  key={release.id}
+                >
+                  <header className="patch-release-card-header">
+                    <div className="patch-release-card-title">
+                      <span className="patch-release-version">{release.version}</span>
+                      <h3 id={releaseHeadingId}>{release.name}</h3>
+                      <p>{release.summary}</p>
+                    </div>
+                    <dl className="patch-release-meta">
+                      <div>
+                        <dt>Status</dt>
+                        <dd
+                          className={`patch-release-status${release.status === "deployed" ? " is-deployed" : ""}`}
+                        >
+                          {release.status === "deployed" ? "Deployed" : "Local preview"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Environment</dt>
+                        <dd>{release.environment}</dd>
+                      </div>
+                      <div>
+                        <dt>Release date</dt>
+                        <dd>{release.deployedAt ? `Deployed ${release.deployedAt}` : "Not deployed"}</dd>
+                      </div>
+                    </dl>
+                  </header>
+
+                  <section className="patch-notes-panel" aria-labelledby={releaseHeadingId}>
+                    <div className="patch-notes-heading">
+                      <div>
+                        <span className="section-label">Patch notes</span>
+                        <span>
+                          {notes.length} grouped {notes.length === 1 ? "note" : "notes"}
+                        </span>
+                      </div>
+                      <span>
+                        Page {page} of {pageCount}
+                      </span>
+                    </div>
+                    <ol
+                      className="patch-list patch-notes-list"
+                      id={notesListId}
+                      aria-label={`${release.version} patch notes`}
+                    >
+                      {pageNotes.map((note) => (
+                        <PatchNoteItem note={note} key={note.id} />
+                      ))}
+                    </ol>
+                    <nav
+                      className="patch-notes-pagination"
+                      aria-label={`${release.version} patch notes pagination`}
+                    >
+                      <button
+                        className="patch-notes-nav"
+                        type="button"
+                        disabled={page === 1}
+                        aria-label={`Previous ${release.version} patch notes page`}
+                        onClick={() => setPatchNotePage(release.id, page - 1)}
+                      >
+                        <ChevronLeft aria-hidden="true" size={14} />
+                        Previous
+                      </button>
+                      <div className="patch-notes-pages">
+                        {Array.from({ length: pageCount }, (_, index) => index + 1).map((pageNumber) => (
+                          <button
+                            className="patch-notes-page"
+                            type="button"
+                            key={pageNumber}
+                            aria-current={pageNumber === page ? "page" : undefined}
+                            aria-label={`Go to ${release.version} patch notes page ${pageNumber}`}
+                            onClick={() => setPatchNotePage(release.id, pageNumber)}
+                          >
+                            {pageNumber}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        className="patch-notes-nav"
+                        type="button"
+                        disabled={page === pageCount}
+                        aria-label={`Next ${release.version} patch notes page`}
+                        onClick={() => setPatchNotePage(release.id, page + 1)}
+                      >
+                        Next
+                        <ChevronRight aria-hidden="true" size={14} />
+                      </button>
+                    </nav>
+                  </section>
+                </article>
+              )
+            })}
+          </div>
+
+          <nav className="patch-release-pagination" aria-label="Deployment releases pagination">
+            <button
+              className="patch-notes-nav"
+              type="button"
+              disabled={visibleReleasePage === 1}
+              aria-label="Previous deployment releases page"
+              onClick={() => setReleasePage((page) => Math.max(1, page - 1))}
+            >
+              <ChevronLeft aria-hidden="true" size={14} />
+              Previous
+            </button>
+            <div className="patch-notes-pages">
+              {Array.from({ length: releasePageCount }, (_, index) => index + 1).map((pageNumber) => (
+                <button
+                  className="patch-notes-page"
+                  type="button"
+                  key={pageNumber}
+                  aria-current={pageNumber === visibleReleasePage ? "page" : undefined}
+                  aria-label={`Go to deployment releases page ${pageNumber}`}
+                  onClick={() => setReleasePage(pageNumber)}
+                >
+                  {pageNumber}
+                </button>
+              ))}
+            </div>
+            <span className="patch-release-page-count">
+              Page {visibleReleasePage} of {releasePageCount}
+            </span>
+            <button
+              className="patch-notes-nav"
+              type="button"
+              disabled={visibleReleasePage === releasePageCount}
+              aria-label="Next deployment releases page"
+              onClick={() => setReleasePage((page) => Math.min(releasePageCount, page + 1))}
+            >
+              Next
+              <ChevronRight aria-hidden="true" size={14} />
+            </button>
+          </nav>
+        </section>
       </main>
     </PublicLayout>
   )
