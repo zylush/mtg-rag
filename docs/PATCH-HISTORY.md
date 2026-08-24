@@ -2,10 +2,12 @@
 
 This is the repository’s complete chronological patch ledger. It records every commit reachable from the configured Git refs, including feature work, tests, refactors, documentation, merges, and release qualification. Keeping the ledger in the repository makes the applied changes auditable without relying on a local Git UI.
 
-**Snapshot:** 155 commits, 2026-08-12 through 2026-08-25  
-**Branch at capture:** `preview/single-screen-rag-desk`  
-**HEAD at capture:** `3e50395`  
+**Snapshot:** 158 commits, 2026-08-12 through 2026-08-25
+**Branch at capture:** `preview/single-screen-rag-desk`
+**HEAD at capture:** `76ae629`
 **Remote:** https://github.com/zylush/mtg-rag.git
+
+The website’s [Patch history](https://mtg-rules-desk-dev.web.app/patch-history) view presents these same entries as concise release-note messages while retaining each commit hash and author.
 
 ## Release overview
 
@@ -15,11 +17,12 @@ This is the repository’s complete chronological patch ledger. It records every
 | 2026-08-13 | Hardened deployment and cloud integration, including Cloud SQL/Run/Build/IAM, Firebase hosting, environment handling, ingestion safety, and operational documentation. |
 | 2026-08-14–18 | Expanded platform behavior and assurance around routing, auth, SEO, API/hosting integration, privacy, security, and operational readiness. |
 | 2026-08-19 | Delivered the single-screen Rules Desk, responsive/PWA behavior, warm sign-in/install experience, branded assets, browser verification, and preview deployment. |
-| 2026-08-25 | Qualified the development release and added resumable `/desk` chat history: saved-chat loading, conversation continuation, New chat reset, responsive history layout, and verification evidence. |
+| 2026-08-25 | Qualified the development release, added resumable `/desk` chat history, and published the public patch-history ledger with concise release-note copy. |
 
 ## Current release checkpoint
 
 - Live preview: [mtg-rules-desk-dev.web.app](https://mtg-rules-desk-dev.web.app)
+- Website ledger: [mtg-rules-desk-dev.web.app/patch-history](https://mtg-rules-desk-dev.web.app/patch-history)
 - Latest feature evidence: [resumable chat history desk TDD record](testing/chat-history-desk.tdd.md)
 - Deployment record: [operations runbook](operations/OPERATIONS.md)
 - The TDD record captures the automated verification results and the remaining manual screen-reader/Linux visual-baseline follow-ups.
@@ -207,4 +210,6 @@ git log --all --reverse --date=short --pretty=format:"%h|%ad|%an|%s"
 - `e2494e3` — Fare Estimator — feat: add resumable chat history desk
 - `2faa893` — Fare Estimator — refactor: refine responsive chat history layout
 - `3e50395` — Fare Estimator — docs: record chat history verification checkpoints
-
+- `131f036` — Fare Estimator — docs: add complete patch history
+- `4b1479c` — Fare Estimator — test: define website patch history journey
+- `76ae629` — Fare Estimator — feat: publish concise website patch history

@@ -6,11 +6,11 @@ export interface PatchHistoryEntry {
 }
 
 export const PATCH_HISTORY_CAPTURE = {
-  commitCount: 155,
+  commitCount: 158,
   firstDate: "2026-08-12",
   lastDate: "2026-08-25",
   branch: "preview/single-screen-rag-desk",
-  head: "3e50395",
+  head: "76ae629",
 } as const
 
 export const PATCH_HISTORY: readonly PatchHistoryEntry[] = [
@@ -169,4 +169,7 @@ export const PATCH_HISTORY: readonly PatchHistoryEntry[] = [
   { hash: "e2494e3", date: "2026-08-25", author: "Fare Estimator", subject: "feat: add resumable chat history desk" },
   { hash: "2faa893", date: "2026-08-25", author: "Fare Estimator", subject: "refactor: refine responsive chat history layout" },
   { hash: "3e50395", date: "2026-08-25", author: "Fare Estimator", subject: "docs: record chat history verification checkpoints" },
+  { hash: "131f036", date: "2026-08-25", author: "Fare Estimator", subject: "docs: add complete patch history" },
+  { hash: "4b1479c", date: "2026-08-25", author: "Fare Estimator", subject: "test: define website patch history journey" },
+  { hash: "76ae629", date: "2026-08-25", author: "Fare Estimator", subject: "feat: publish concise website patch history" },
 ]
