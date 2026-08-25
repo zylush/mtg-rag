@@ -952,7 +952,27 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   letter-spacing: .08em;
   text-transform: uppercase;
 }
+.patch-order-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 148px;
+}
+.patch-order-select::after {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--blue);
+  border-bottom: 1.5px solid var(--blue);
+  content: "";
+  pointer-events: none;
+  transform: translateY(-65%) rotate(45deg);
+}
 .patch-order-filter select {
+  appearance: none;
+  width: 100%;
   min-height: 36px;
   border: 1px solid var(--line-dark);
   border-radius: 5px;
@@ -984,7 +1004,7 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   .patch-release-card-header, .patch-notes-panel { padding-left: 18px; padding-right: 18px; }
   .patch-release-meta { gap: 14px 12px; }
   .patch-order-filter { justify-content: space-between; width: 100%; }
-  .patch-order-filter select { flex: 1; }
+  .patch-order-select { flex: 1; min-width: 0; }
   .patch-release-pagination { align-items: stretch; flex-wrap: wrap; }
   .patch-release-pagination .patch-notes-pages { order: 3; width: 100%; }
   .patch-release-page-count { align-self: center; }

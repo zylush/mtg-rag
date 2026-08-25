@@ -191,6 +191,18 @@ describe("patch history page", () => {
     expect(screen.getAllByRole("heading", { level: 3 })[0]).toHaveTextContent("First hosted preview")
   })
 
+  it("keeps the deployment order control in one aligned field", () => {
+    window.history.replaceState({}, "", "/patch-history")
+    render(
+      <RouterProvider>
+        <PatchHistoryPage />
+      </RouterProvider>,
+    )
+
+    const order = screen.getByRole("combobox", { name: "Patch history order" })
+    expect(order.closest(".patch-order-select")).toBeInTheDocument()
+  })
+
   it("groups patch notes by deployment and paginates each release", async () => {
     const user = userEvent.setup()
     window.history.replaceState({}, "", "/patch-history")

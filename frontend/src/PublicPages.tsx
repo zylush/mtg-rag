@@ -625,14 +625,16 @@ export function PatchHistoryPage({
             </div>
             <label className="patch-order-filter">
               <span>Order</span>
-              <select
-                aria-label="Patch history order"
-                value={order}
-                onChange={(event) => setPatchHistoryOrder(event.target.value as PatchHistoryOrder)}
-              >
-                <option value="oldest">Oldest first</option>
-                <option value="newest">Newest first</option>
-              </select>
+              <span className="patch-order-select">
+                <select
+                  aria-label="Patch history order"
+                  value={order}
+                  onChange={(event) => setPatchHistoryOrder(event.target.value as PatchHistoryOrder)}
+                >
+                  <option value="oldest">Oldest first</option>
+                  <option value="newest">Newest first</option>
+                </select>
+              </span>
             </label>
           </div>
 

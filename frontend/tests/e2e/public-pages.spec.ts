@@ -155,6 +155,23 @@ test("shows versioned patch releases without authentication", async ({ page }) =
   )
 })
 
+test("keeps the deployment order filter aligned across viewport sizes", async ({ page }) => {
+  for (const width of [390, 1366]) {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 768 })
+    await visit(page, "/patch-history")
+
+    const order = page.getByRole("combobox", { name: "Patch history order" })
+    const shell = page.locator(".patch-order-select")
+    await expect(shell).toHaveCSS("align-items", "center")
+    await expect(order).toHaveCSS("appearance", "none")
+
+    const [selectBox, shellBox] = await Promise.all([order.boundingBox(), shell.boundingBox()])
+    expect(selectBox).not.toBeNull()
+    expect(shellBox).not.toBeNull()
+    expect(Math.abs((selectBox?.height ?? 0) - (shellBox?.height ?? 0))).toBeLessThanOrEqual(1)
+  }
+})
+
 test("redirects signed-out desk access home and starts auth from the first screen", async ({ page }) => {
   await visit(page, "/desk")
 
