@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
@@ -44,6 +44,15 @@ describe("Ember Archive welcome screen", () => {
     expect(container.querySelector('[data-ledger-stage="source"]')).toHaveTextContent(
       "CR 608.2b",
     )
+  })
+
+  it("marks below-fold welcome sections as revealed when observers are unavailable", async () => {
+    const { container } = renderWelcome()
+
+    await waitFor(() => {
+      expect(container.querySelectorAll("[data-scroll-reveal]")).toHaveLength(3)
+      expect(container.querySelectorAll("[data-scroll-reveal].is-visible")).toHaveLength(3)
+    })
   })
 
   it("keeps the required Wizards notice alongside the preview label", () => {

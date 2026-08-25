@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import { AppLink, normalizeRoute, RouterProvider } from "./routing"
 
@@ -52,5 +52,20 @@ describe("routing", () => {
       fireEvent.click(link, options)
       expect(window.location.pathname).toBe("/")
     }
+  })
+
+  it("smoothly returns to the top when a route changes", async () => {
+    window.history.replaceState({}, "", "/")
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 320 })
+    const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => undefined)
+    render(<LinkHarness />)
+
+    fireEvent.click(screen.getByRole("link", { name: "About" }))
+
+    await waitFor(() =>
+      expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" }),
+    )
+    scrollTo.mockRestore()
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 0 })
   })
 })

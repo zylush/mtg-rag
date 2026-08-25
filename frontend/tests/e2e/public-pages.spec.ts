@@ -29,6 +29,32 @@ test("answers one public question without an account", async ({ page }) => {
   await expect(page.getByText("Public answers are informational")).toBeVisible()
 })
 
+test("reveals public sections as they enter the viewport", async ({ page }) => {
+  await visit(page, "/")
+
+  const trustRail = page.locator(".source-trust-rail")
+  await trustRail.scrollIntoViewIfNeeded()
+  await expect(trustRail).toHaveClass(/is-visible/)
+
+  const limitations = page.locator(".public-limitations")
+  await limitations.scrollIntoViewIfNeeded()
+  await expect(limitations).toHaveClass(/is-visible/)
+})
+
+test("smoothly returns to the top when public titles are opened", async ({ page }) => {
+  for (const width of [390, 1366]) {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 768 })
+    await visit(page, "/")
+    await page.getByRole("link", { name: "About" }).last().scrollIntoViewIfNeeded()
+    await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }))
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+
+    await page.getByRole("link", { name: "About" }).last().click()
+    await expect(page).toHaveURL(/\/about$/)
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(4)
+  }
+})
+
 test("welcome screen keeps its warm identity and hierarchy at release widths", async ({ page }, testInfo) => {
   for (const width of [320, 375, 430, 768, 1024, 1366, 1440]) {
     const height = width < 700 ? 812 : width === 768 ? 1024 : 900
