@@ -32,7 +32,7 @@
 }
 
 * { box-sizing: border-box; }
-html { min-width: 320px; min-height: 100%; background: var(--paper); }
+html { min-width: 320px; min-height: 100%; background: var(--paper); scroll-behavior: smooth; }
 body {
   min-width: 320px;
   min-height: 100vh;
@@ -1043,6 +1043,20 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
 .public-site > * {
   position: relative;
   z-index: 1;
+}
+
+[data-scroll-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+  transition:
+    opacity 560ms ease,
+    transform 700ms cubic-bezier(.22, 1, .36, 1);
+  will-change: opacity, transform;
+}
+
+[data-scroll-reveal].is-visible {
+  opacity: 1;
+  transform: none;
 }
 
 .public-site::before {
@@ -3160,6 +3174,15 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+
+  [data-scroll-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+    will-change: auto;
+  }
+
   .engine-status.online .status-dot,
   .shimmer,
   .app-shell .drawer,

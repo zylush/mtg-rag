@@ -7,7 +7,7 @@ import {
   FileText,
   ShieldCheck,
 } from "lucide-react"
-import { useMemo, useState, type FormEvent, type ReactNode } from "react"
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react"
 
 import { BrandMark } from "./BrandMark"
 import {
@@ -16,7 +16,7 @@ import {
   type PatchHistoryEntry,
   type PatchRelease,
 } from "./patch-history"
-import { AppLink } from "./routing"
+import { AppLink, useRouter } from "./routing"
 import type { AskResponse } from "./types"
 
 interface PublicAuthActions {
@@ -96,6 +96,39 @@ function PublicLayout({
 }: {
   children: ReactNode
 } & PublicAuthActions) {
+  const { route } = useRouter()
+
+  useEffect(() => {
+    const targets = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-scroll-reveal]"),
+    )
+    if (targets.length === 0) return
+
+    const prefersReducedMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false
+    if (prefersReducedMotion || typeof IntersectionObserver === "undefined") {
+      targets.forEach((target) => target.classList.add("is-visible"))
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return
+          entry.target.classList.add("is-visible")
+          observer.unobserve(entry.target)
+        })
+      },
+      { rootMargin: "0px 0px -10% 0px", threshold: 0.12 },
+    )
+
+    targets.forEach((target) => {
+      target.classList.remove("is-visible")
+      observer.observe(target)
+    })
+    return () => observer.disconnect()
+  }, [route])
+
   return (
     <div className="public-site">
       <PublicHeader authenticated={authenticated} onSignIn={onSignIn} signingIn={signingIn} />
@@ -155,6 +188,7 @@ function PublicAskPanel({ onAsk }: { onAsk?: PublicAuthActions["onPublicAsk"] })
       className="public-ask-panel"
       aria-labelledby="public-ask-heading"
       aria-busy={pending}
+      data-scroll-reveal
     >
       <div>
         <span className="eyebrow">Open table</span>
@@ -316,6 +350,7 @@ export function WelcomePage({ onSignIn, signingIn, signInError, onPublicAsk }: P
           className="trust-strip source-trust-rail"
           id="how-it-works"
           aria-label="Reference sources"
+          data-scroll-reveal
         >
           <article>
             <BookOpenCheck aria-hidden="true" />
@@ -334,7 +369,7 @@ export function WelcomePage({ onSignIn, signingIn, signInError, onPublicAsk }: P
           </article>
         </section>
 
-        <section className="public-limitations">
+        <section className="public-limitations" data-scroll-reveal>
           <span className="eyebrow">Know the boundary</span>
           <h2>Built for rules questions, not every MTG question.</h2>
           <p>
@@ -614,6 +649,7 @@ export function PatchHistoryPage({
                 <article
                   className="patch-release-card"
                   data-release-version={release.version}
+                  data-scroll-reveal
                   key={release.id}
                 >
                   <header className="patch-release-card-header">
@@ -776,7 +812,7 @@ export function AboutPage({
           </p>
         </div>
 
-        <div className="about-grid">
+        <div className="about-grid" data-scroll-reveal>
           <section>
             <span className="section-label">The purpose</span>
             <h2>Make a precise game state easier to explain.</h2>
@@ -797,7 +833,7 @@ export function AboutPage({
           </section>
         </div>
 
-        <section className="about-section">
+        <section className="about-section" data-scroll-reveal>
           <span className="section-label">Sources and attribution</span>
           <h2>Reference material, clearly named.</h2>
           <p>
@@ -819,7 +855,7 @@ export function AboutPage({
           </p>
         </section>
 
-        <section className="about-section about-boundary">
+        <section className="about-section about-boundary" data-scroll-reveal>
           <span className="section-label">The boundary</span>
           <h2>When the desk should not pretend to know.</h2>
           <p>
@@ -829,7 +865,7 @@ export function AboutPage({
           </p>
         </section>
 
-        <section className="about-section about-support">
+        <section className="about-section about-support" data-scroll-reveal>
           <span className="section-label">Support and corrections</span>
           <h2>Find a source problem? Tell us.</h2>
           <p>
@@ -1091,7 +1127,7 @@ export function LegalDocumentPage({
           <p>{dateLine}</p>
         </div>
 
-        <div className="legal-review-banner" role="note">
+        <div className="legal-review-banner" role="note" data-scroll-reveal>
           <strong>Pending legal review</strong>
           <span>
             {isTerms
@@ -1113,7 +1149,7 @@ export function LegalDocumentPage({
           </aside>
           <article className="legal-copy">
             {sections.map((section) => (
-              <section key={section.id} id={section.id}>
+              <section key={section.id} id={section.id} data-scroll-reveal>
                 <h2>{section.title}</h2>
                 {section.paragraphs.map((paragraph, index) => (
                   <p key={`${section.id}-paragraph-${index}`}>{paragraph}</p>

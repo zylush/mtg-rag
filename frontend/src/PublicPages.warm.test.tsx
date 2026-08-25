@@ -47,7 +47,7 @@ describe("Ember Archive welcome screen", () => {
   })
 
   it("marks below-fold welcome sections as revealed when observers are unavailable", async () => {
-    const { container } = renderWelcome()
+    const { container } = renderWelcome({ onPublicAsk: vi.fn() })
 
     await waitFor(() => {
       expect(container.querySelectorAll("[data-scroll-reveal]")).toHaveLength(3)

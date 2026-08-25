@@ -8,6 +8,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react"
 
@@ -45,8 +46,19 @@ interface RouterContextValue {
 
 const RouterContext = createContext<RouterContextValue | null>(null)
 
+function scrollToTopSmoothly() {
+  const scrollPosition =
+    window.scrollY || document.documentElement.scrollTop || document.body.scrollTop
+  if (scrollPosition <= 0 || typeof window.scrollTo !== "function") return
+  const prefersReducedMotion =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  window.scrollTo({ top: 0, behavior: prefersReducedMotion ? "auto" : "smooth" })
+}
+
 export function RouterProvider({ children }: { children: ReactNode }) {
   const [route, setRoute] = useState<AppRoute>(() => normalizeRoute(window.location.pathname))
+  const previousRoute = useRef<AppRoute | undefined>(undefined)
 
   useEffect(() => {
     const normalized = normalizeRoute(window.location.pathname)
@@ -58,10 +70,17 @@ export function RouterProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("popstate", handlePopState)
   }, [])
 
+  useEffect(() => {
+    if (previousRoute.current && previousRoute.current !== route) scrollToTopSmoothly()
+    previousRoute.current = route
+  }, [route])
+
   const navigate = useCallback((to: AppRoute, options?: { replace?: boolean }) => {
     if (window.location.pathname !== to) {
       const method = options?.replace ? "replaceState" : "pushState"
       window.history[method]({}, "", to)
+    } else {
+      scrollToTopSmoothly()
     }
     setRoute(to)
   }, [])
