@@ -1457,6 +1457,7 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   justify-content: space-between;
   min-width: 0;
   height: 68px;
+  gap: 16px;
   border-bottom: 1px solid var(--desk-line-soft);
   padding: 0 clamp(14px, 3vw, 32px);
   background: rgb(23 18 15 / 92%);
@@ -1464,8 +1465,11 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
 }
 
 .app-shell .wordmark {
+  display: flex;
+  flex: 1 1 auto;
   min-width: 0;
   gap: 11px;
+  overflow: hidden;
 }
 
 .app-shell .wordmark-mark {
@@ -1485,11 +1489,14 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   align-items: center;
   min-width: 0;
   gap: 10px;
+  overflow: hidden;
 }
 
 .app-shell .wordmark strong {
+  overflow: hidden;
   color: var(--desk-text);
   font-size: .9rem;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -1515,8 +1522,10 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
 .app-shell .topbar-actions {
   display: flex;
   align-items: center;
+  flex: 0 0 auto;
   min-width: 0;
   gap: 8px;
+  justify-content: flex-end;
 }
 
 .engine-status {
@@ -1597,6 +1606,7 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   cursor: pointer;
   font-size: .7rem;
   font-weight: 650;
+  white-space: nowrap;
 }
 
 .topbar-nav button:hover,
@@ -1654,6 +1664,18 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   padding: 0 7px 18px;
 }
 
+.history-sidebar-title {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.history-sidebar-title .eyebrow,
+.history-sidebar-title h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .history-sidebar-actions {
   display: flex;
   align-items: center;
@@ -1671,6 +1693,8 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
 
 .history-sidebar .icon-button {
   flex: 0 0 auto;
+  min-width: 38px;
+  min-height: 38px;
 }
 
 .history-collapse-button svg {
@@ -1740,6 +1764,7 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   flex-direction: column;
   gap: 4px;
   min-height: 0;
+  min-width: 0;
   margin: 20px -4px 0;
   padding: 0 4px;
   overflow-y: auto;
@@ -2773,6 +2798,7 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
 
   .app-shell .topbar {
     height: 68px;
+    gap: 10px;
     padding: 0 16px;
   }
 
@@ -2815,7 +2841,28 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
     animation: history-rail-in 180ms ease-out;
   }
 
-  .history-collapse-button {
+  .history-sidebar-header {
+    align-items: center;
+    gap: 10px;
+  }
+
+  .history-sidebar-actions {
+    gap: 6px;
+  }
+
+  .history-sidebar .icon-button {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 8px;
+  }
+
+  .history-sidebar .new-chat-button {
+    flex: 0 0 auto;
+  }
+
+  .history-sidebar .history-collapse-button {
     display: none;
   }
 
@@ -2870,6 +2917,10 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
     padding-bottom: calc(76px + env(safe-area-inset-bottom));
   }
 
+  .app-shell .topbar {
+    gap: 8px;
+  }
+
   .wordmark-copy {
     display: grid;
     gap: 0;
@@ -2880,6 +2931,7 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   }
 
   .engine-status {
+    flex: 0 0 29px;
     width: 29px;
     height: 29px;
     justify-content: center;
@@ -2896,12 +2948,16 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
     display: none;
   }
 
+  .topbar-nav span {
+    display: none;
+  }
+
   .topbar-nav button,
   .app-shell .sign-out-button {
     min-width: 44px;
-    width: auto;
+    width: 44px;
     height: 44px;
-    padding: 8px 7px;
+    padding: 8px;
   }
 
   .command-intro {

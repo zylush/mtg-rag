@@ -22,6 +22,24 @@ async function openHistoryIfCollapsed(page: Page) {
   }
 }
 
+async function expectNoHorizontalOverlap(page: Page, selector: string) {
+  const overlaps = await page.locator(selector).evaluateAll((elements) => {
+    const rects = elements
+      .map((element) => {
+        const rect = element.getBoundingClientRect()
+        return { left: rect.left, right: rect.right, width: rect.width }
+      })
+      .filter((rect) => rect.width > 0)
+
+    return rects.some((rect, index) => {
+      const next = rects[index + 1]
+      return Boolean(next && rect.right > next.left + 1)
+    })
+  })
+
+  expect(overlaps, `horizontal overlap detected for ${selector}`).toBe(false)
+}
+
 test("signs in, answers from sources, and reports remaining quota", async ({ page }) => {
   await signIn(page)
   await page.getByRole("textbox", { name: "Rules question" }).fill("What blocks flying?")
@@ -155,15 +173,60 @@ test("keeps navigation touch-sized and makes chat history collapsible", async ({
   await signIn(page)
   await page.setViewportSize({ width: 1440, height: 900 })
 
+  await expectNoHorizontalOverlap(page, ".topbar > .wordmark, .topbar > .topbar-actions")
+  await expectNoHorizontalOverlap(page, ".topbar-actions > *")
+  await expectNoHorizontalOverlap(
+    page,
+    ".history-sidebar-header > .history-sidebar-title, .history-sidebar-header > .history-sidebar-actions",
+  )
+
   const collapse = page.getByRole("button", { name: "Collapse chat sidebar" })
   await expect(collapse).toBeVisible()
   await collapse.click()
   await expect(page.getByRole("button", { name: "Expand chat sidebar" })).toBeVisible()
 
+  await page.getByRole("button", { name: "Expand chat sidebar" }).click()
+  await page.setViewportSize({ width: 1024, height: 900 })
+  await expect(collapse).toBeVisible()
+  await expectNoHorizontalOverlap(page, ".topbar > .wordmark, .topbar > .topbar-actions")
+  await expectNoHorizontalOverlap(page, ".topbar-actions > *")
+  await expectNoHorizontalOverlap(
+    page,
+    ".history-sidebar-header > .history-sidebar-title, .history-sidebar-header > .history-sidebar-actions",
+  )
+
   await page.setViewportSize({ width: 375, height: 812 })
+  await expectNoHorizontalOverlap(page, ".topbar > .wordmark, .topbar > .topbar-actions")
+  await expectNoHorizontalOverlap(page, ".topbar-actions > *")
   await page.getByRole("button", { name: "History" }).click()
-  await expect(page.getByRole("dialog", { name: "History" })).toBeVisible()
+  const historyDialog = page.getByRole("dialog", { name: "History" })
+  await expect(historyDialog).toBeVisible()
   await expect(page.getByRole("button", { name: "Close history" })).toBeFocused()
+  await expect(historyDialog.locator(".history-collapse-button")).toBeHidden()
+  await expectNoHorizontalOverlap(
+    page,
+    ".history-sidebar-header > .history-sidebar-title, .history-sidebar-header > .history-sidebar-actions",
+  )
+
+  const drawerFits = await historyDialog.evaluate((element) => {
+    const rect = element.getBoundingClientRect()
+    const newChat = element.querySelector(".new-chat-button")?.getBoundingClientRect()
+    return {
+      drawerWidth: rect.width,
+      drawerScrollWidth: element.scrollWidth,
+      newChatWidth: newChat?.width ?? 0,
+    }
+  })
+  expect(drawerFits.drawerScrollWidth).toBeLessThanOrEqual(drawerFits.drawerWidth + 1)
+  expect(drawerFits.newChatWidth).toBeLessThanOrEqual(drawerFits.drawerWidth + 1)
+
+  const closeHistory = page.getByRole("button", { name: "Close history" })
+  const closeSize = await closeHistory.evaluate((element) => {
+    const rect = element.getBoundingClientRect()
+    return { height: rect.height, width: rect.width }
+  })
+  expect(closeSize.height).toBeGreaterThanOrEqual(44)
+  expect(closeSize.width).toBeGreaterThanOrEqual(44)
 
   for (const name of ["History", "Settings", "Sign out"]) {
     const target = page.getByRole("button", { name, exact: true })
@@ -239,6 +302,8 @@ test("supports keyboard entry and stable layouts at release breakpoints", async 
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     )
     expect(hasHorizontalOverflow).toBe(false)
+    await expectNoHorizontalOverlap(page, ".topbar > .wordmark, .topbar > .topbar-actions")
+    await expectNoHorizontalOverlap(page, ".topbar-actions > *")
     if (test.info().project.name === "chromium" && [375, 768, 1440].includes(width)) {
       await expect(page).toHaveScreenshot(`rules-desk-${width}.png`, {
         animations: "disabled",
