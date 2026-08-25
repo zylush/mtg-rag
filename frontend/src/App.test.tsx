@@ -286,7 +286,7 @@ describe("MTG Rules Desk", () => {
   it("displays source attribution and the unofficial-product notice", async () => {
     renderApp(new FakeAuth(null))
 
-    expect(screen.getByText("Public development preview")).toBeVisible()
+    expect(screen.getByText("BETA VERSION")).toBeVisible()
     expect(screen.getByText(/unofficial fan content/i)).toBeVisible()
     expect(screen.getByText(/card data and rulings are provided through scryfall/i)).toBeVisible()
   })

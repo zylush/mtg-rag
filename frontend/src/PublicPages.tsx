@@ -38,7 +38,7 @@ function PublicHeader({ authenticated = false, onSignIn, signingIn }: PublicAuth
         <BrandMark className="wordmark-mark" />
         <span>
           <strong>MTG Rules Desk</strong>
-          <small>Public development preview</small>
+          <small>BETA VERSION</small>
         </span>
       </AppLink>
       <nav aria-label="Public">

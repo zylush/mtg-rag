@@ -9,6 +9,7 @@ test("shows a public welcome preview and legal navigation", async ({ page }) => 
   await visit(page, "/")
 
   await expect(page.getByRole("heading", { name: /settle the ruling/i })).toBeVisible()
+  await expect(page.getByText("BETA VERSION", { exact: true })).toBeVisible()
   await expect(page.getByText("Question / Answer / Sources", { exact: true })).toBeVisible()
   await expect(page.getByRole("link", { name: "Terms of Service" })).toBeVisible()
   await expect(page.getByRole("link", { name: "Privacy Policy" })).toBeVisible()

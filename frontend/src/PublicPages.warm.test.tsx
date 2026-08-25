@@ -19,7 +19,7 @@ describe("Ember Archive welcome screen", () => {
   it("presents the warm citation-first welcome hierarchy and shared mark", () => {
     const { container } = renderWelcome()
 
-    expect(screen.getByText("Public development preview")).toBeVisible()
+    expect(screen.getByText("BETA VERSION")).toBeVisible()
     expect(screen.getByText("Rules answers with receipts")).toBeVisible()
     expect(
       screen.getByRole("heading", { name: "Settle the ruling. Keep the game moving." }),
@@ -55,10 +55,10 @@ describe("Ember Archive welcome screen", () => {
     })
   })
 
-  it("keeps the required Wizards notice alongside the preview label", () => {
+  it("keeps the required Wizards notice alongside the beta label", () => {
     renderWelcome()
 
-    expect(screen.getByText("Public development preview")).toBeVisible()
+    expect(screen.getByText("BETA VERSION")).toBeVisible()
     expect(
       screen.getByText(/unofficial fan content permitted under the fan content policy/i),
     ).toBeVisible()
