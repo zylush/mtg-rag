@@ -151,6 +151,31 @@ test("uses route-backed drawers with keyboard focus and product links", async ({
   await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible()
 })
 
+test("keeps navigation touch-sized and makes chat history collapsible", async ({ page }) => {
+  await signIn(page)
+  await page.setViewportSize({ width: 1440, height: 900 })
+
+  const collapse = page.getByRole("button", { name: "Collapse chat sidebar" })
+  await expect(collapse).toBeVisible()
+  await collapse.click()
+  await expect(page.getByRole("button", { name: "Expand chat sidebar" })).toBeVisible()
+
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.getByRole("button", { name: "History" }).click()
+  await expect(page.getByRole("dialog", { name: "History" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Close history" })).toBeFocused()
+
+  for (const name of ["History", "Settings", "Sign out"]) {
+    const target = page.getByRole("button", { name, exact: true })
+    const size = await target.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      return { height: rect.height, width: rect.width }
+    })
+    expect(size.height).toBeGreaterThanOrEqual(44)
+    expect(size.width).toBeGreaterThanOrEqual(44)
+  }
+})
+
 test("shows a durable answer-feedback result", async ({ page }) => {
   await signIn(page)
   await page.getByRole("textbox", { name: "Rules question" }).fill("What blocks flying?")
@@ -194,6 +219,11 @@ test("supports keyboard entry and stable layouts at release breakpoints", async 
     if (aboutIsFocused) {
       await expect(aboutLink).toBeFocused()
       await page.keyboard.press("Tab")
+      const patchHistoryLink = page.getByRole("link", { name: "Patch history" }).first()
+      const patchHistoryIsFocused = await patchHistoryLink.evaluate(
+        (element) => element === document.activeElement,
+      )
+      if (patchHistoryIsFocused) await page.keyboard.press("Tab")
     }
   }
   await expect(signInButton).toBeFocused()

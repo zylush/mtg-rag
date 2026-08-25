@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest"
 
 import { PatchHistoryPage, WelcomePage } from "./PublicPages"
 import { RouterProvider } from "./routing"
+import type { AskResponse } from "./types"
 
 function renderWelcome(props: Parameters<typeof WelcomePage>[0] = {}) {
   window.history.replaceState({}, "", "/")
@@ -28,6 +29,21 @@ describe("Ember Archive welcome screen", () => {
     expect(screen.getByText("Oracle text")).toBeVisible()
     expect(screen.getByText("Official rulings")).toBeVisible()
     expect(container.querySelector("[data-brand-mark]")).toBeInTheDocument()
+  })
+
+  it("keeps the ledger copy accessible while sequencing its question, answer, and sources", () => {
+    const { container } = renderWelcome()
+
+    expect(container.querySelectorAll(".ledger-typing-line")).toHaveLength(4)
+    expect(container.querySelector('[data-ledger-stage="question"]')).toHaveTextContent(
+      "If a spell loses its only target",
+    )
+    expect(container.querySelector('[data-ledger-stage="answer"]')).toHaveTextContent(
+      "The spell does not resolve",
+    )
+    expect(container.querySelector('[data-ledger-stage="source"]')).toHaveTextContent(
+      "CR 608.2b",
+    )
   })
 
   it("keeps the required Wizards notice alongside the preview label", () => {
@@ -87,6 +103,27 @@ describe("Ember Archive welcome screen", () => {
 
     expect(await screen.findByText("Flying restricts which creatures can block.")).toBeVisible()
     expect(onPublicAsk).toHaveBeenCalledWith("What is flying?")
+  })
+
+  it("shows an accessible answer skeleton while a public question is pending", async () => {
+    const user = userEvent.setup()
+    const onPublicAsk = vi.fn(
+      () => new Promise<AskResponse>(() => undefined),
+    )
+    renderWelcome({ onPublicAsk })
+
+    await user.type(
+      screen.getByRole("textbox", { name: "Your rules question" }),
+      "What is flying?",
+    )
+    await user.click(screen.getByRole("button", { name: "Ask for free" }))
+
+    const loading = await screen.findByRole("status", {
+      name: /checking public rules question/i,
+    })
+    expect(loading).toBeVisible()
+    expect(document.querySelector(".public-ask-panel")).toHaveAttribute("aria-busy", "true")
+    expect(loading.querySelectorAll(".public-ask-skeleton .shimmer")).toHaveLength(3)
   })
 })
 

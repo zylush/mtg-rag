@@ -128,13 +128,45 @@ beforeEach(() => {
 })
 
 describe("MTG Rules Desk", () => {
-  it("renders a public welcome page with a static source preview", () => {
+  it("renders a public welcome page with a source preview", () => {
     renderApp(new FakeAuth(null), undefined, undefined, "/")
 
     expect(screen.getByRole("heading", { name: /settle the ruling/i })).toBeVisible()
     expect(screen.getByText("Question / Answer / Sources")).toBeVisible()
     expect(screen.getByRole("link", { name: /terms of service/i })).toBeVisible()
     expect(screen.getByRole("link", { name: /privacy policy/i })).toBeVisible()
+  })
+
+  it("can collapse and expand the chat history sidebar", async () => {
+    const user = userEvent.setup()
+    renderApp()
+
+    const collapse = await screen.findByRole("button", { name: "Collapse chat sidebar" })
+    expect(collapse).toHaveAttribute("aria-expanded", "true")
+
+    await user.click(collapse)
+
+    const expand = screen.getByRole("button", { name: "Expand chat sidebar" })
+    expect(expand).toHaveAttribute("aria-expanded", "false")
+    expect(document.querySelector(".app-shell")).toHaveClass("history-collapsed")
+
+    await user.click(expand)
+    expect(screen.getByRole("button", { name: "Collapse chat sidebar" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    )
+  })
+
+  it("shows accessible animated placeholders while history is loading", async () => {
+    const api = fakeApi()
+    api.conversations = vi.fn(() => new Promise<ConversationSummary[]>(() => undefined))
+    renderApp(undefined, api)
+
+    const loading = await screen.findByRole("status", { name: /loading history/i })
+    expect(loading).toBeVisible()
+    const historyList = document.getElementById("chat-history-list")
+    expect(historyList).toHaveAttribute("aria-busy", "true")
+    expect(historyList?.querySelectorAll(".history-skeleton")).toHaveLength(3)
   })
 
   it("starts Firebase auth from the first screen without an intermediate screen", async () => {
@@ -420,6 +452,44 @@ describe("MTG Rules Desk", () => {
         expect.any(String),
       ),
     )
+  })
+
+  it("shows a loading conversation shell while opening a saved chat", async () => {
+    const user = userEvent.setup()
+    const api = fakeApi()
+    let resolveConversation!: (detail: ConversationDetail) => void
+    api.conversation = vi.fn(
+      () =>
+        new Promise<ConversationDetail>((resolve) => {
+          resolveConversation = resolve
+        }),
+    )
+    renderApp(undefined, api)
+
+    await user.click(await screen.findByRole("button", { name: /flying blockers/i }))
+
+    const loading = await screen.findByRole("status", {
+      name: /opening saved conversation/i,
+    })
+    expect(loading).toBeVisible()
+    expect(screen.getByRole("main")).toHaveAttribute("aria-busy", "true")
+    expect(document.querySelectorAll(".conversation-skeleton-message")).toHaveLength(3)
+    const historyList = document.getElementById("chat-history-list")
+    expect(historyList).toHaveAttribute("aria-busy", "true")
+    expect(document.querySelector(".history-opening-state")).toBeVisible()
+    expect(
+      document.querySelectorAll(".history-opening-state .history-skeleton"),
+    ).toHaveLength(2)
+
+    resolveConversation({
+      id: "conversation-1",
+      title: "Flying blockers",
+      messages: [],
+    })
+
+    expect(await screen.findByRole("textbox", { name: /rules question/i })).toBeVisible()
+    expect(screen.getByRole("main")).toHaveAttribute("aria-busy", "false")
+    expect(historyList).toHaveAttribute("aria-busy", "false")
   })
 
   it("starts a new chat without attaching the next question to loaded history", async () => {

@@ -4,6 +4,8 @@ import {
   BookOpenText,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Clipboard,
   Download,
   LogOut,
@@ -159,21 +161,40 @@ function SourceList({ answer }: { answer: AskResponse }) {
   )
 }
 
+function HistorySkeletonRows({ count = 3 }: { count?: number }) {
+  return (
+    <div className="history-skeleton-list" aria-hidden="true">
+      {Array.from({ length: count }, (_, index) => (
+        <div className="history-skeleton" key={index}>
+          <span className="shimmer history-skeleton-title" />
+          <span className="shimmer history-skeleton-date" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function HistoryPanel({
   api,
   activeId,
   open,
+  collapsed,
   onClose,
+  onToggleCollapse,
   onNewChat,
   onOpenConversation,
+  onOpeningChange,
   returnFocusRef,
 }: {
   api: ApiPort
   activeId: string | undefined
   open: boolean
+  collapsed: boolean
   onClose: () => void
   onNewChat: () => void
+  onToggleCollapse: () => void
   onOpenConversation: (detail: ConversationDetail) => void
+  onOpeningChange?: (opening: boolean) => void
   returnFocusRef: RefObject<HTMLButtonElement | null>
 }) {
   const closeButtonRef = useModalDrawer(onClose, returnFocusRef, open)
@@ -183,11 +204,15 @@ function HistoryPanel({
   })
   const opening = useMutation({
     mutationFn: (id: string) => api.conversation(id),
+    onMutate: () => onOpeningChange?.(true),
     onSuccess: (detail) => {
       onOpenConversation(detail)
       onClose()
     },
+    onSettled: () => onOpeningChange?.(false),
   })
+
+  const historyLoading = summaries.isPending && !summaries.data
 
   const startNewChat = () => {
     onNewChat()
@@ -196,40 +221,81 @@ function HistoryPanel({
 
   return (
     <aside
-      className={"history-sidebar" + (open ? " open" : "")}
+      id="chat-history-sidebar"
+      className={"history-sidebar" + (open ? " open" : "") + (collapsed ? " collapsed" : "")}
       role={open ? "dialog" : undefined}
       aria-modal={open ? "true" : undefined}
       aria-labelledby={open ? "history-heading" : undefined}
       aria-label={open ? undefined : "Chat history"}
     >
       <header className="history-sidebar-header">
-        <div>
+        <div className="history-sidebar-title">
           <span className="eyebrow">Rulings ledger</span>
           <h2 id="history-heading">History</h2>
         </div>
-        {open && (
+        <div className="history-sidebar-actions">
           <button
-            ref={closeButtonRef}
-            className="icon-button"
-            onClick={onClose}
-            aria-label="Close history"
+            className="icon-button history-collapse-button"
+            type="button"
+            onClick={onToggleCollapse}
+            aria-controls="chat-history-sidebar"
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? "Expand chat sidebar" : "Collapse chat sidebar"}
+            title={collapsed ? "Expand chat history" : "Collapse chat history"}
           >
-            <X aria-hidden="true" />
+            {collapsed ? (
+              <ChevronRight aria-hidden="true" />
+            ) : (
+              <ChevronLeft aria-hidden="true" />
+            )}
           </button>
-        )}
+          {open && (
+            <button
+              ref={closeButtonRef}
+              className="icon-button"
+              type="button"
+              onClick={onClose}
+              aria-label="Close history"
+            >
+              <X aria-hidden="true" />
+            </button>
+          )}
+        </div>
       </header>
       <button className="new-chat-button" type="button" onClick={startNewChat}>
         <Plus aria-hidden="true" size={18} />
-        New chat
+        <span>New chat</span>
       </button>
-      <div className="history-list">
+      <div
+        className="history-list"
+        id="chat-history-list"
+        aria-busy={historyLoading || opening.isPending}
+      >
         <span className="history-list-label">Recent rulings</span>
         {summaries.isError && (
           <div className="status-message error" role="alert">
             {userMessageFor(summaries.error)}
           </div>
         )}
-        {summaries.isPending && <p className="quiet">Loading history…</p>}
+        {historyLoading && (
+          <>
+            <p
+              className="quiet"
+              role="status"
+              aria-label="Loading history"
+              aria-live="polite"
+            >
+              Loading history…
+            </p>
+            <HistorySkeletonRows />
+          </>
+        )}
+        {opening.isPending && (
+          <div className="history-opening-state" aria-hidden="true">
+            <span className="quiet">Opening saved conversation…</span>
+            <HistorySkeletonRows count={2} />
+          </div>
+        )}
         {!summaries.isPending && summaries.data?.length === 0 && (
           <div className="empty-state">
             <Archive aria-hidden="true" />
@@ -400,6 +466,8 @@ function AppContent({ auth, api, install }: AppProps) {
   const { dismissBanner, installApp, installReady, showBanner } = useInstallPrompt(install)
   const [signInStatus, setSignInStatus] = useState<"idle" | "pending" | "error">("idle")
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle")
+  const [historyCollapsed, setHistoryCollapsed] = useState(false)
+  const [openingConversation, setOpeningConversation] = useState(false)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const hasFocusedCommand = useRef(false)
@@ -659,7 +727,7 @@ function AppContent({ auth, api, install }: AppProps) {
   if (user === null) return <WelcomePage {...publicAuthActions} />
 
   return (
-    <div className="app-shell">
+    <div className={"app-shell" + (historyCollapsed ? " history-collapsed" : "")}>
       <header className="topbar">
         <div className="wordmark">
           <BrandMark className="wordmark-mark" />
@@ -720,13 +788,48 @@ function AppContent({ auth, api, install }: AppProps) {
         api={api}
         activeId={conversationId}
         open={panel === "history"}
+        collapsed={historyCollapsed}
         returnFocusRef={historyTriggerRef}
         onClose={() => navigate("/desk")}
         onNewChat={startNewChat}
+        onToggleCollapse={() => setHistoryCollapsed((current) => !current)}
         onOpenConversation={openConversation}
+        onOpeningChange={setOpeningConversation}
       />
 
-      <main className={"desk " + (messages.length ? "has-conversation" : "new-conversation")}>
+      <main
+        className={
+          "desk " +
+          (messages.length ? "has-conversation" : "new-conversation") +
+          (openingConversation ? " is-opening-conversation" : "")
+        }
+        aria-busy={openingConversation}
+      >
+        {openingConversation && (
+          <section
+            className="conversation-loading"
+            role="status"
+            aria-label="Opening saved conversation"
+            aria-live="polite"
+          >
+            <p className="quiet">Opening saved conversation…</p>
+            <div className="conversation-loading-skeleton" aria-hidden="true">
+              <div className="conversation-skeleton-message user">
+                <span className="shimmer conversation-skeleton-label" />
+                <span className="shimmer conversation-skeleton-line wide" />
+              </div>
+              <div className="conversation-skeleton-message assistant">
+                <span className="shimmer conversation-skeleton-label" />
+                <span className="shimmer conversation-skeleton-line" />
+                <span className="shimmer conversation-skeleton-line medium" />
+              </div>
+              <div className="conversation-skeleton-message assistant compact">
+                <span className="shimmer conversation-skeleton-label" />
+                <span className="shimmer conversation-skeleton-line short" />
+              </div>
+            </div>
+          </section>
+        )}
         <section className="command-hero" aria-labelledby="command-heading">
           {messages.length ? (
             <div className="conversation-heading">

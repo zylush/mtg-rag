@@ -139,6 +139,7 @@ function PublicAskPanel({ onAsk }: { onAsk?: PublicAuthActions["onPublicAsk"] })
     if (!text || pending) return
     setPending(true)
     setError(false)
+    setAnswer(undefined)
     try {
       setAnswer(await onAsk(text))
       setQuestion("")
@@ -150,7 +151,11 @@ function PublicAskPanel({ onAsk }: { onAsk?: PublicAuthActions["onPublicAsk"] })
   }
 
   return (
-    <section className="public-ask-panel" aria-labelledby="public-ask-heading">
+    <section
+      className="public-ask-panel"
+      aria-labelledby="public-ask-heading"
+      aria-busy={pending}
+    >
       <div>
         <span className="eyebrow">Open table</span>
         <h2 id="public-ask-heading">Try one rules question without an account.</h2>
@@ -183,7 +188,22 @@ function PublicAskPanel({ onAsk }: { onAsk?: PublicAuthActions["onPublicAsk"] })
           saved desk.
         </p>
       )}
-      {answer && (
+      {pending && (
+        <section
+          className="public-ask-loading"
+          role="status"
+          aria-label="Checking public rules question"
+          aria-live="polite"
+        >
+          <p className="quiet">Checking the rules…</p>
+          <div className="public-ask-skeleton" aria-hidden="true">
+            <span className="shimmer public-ask-skeleton-line wide" />
+            <span className="shimmer public-ask-skeleton-line" />
+            <span className="shimmer public-ask-skeleton-source" />
+          </div>
+        </section>
+      )}
+      {answer && !pending && (
         <article className="public-ask-result" aria-live="polite">
           <span className="section-label">Desk answer</span>
           <p>{answer.answer}</p>
@@ -227,24 +247,26 @@ function RulingLedgerPreview() {
         <div className="ledger-sheet">
           <div className="ledger-section">
             <span className="section-label">Table question</span>
-            <p className="ledger-question">
+            <p className="ledger-question ledger-typing-line" data-ledger-stage="question">
               If a spell loses its only target, does the spell still resolve?
             </p>
           </div>
           <div className="ledger-rule" aria-hidden="true" />
           <div className="ledger-section">
             <span className="section-label">Desk ruling</span>
-            <p>
+            <p className="ledger-typing-line" data-ledger-stage="answer">
               The spell does not resolve when all of its targets are illegal as it tries to
               resolve. The game rules put it into its owner's graveyard.
             </p>
           </div>
           <div className="ledger-source-tabs" aria-label="Example sources">
-            <span>
+            <span className="ledger-typing-line" data-ledger-stage="source">
               <BookOpenCheck aria-hidden="true" size={15} />
               CR 608.2b
             </span>
-            <span>Targets checked on resolution</span>
+            <span className="ledger-typing-line" data-ledger-stage="source-detail">
+              Targets checked on resolution
+            </span>
           </div>
         </div>
       </div>

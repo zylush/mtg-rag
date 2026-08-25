@@ -56,3 +56,44 @@ test("mobile install banner can be dismissed without losing the explicit install
   await page.getByRole("button", { name: "Sign in with Google" }).click()
   await expect(page.getByText("Keep the rules desk close")).toBeHidden()
 })
+
+test("public reference screens stay inside mobile viewports", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" })
+
+  for (const route of ["/", "/about", "/patch-history", "/terms", "/privacy"]) {
+    await page.setViewportSize({ width: 320, height: 780 })
+    await page.goto(`/e2e.html?route=${encodeURIComponent(route)}`)
+    await expect(page.getByRole("link", { name: "MTG Rules Desk home" })).toBeVisible()
+
+    const dimensions = await page.evaluate(() => ({
+      body: document.body.scrollWidth,
+      document: document.documentElement.scrollWidth,
+      viewport: document.documentElement.clientWidth,
+    }))
+    expect(dimensions.body).toBeLessThanOrEqual(dimensions.viewport)
+    expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport)
+
+    if (route === "/") {
+      await expect(page.locator(".ledger-typing-line").first()).toHaveCSS(
+        "animation-name",
+        "ledger-type-on",
+      )
+      await expect(page.locator(".ledger-typing-line").first()).toHaveCSS(
+        "animation-iteration-count",
+        "1",
+      )
+      await expect(page.locator(".ledger-stack")).toHaveCSS(
+        "animation-name",
+        "ledger-stack-settle",
+      )
+      await expect(page.locator(".ledger-sheet-back")).toHaveCSS(
+        "animation-name",
+        "ledger-back-drift",
+      )
+    }
+  }
+
+  await page.emulateMedia({ reducedMotion: "reduce" })
+  await page.goto("/e2e.html?route=/")
+  await expect(page.locator(".ledger-typing-line").first()).toHaveCSS("animation-name", "none")
+})
