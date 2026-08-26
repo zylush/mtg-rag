@@ -29,6 +29,7 @@ import { AboutPage, LegalDocumentPage, PatchHistoryPage, WelcomePage } from "./P
 import { userMessageFor } from "./api-client"
 import { applyRouteMetadata, getRouteMetadata } from "./route-meta"
 import { AppLink, RouterProvider, useRouter } from "./routing"
+import { RulesGridBackdrop } from "./RulesGridBackdrop"
 import { useInstallPrompt } from "./useInstallPrompt"
 import type {
   ApiPort,
@@ -728,6 +729,7 @@ function AppContent({ auth, api, install }: AppProps) {
 
   return (
     <div className={"app-shell" + (historyCollapsed ? " history-collapsed" : "")}>
+      <RulesGridBackdrop variant="desk" />
       <header className="topbar">
         <div className="wordmark">
           <BrandMark className="wordmark-mark" />
@@ -861,7 +863,14 @@ function AppContent({ auth, api, install }: AppProps) {
             </div>
           )}
 
-          <form className="question-form" onSubmit={submit}>
+          <form className="question-form" data-surface="question-console" onSubmit={submit}>
+            <div className="command-console-heading" aria-hidden="true">
+              <span className="command-console-title">
+                <span className="command-console-dot" />
+                Rules query
+              </span>
+              <span className="command-console-status">Retrieval ready</span>
+            </div>
             <div className="command-field">
               <Search aria-hidden="true" className="command-search-icon" />
               <label className="sr-only" htmlFor="rules-question">Rules question</label>
@@ -1026,7 +1035,15 @@ function AppContent({ auth, api, install }: AppProps) {
               </section>
             )}
 
-            <section className="evidence-zone" aria-label="Citational evidence">
+            <section
+              className="evidence-zone"
+              aria-label="Citational evidence"
+              data-surface="evidence-rail"
+            >
+              <div className="evidence-rail-heading" aria-hidden="true">
+                <span>Source trail</span>
+                <span>{answer.citations.length} references</span>
+              </div>
               <SourceList answer={answer} />
               <details className="citation-tree">
                 <summary>

@@ -17,6 +17,7 @@ import {
   type PatchRelease,
 } from "./patch-history"
 import { AppLink, useRouter } from "./routing"
+import { RulesGridBackdrop } from "./RulesGridBackdrop"
 import type { AskResponse } from "./types"
 
 interface PublicAuthActions {
@@ -188,6 +189,7 @@ function PublicAskPanel({ onAsk }: { onAsk?: PublicAuthActions["onPublicAsk"] })
       className="public-ask-panel"
       aria-labelledby="public-ask-heading"
       aria-busy={pending}
+      data-surface="public-question-console"
       data-scroll-reveal
     >
       <div>
@@ -312,6 +314,7 @@ export function WelcomePage({ onSignIn, signingIn, signInError, onPublicAsk }: P
   return (
     <PublicLayout onSignIn={onSignIn} signingIn={signingIn} signInError={signInError}>
       <main className="public-page welcome-page">
+        <RulesGridBackdrop variant="public" />
         <section className="welcome-hero">
           <div className="hero-copy">
             <span className="eyebrow">Rules answers with receipts</span>
