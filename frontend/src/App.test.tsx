@@ -303,6 +303,9 @@ describe("MTG Rules Desk", () => {
     await user.click(screen.getByRole("button", { name: /^ask$/i }))
 
     expect(await screen.findByText(/only be blocked by creatures with flying/i)).toBeVisible()
+    expect(document.querySelector('.rules-grid-backdrop[data-variant="desk"]')).toBeInTheDocument()
+    expect(document.querySelector('[data-surface="question-console"]')).toBeInTheDocument()
+    expect(document.querySelector('[data-surface="evidence-rail"]')).toBeInTheDocument()
     expect(screen.getByText("19 answers left today")).toBeVisible()
     expect(screen.getByRole("link", { name: /comprehensive rules 702.9/i })).toHaveAttribute(
       "href",

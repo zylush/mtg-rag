@@ -19,6 +19,7 @@ describe("Ember Archive welcome screen", () => {
   it("presents the warm citation-first welcome hierarchy and shared mark", () => {
     const { container } = renderWelcome()
 
+    expect(container.querySelector('.rules-grid-backdrop[data-variant="public"]')).toBeInTheDocument()
     expect(screen.getByText("BETA VERSION")).toBeVisible()
     expect(screen.getByText("Rules answers with receipts")).toBeVisible()
     expect(
@@ -44,6 +45,12 @@ describe("Ember Archive welcome screen", () => {
     expect(container.querySelector('[data-ledger-stage="source"]')).toHaveTextContent(
       "CR 608.2b",
     )
+  })
+
+  it("marks the public question surface for the command-console treatment", () => {
+    const { container } = renderWelcome({ onPublicAsk: vi.fn() })
+
+    expect(container.querySelector('[data-surface="public-question-console"]')).toBeInTheDocument()
   })
 
   it("marks below-fold welcome sections as revealed when observers are unavailable", async () => {
