@@ -26,7 +26,7 @@ The journeys were derived from the approved UI plan: add a restrained MTG rules-
 
 - RED checkpoint: `09c4b7f` (`test: add red coverage for rules grid surfaces`)
 - GREEN implementation checkpoint: `4073b7f` (`feat: add rules grid surfaces to welcome and desk`)
-- Follow-up validation changes and refreshed baselines are pending the next checkpoint.
+- Validation/baseline checkpoint: `d2966cd` (`test: stabilize responsive rules grid validation`)
 
 ## Known gaps
 
