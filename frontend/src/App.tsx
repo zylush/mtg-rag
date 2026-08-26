@@ -735,7 +735,7 @@ function AppContent({ auth, api, install }: AppProps) {
           <BrandMark className="wordmark-mark" />
           <div className="wordmark-copy">
             <strong>MTG Rules Desk</strong>
-            <span className="engine-version">Development preview</span>
+            <span className="engine-version">BETA VERSION</span>
           </div>
         </div>
 
