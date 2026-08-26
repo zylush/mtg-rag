@@ -280,7 +280,8 @@ describe("MTG Rules Desk", () => {
     await user.click(screen.getByRole("button", { name: /sign in with google/i }))
 
     expect(await screen.findByRole("textbox", { name: /rules question/i })).toBeVisible()
-    expect(screen.getByText("Development preview")).toBeVisible()
+    expect(screen.getByText("BETA VERSION", { exact: true })).toBeVisible()
+    expect(screen.queryByText("Development preview", { exact: true })).not.toBeInTheDocument()
   })
 
   it("displays source attribution and the unofficial-product notice", async () => {
