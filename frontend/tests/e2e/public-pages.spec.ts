@@ -195,8 +195,14 @@ test("normalizes unknown routes and applies development-safe metadata", async ({
 })
 
 test("public pages have no detectable WCAG violations", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" })
   for (const route of ["/", "/about", "/terms", "/privacy", "/patch-history"]) {
     await visit(page, route)
+    const firstReveal = page.locator("[data-scroll-reveal]").first()
+    if (await firstReveal.count()) {
+      await firstReveal.scrollIntoViewIfNeeded()
+      await expect(firstReveal).toHaveClass(/is-visible/)
+    }
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
       .analyze()

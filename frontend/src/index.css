@@ -1048,7 +1048,6 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
 }
 @media (max-width: 560px) {
   .public-header { padding: 17px 16px; }
-  .public-brand small { display: none; }
   .public-header nav { gap: 8px; }
   .public-header .public-nav-cta { padding: 9px 10px; }
   .public-page { padding: 25px 16px 68px; }
